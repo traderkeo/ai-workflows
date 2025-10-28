@@ -1,0 +1,60 @@
+# Rule: Style UI & Code
+
+## Scope
+- Applies to: React/Next.js apps, Tailwind CSS, shadcn/ui, MDX docs/blog, simple marketing pages, dashboards.
+- Goal: Generate UIs and code that match Vercel-like aesthetics and interaction quality.
+
+## Visual Identity (must)
+- Default to **dark-first** with graceful light mode.
+- **Typography:** Use **Geist** (or fallback: Inter/Helvetica). Headings: tight tracking, bold; body: relaxed leading.
+- **Colors:** Monochrome base with subtle tints.
+  - Background: `#000` (dark), `#fff` (light)
+  - Foreground: `#fff` on dark, `#111` on light
+  - Muted text: gray/neutral 400–500
+  - Borders: **hairline** (1px) using transparent whites in dark (`rgba(255,255,255,.08)`) or transparent blacks in light (`rgba(0,0,0,.08)`).
+- **Accents:** Minimal, used sparingly (e.g., a single gradient stroke, dot, or callout).
+- **Gradients:** Soft, desaturated, radial/linear blends (e.g., from-zinc-200/white to transparent) used as halos behind key elements—not as loud fills.
+
+## Layout & Components (must)
+- **Spacing:** Generous outer padding; compact internal density.
+- **Cards:** Rounded-2xl, soft shadow (or border), subtle hover translate/scale (1–2%).
+- **Buttons:** Minimal contrast outlines or ghost; one high-emphasis solid variant for primary actions.
+- **Nav:** Sticky top, glassy translucency, 1px bottom border, responsive collapse.
+- **Sections:** Clear vertical rhythm (e.g., 96–128px blocks on desktop), centered max-width (e.g., 7xl).
+- **Icons:** Simple line icons (lucide-react). Keep stroke widths consistent.
+
+## Motion (must)
+- Easing: `cubic-bezier(.2,.8,.2,1)`.
+- Durations: 150–300ms for UI; 600–900ms for page-level reveals.
+- Use **scale/opacity/translate** only; avoid gimmicks. Animate **enter** not **every interaction**.
+
+## Accessibility (must)
+- Respect **prefers-reduced-motion**.
+- Contrast ≥ WCAG AA for text. Focus rings visible (outline-offset: 2).
+- Hit targets ≥ 40px touch area.
+
+## Content Style (should)
+- Concise, confident, neutral tone. Avoid exclamation-heavy marketing.
+- Sentence case for UI chrome; Title Case optional for hero headings.
+
+## Code Conventions (must)
+- **Next.js App Router**, TypeScript, React Server Components.
+- Tailwind class order: layout → spacing → sizing → typography → color → effects → state.
+- **shadcn/ui** for primitives; extend with tokens below.
+- Keep components small and composable; elevate variants via props.
+
+## Tailwind Tokens (should)
+When generating code, assume these theme tokens exist (see tailwind preset below):
+- `--bg`, `--fg`, `--muted`, `--border`, `--ring`, `--accent`, `--card`, `--card-foreground`.
+
+## Example Prompts (meta)
+- “Build a hero with black background, white text, subtle radial highlight behind headline, primary ghost button, and a thin bottom divider. Use Geist and tokens. Add 1px hairline borders.”
+
+## Output Requirements (must)
+- Prefer **dark UI** examples.
+- Include **ARIA labels** and keyboard interactions where relevant.
+- Avoid saturated color blocks; rely on typography, spacing, and hairlines.
+
+---
+alwaysApply: true
+---

@@ -1,0 +1,28 @@
+{
+    "projects": {
+      "/path/to/your/project": {
+        "mcpServers": {
+          "filesystem": {
+            "command": "pnpm",
+            "args": ["dlx", "@modelcontextprotocol/server-filesystem", "/Users/username/Desktop", "/path/to/allowed/dir"]
+          },
+          "memory": {
+            "command": "pnpm",
+            "args": ["dlx", "@modelcontextprotocol/server-memory"]
+          },
+          "fetch": {
+            "command": "pnpm",
+            "args": ["dlx", "@modelcontextprotocol/server-fetch"]
+          },
+          "supabase": {
+            "command": "pnpm",
+            "args": ["dlx", "@modelcontextprotocol/server-supabase"],
+            "env": {
+              "SUPABASE_URL": "https://your-project.supabase.co",
+              "SUPABASE_SERVICE_ROLE_KEY": "your-service-role-key"
+            }
+          }
+        }
+      }
+    }
+  }
