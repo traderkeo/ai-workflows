@@ -409,6 +409,8 @@ For new categories of information:
 
 **Starting Session?** → Read `session_handoff.md` + `active_subtask.md` + `blockers.md`
 **Writing Code?** → Reference `style.md` + `patterns.md`
+**Using Internal APIs?** → Reference `api_reference.md`
+**Running Commands?** → Reference `commands.md`
 **Making Architectural Decision?** → Create ADR in `decisions/`
 **Found a Bug?** → Log to `current.md`
 **Stuck?** → Log to `blockers.md`

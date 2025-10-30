@@ -11,10 +11,13 @@ export const Canvas = ({ children, ...props }: CanvasProps) => (
   <ReactFlow
     deleteKeyCode={["Backspace", "Delete"]}
     fitView
-    panOnDrag={false}
+    panOnDrag={[1, 2]}
     panOnScroll
     selectionOnDrag={true}
     zoomOnDoubleClick={false}
+    nodesDraggable={true}
+    nodesConnectable={true}
+    elementsSelectable={true}
     {...props}
   >
     <Background bgColor="var(--sidebar)" />
