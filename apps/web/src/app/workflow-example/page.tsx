@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useState, useMemo } from 'react';
-import { applyNodeChanges, applyEdgeChanges, addEdge, type Connection as ReactFlowConnection, type Node as ReactFlowNode, type Edge as ReactFlowEdge, type NodeChange, type EdgeChange } from '@xyflow/react';
+import { applyNodeChanges, applyEdgeChanges, addEdge, ConnectionMode, type Connection as ReactFlowConnection, type Node as ReactFlowNode, type Edge as ReactFlowEdge, type NodeChange, type EdgeChange } from '@xyflow/react';
 import { Canvas } from '@/components/ai-elements/canvas';
 import { Connection } from '@/components/ai-elements/connection';
 import { Controls } from '@/components/ai-elements/controls';
@@ -17,13 +17,15 @@ import { Panel } from '@/components/ai-elements/panel';
 import { Toolbar } from '@/components/ai-elements/toolbar';
 import { Button } from '@/components/ui/button';
 
-type WorkflowNode = ReactFlowNode<{
+type WorkflowData = {
   label: string;
   description: string;
   handles: { target: boolean; source: boolean };
   content: string;
   footer: string;
-}>;
+};
+
+type WorkflowNode = ReactFlowNode<WorkflowData>;
 
 type WorkflowEdge = ReactFlowEdge;
 
@@ -162,8 +164,8 @@ const nodeTypes = {
         footer: string;
       };
     }) => (
-      <Node handles={data.handles}>
-        <NodeHeader>
+      <Node handles={data.handles} className="p-2 min-w-[500px]">
+        <NodeHeader className="p-2">
           <NodeTitle>{data.label}</NodeTitle>
           <NodeDescription>{data.description}</NodeDescription>
         </NodeHeader>
@@ -201,7 +203,8 @@ export default function WorkflowExamplePage() {
 
   // Handle node changes (drag, select, etc.)
   const onNodesChange = useCallback(
-    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    (changes: NodeChange[]) =>
+      setNodes((nds) => applyNodeChanges<WorkflowNode>(changes as NodeChange<WorkflowNode>[], nds)),
     []
   );
 
@@ -216,11 +219,12 @@ export default function WorkflowExamplePage() {
     (connection: ReactFlowConnection) => {
       const newEdge: WorkflowEdge = {
         id: `edge-${Date.now()}`,
+        className: 'animated',
         source: connection.source!,
         target: connection.target!,
         type: 'animated',
       };
-      setEdges((eds) => addEdge(newEdge, eds));
+      setEdges((eds) => addEdge<WorkflowEdge>(newEdge, eds));
     },
     []
   );
@@ -230,6 +234,7 @@ export default function WorkflowExamplePage() {
     const newNode: WorkflowNode = {
       id: `node-${nextNodeId}`,
       type: 'workflow',
+      className: 'animated',
       position: { x: Math.random() * 1000, y: Math.random() * 600 },
       data: {
         label: `New Node ${nextNodeId}`,
@@ -256,7 +261,7 @@ export default function WorkflowExamplePage() {
     onNodesChange={onNodesChange}
     onEdgesChange={onEdgesChange}
     onConnect={onConnect}
-    connectionMode="loose"
+    connectionMode={ConnectionMode.Loose}
     defaultEdgeOptions={{ type: 'animated' }}
     fitViewOptions={{ padding: 0.2 }}
   >
