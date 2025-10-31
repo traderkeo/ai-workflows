@@ -1,217 +1,184 @@
 'use client';
-import { useCallback, useState, useMemo } from 'react';
-import { applyNodeChanges, applyEdgeChanges, addEdge, ConnectionMode, type Connection as ReactFlowConnection, type Node as ReactFlowNode, type Edge as ReactFlowEdge, type NodeChange, type EdgeChange } from '@xyflow/react';
-import { Canvas } from '@/components/ai-elements/canvas';
-import { Connection } from '@/components/ai-elements/connection';
-import { Controls } from '@/components/ai-elements/controls';
-import { Edge } from '@/components/ai-elements/edge';
+import { useCallback, useMemo, useState } from 'react';
+import { 
+  applyNodeChanges, 
+  applyEdgeChanges, 
+  addEdge as addReactFlowEdge,
+  type Connection as ReactFlowConnection, 
+  type NodeChange,
+  type EdgeChange,
+} from '@xyflow/react';
+import { WorkflowCanvas } from './_components/WorkflowCanvas';
+import { ToolbarPanel } from './_components/ToolbarPanel';
+import { createNodeTypes } from './_components/NodeFactory';
 import {
-  Node,
-  NodeContent,
-  NodeDescription,
-  NodeFooter,
-  NodeHeader,
-  NodeTitle,
-} from '@/components/ai-elements/node';
-import { Panel } from '@/components/ai-elements/panel';
-import { Toolbar } from '@/components/ai-elements/toolbar';
-import { Button } from '@/components/ui/button';
+  EditTextNodeDialog,
+  EditStructuredDataNodeDialog,
+  EditConditionalNodeDialog,
+  EditStopNodeDialog,
+} from './_components/dialogs';
+import { useWorkflowStore } from './_components/store/useWorkflowStore';
+import type { 
+  WorkflowNode, 
+  WorkflowEdge, 
+  WorkflowNodeData,
+  TextNodeData,
+  StructuredDataNodeData,
+  ConditionalNodeData,
+  StopNodeData,
+} from './_components/types';
 
-type WorkflowData = {
-  label: string;
-  description: string;
-  handles: { target: boolean; source: boolean };
-  content: string;
-  footer: string;
-};
-
-type WorkflowNode = ReactFlowNode<WorkflowData>;
-
-type WorkflowEdge = ReactFlowEdge;
-
-const initialNodeIds = {
-    start: 'start',
-    process1: 'process1',
-    process2: 'process2',
-    decision: 'decision',
-    output1: 'output1',
-    output2: 'output2',
-  };
-
-  const initialNodes: WorkflowNode[] = [
-    {
-      id: initialNodeIds.start,
-      type: 'workflow',
-      position: { x: 0, y: 0 },
-      data: {
-        label: 'Start',
-        description: 'Initialize workflow',
-        handles: { target: false, source: true },
-        content: 'Triggered by user action at 09:30 AM',
-        footer: 'Status: Ready',
+const initialNodes: WorkflowNode[] = [
+  {
+    id: 'start',
+    type: 'text',
+    position: { x: 0, y: 0 },
+    data: {
+      type: 'text',
+      label: 'Start',
+      description: 'Initialize workflow with text input',
+      handles: { target: false, source: true },
+      input: 'User input text',
+      status: 'idle',
+    },
+  },
+  {
+    id: 'process1',
+    type: 'text',
+    position: { x: 500, y: 0 },
+    data: {
+      type: 'text',
+      label: 'Generate Text',
+      description: 'Process and generate text response',
+      handles: { target: true, source: true },
+      input: 'Processing input...',
+      output: 'Generated text response',
+      status: 'completed',
+    },
+  },
+  {
+    id: 'decision',
+    type: 'conditional',
+    position: { x: 1000, y: 0 },
+    data: {
+      type: 'conditional',
+      label: 'Decision Point',
+      description: 'Route based on conditions',
+      handles: { target: true, source: true },
+      condition: "data.status === 'valid' && data.score > 0.8",
+      branches: [
+        { id: 'if', label: 'If', condition: 'valid' },
+        { id: 'else', label: 'Else', condition: 'invalid' },
+      ],
+      status: 'idle',
+    },
+  },
+  {
+    id: 'structured',
+    type: 'structured',
+    position: { x: 1500, y: -200 },
+    data: {
+      type: 'structured',
+      label: 'Extract Data',
+      description: 'Extract structured data from text',
+      handles: { target: true, source: true },
+      input: 'Raw text input',
+      schema: {
+        name: 'string',
+        age: 'number',
+        email: 'string',
       },
-    },
-    {
-      id: initialNodeIds.process1,
-      type: 'workflow',
-      position: { x: 500, y: 0 },
-      data: {
-        label: 'Process Data',
-        description: 'Transform input',
-        handles: { target: true, source: true },
-        content: 'Validating 1,234 records and applying business rules',
-        footer: 'Duration: ~2.5s',
+      output: {
+        name: 'John Doe',
+        age: 30,
+        email: 'john@example.com',
       },
+      status: 'completed',
     },
-    {
-      id: initialNodeIds.decision,
-      type: 'workflow',
-      position: { x: 1000, y: 0 },
-      data: {
-        label: 'Decision Point',
-        description: 'Route based on conditions',
-        handles: { target: true, source: true },
-        content: "Evaluating: data.status === 'valid' && data.score > 0.8",
-        footer: 'Confidence: 94%',
-      },
+  },
+  {
+    id: 'stop',
+    type: 'stop',
+    position: { x: 2000, y: 0 },
+    data: {
+      type: 'stop',
+      label: 'Stop',
+      description: 'Terminate workflow path',
+      handles: { target: true, source: false },
+      reason: 'Workflow completed successfully',
+      status: 'stopped',
     },
-    {
-      id: initialNodeIds.output1,
-      type: 'workflow',
-      position: { x: 1500, y: -300 },
-      data: {
-        label: 'Success Path',
-        description: 'Handle success case',
-        handles: { target: true, source: true },
-        content: '1,156 records passed validation (93.7%)',
-        footer: 'Next: Send to production',
-      },
-    },
-    {
-      id: initialNodeIds.output2,
-      type: 'workflow',
-      position: { x: 1500, y: 300 },
-      data: {
-        label: 'Error Path',
-        description: 'Handle error case',
-        handles: { target: true, source: true },
-        content: '78 records failed validation (6.3%)',
-        footer: 'Next: Queue for review',
-      },
-    },
-    {
-      id: initialNodeIds.process2,
-      type: 'workflow',
-      position: { x: 2000, y: 0 },
-      data: {
-        label: 'Complete',
-        description: 'Finalize workflow',
-        handles: { target: true, source: false },
-        content: 'All records processed and routed successfully',
-        footer: 'Total time: 4.2s',
-      },
-    },
-  ];
+  },
+];
 
-  const initialEdges: WorkflowEdge[] = [
-    {
-      id: 'edge1',
-      source: initialNodeIds.start,
-      target: initialNodeIds.process1,
-      type: 'animated',
-    },
-    {
-      id: 'edge2',
-      source: initialNodeIds.process1,
-      target: initialNodeIds.decision,
-      type: 'animated',
-    },
-    {
-      id: 'edge3',
-      source: initialNodeIds.decision,
-      target: initialNodeIds.output1,
-      type: 'animated',
-    },
-    {
-      id: 'edge4',
-      source: initialNodeIds.decision,
-      target: initialNodeIds.output2,
-      type: 'temporary',
-    },
-    {
-      id: 'edge5',
-      source: initialNodeIds.output1,
-      target: initialNodeIds.process2,
-      type: 'animated',
-    },
-    {
-      id: 'edge6',
-      source: initialNodeIds.output2,
-      target: initialNodeIds.process2,
-      type: 'temporary',
-    },
-  ];
-
-const nodeTypes = {
-    workflow: ({
-      data,
-    }: {
-      data: {
-        label: string;
-        description: string;
-        handles: { target: boolean; source: boolean };
-        content: string;
-        footer: string;
-      };
-    }) => (
-      <Node handles={data.handles} className="p-2 min-w-[500px]">
-        <NodeHeader className="p-2">
-          <NodeTitle>{data.label}</NodeTitle>
-          <NodeDescription>{data.description}</NodeDescription>
-        </NodeHeader>
-        <NodeContent>
-          <p className="text-sm">{data.content}</p>
-        </NodeContent>
-        <NodeFooter>
-          <p className="text-muted-foreground text-xs">{data.footer}</p>
-        </NodeFooter>
-        <Toolbar>
-          <Button 
-          //@ts-ignore
-          size="sm" variant="ghost">
-            Edit
-          </Button>
-          <Button 
-          //@ts-ignore
-          size="sm" variant="ghost">
-            Delete
-          </Button>
-        </Toolbar>
-      </Node>
-    ),
-  };
-
-  const edgeTypes = {
-    animated: Edge.Animated,
-    temporary: Edge.Temporary,
-  };
+const initialEdges: WorkflowEdge[] = [
+  {
+    id: 'edge1',
+    source: 'start',
+    target: 'process1',
+    type: 'animated',
+  },
+  {
+    id: 'edge2',
+    source: 'process1',
+    target: 'decision',
+    type: 'animated',
+  },
+  {
+    id: 'edge3',
+    source: 'decision',
+    sourceHandle: 'if',
+    target: 'structured',
+    type: 'animated',
+  },
+  {
+    id: 'edge4',
+    source: 'structured',
+    target: 'stop',
+    type: 'animated',
+  },
+];
 
 export default function WorkflowExamplePage() {
-  const [nodes, setNodes] = useState<WorkflowNode[]>(initialNodes);
-  const [edges, setEdges] = useState<WorkflowEdge[]>(initialEdges);
-  const [nextNodeId, setNextNodeId] = useState(1);
+  const {
+    nodes,
+    edges,
+    nextNodeId,
+    updateNodes,
+    updateEdges,
+    updateNodeData,
+    addNode,
+    removeNode,
+    addEdge,
+    getNode,
+    savedWorkflows,
+    saveCurrentWorkflow,
+    loadWorkflowById,
+    deleteSavedWorkflow,
+    exportWorkflow,
+  } = useWorkflowStore(initialNodes, initialEdges);
+
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+
+  // Get the currently editing node - depend on nodes directly to ensure updates
+  const editingNode = useMemo(() => {
+    return editingNodeId ? nodes.find((node) => node.id === editingNodeId) ?? null : null;
+  }, [editingNodeId, nodes]);
 
   // Handle node changes (drag, select, etc.)
   const onNodesChange = useCallback(
-    (changes: NodeChange[]) =>
-      setNodes((nds) => applyNodeChanges<WorkflowNode>(changes as NodeChange<WorkflowNode>[], nds)),
-    []
+    (changes: NodeChange[]) => {
+      updateNodes((nds) => applyNodeChanges(changes, nds) as WorkflowNode[]);
+    },
+    [updateNodes]
   );
 
   // Handle edge changes (select, delete, etc.)
   const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    []
+    (changes: EdgeChange[]) => {
+      updateEdges((eds) => applyEdgeChanges(changes, eds));
+    },
+    [updateEdges]
   );
 
   // Handle new connections between nodes
@@ -219,68 +186,200 @@ export default function WorkflowExamplePage() {
     (connection: ReactFlowConnection) => {
       const newEdge: WorkflowEdge = {
         id: `edge-${Date.now()}`,
-        className: 'animated',
         source: connection.source!,
         target: connection.target!,
+        sourceHandle: connection.sourceHandle,
+        targetHandle: connection.targetHandle,
         type: 'animated',
       };
-      setEdges((eds) => addEdge<WorkflowEdge>(newEdge, eds));
+      addEdge(newEdge);
     },
-    []
+    [addEdge]
   );
 
+  // Handle node edit
+  const handleNodeEdit = useCallback((nodeId: string) => {
+    setEditingNodeId(nodeId);
+  }, []);
+
+  // Handle save edited node
+  const handleSaveNode = useCallback((data: WorkflowNodeData) => {
+    const nodeId = editingNodeId;
+    if (!nodeId) {
+      console.warn('Cannot save: editingNodeId is not set');
+      return;
+    }
+    
+    // Update the node data
+    updateNodeData(nodeId, data);
+    // Note: Dialog will call onOpenChange(false) to close itself
+  }, [editingNodeId, updateNodeData]);
+
+  // Handle node delete
+  const handleNodeDelete = useCallback((nodeId: string) => {
+    removeNode(nodeId);
+  }, [removeNode]);
+
   // Add a new node to the workflow
-  const addNewNode = useCallback(() => {
+  const addNewNode = useCallback((nodeType: WorkflowNodeData['type']) => {
+    const getDefaultData = (type: WorkflowNodeData['type']): WorkflowNodeData => {
+      switch (type) {
+        case 'text':
+          return {
+            type: 'text',
+            label: `Text Node ${nextNodeId}`,
+            description: 'Generate text from input',
+            handles: { target: true, source: true },
+            status: 'idle',
+          };
+        case 'structured':
+          return {
+            type: 'structured',
+            label: `Structured Node ${nextNodeId}`,
+            description: 'Extract structured data from text',
+            handles: { target: true, source: true },
+            status: 'idle',
+          };
+        case 'conditional':
+          return {
+            type: 'conditional',
+            label: `Conditional Node ${nextNodeId}`,
+            description: 'Route workflow based on conditions',
+            handles: { target: true, source: true },
+            branches: [
+              { id: 'if', label: 'If', condition: 'true' },
+              { id: 'else', label: 'Else', condition: 'false' },
+            ],
+            status: 'idle',
+          };
+        case 'stop':
+          return {
+            type: 'stop',
+            label: `Stop Node ${nextNodeId}`,
+            description: 'Terminate workflow path',
+            handles: { target: true, source: false },
+            status: 'idle',
+          };
+      }
+    };
+
     const newNode: WorkflowNode = {
       id: `node-${nextNodeId}`,
-      type: 'workflow',
-      className: 'animated',
-      position: { x: Math.random() * 1000, y: Math.random() * 600 },
-      data: {
-        label: `New Node ${nextNodeId}`,
-        description: 'A new workflow node',
-        handles: { target: true, source: true },
-        content: 'This is a dynamically created node',
-        footer: 'Ready to connect',
+      type: nodeType,
+      position: { 
+        x: Math.random() * 1000 + 200, 
+        y: Math.random() * 600 + 100 
       },
+      data: getDefaultData(nodeType),
     };
-    setNodes((nds) => [...nds, newNode]);
-    setNextNodeId((id) => id + 1);
-  }, [nextNodeId]);
+    
+    addNode(newNode);
+  }, [nextNodeId, addNode]);
+
+  // Get workflow data for export menu
+  const workflowData = useMemo(() => exportWorkflow(), [exportWorkflow]);
+
+  const handleSaveWorkflow = useCallback(() => {
+    const defaultName = `Workflow ${new Date().toLocaleString()}`;
+    const name = window.prompt('Save workflow as:', defaultName);
+    if (!name) {
+      return;
+    }
+    saveCurrentWorkflow(name);
+  }, [saveCurrentWorkflow]);
+
+  const handleLoadWorkflow = useCallback((workflowId: string) => {
+    loadWorkflowById(workflowId);
+  }, [loadWorkflowById]);
+
+  const handleDeleteWorkflow = useCallback((workflowId: string) => {
+    const confirmed = window.confirm('Delete this saved workflow?');
+    if (!confirmed) {
+      return;
+    }
+    deleteSavedWorkflow(workflowId);
+  }, [deleteSavedWorkflow]);
+
+  // Create node types with handlers
+  const nodeTypes = useMemo(
+    () => createNodeTypes(handleNodeEdit, handleNodeDelete),
+    [handleNodeEdit, handleNodeDelete]
+  );
+
+  // Get dialog component for editing node
+  const renderEditDialog = () => {
+    if (!editingNode) return null;
+
+    const { type, data } = editingNode;
+
+    switch (type) {
+      case 'text':
+        return (
+          <EditTextNodeDialog
+            key={editingNode.id} // Key ensures dialog updates when node changes
+            open={!!editingNode}
+            onOpenChange={(open) => !open && setEditingNodeId(null)}
+            nodeData={data as TextNodeData}
+            onSave={handleSaveNode}
+          />
+        );
+      case 'structured':
+        return (
+          <EditStructuredDataNodeDialog
+            key={editingNode.id}
+            open={!!editingNode}
+            onOpenChange={(open) => !open && setEditingNodeId(null)}
+            nodeData={data as StructuredDataNodeData}
+            onSave={handleSaveNode}
+          />
+        );
+      case 'conditional':
+        return (
+          <EditConditionalNodeDialog
+            key={editingNode.id}
+            open={!!editingNode}
+            onOpenChange={(open) => !open && setEditingNodeId(null)}
+            nodeData={data as ConditionalNodeData}
+            onSave={handleSaveNode}
+          />
+        );
+      case 'stop':
+        return (
+          <EditStopNodeDialog
+            key={editingNode.id}
+            open={!!editingNode}
+            onOpenChange={(open) => !open && setEditingNodeId(null)}
+            nodeData={data as StopNodeData}
+            onSave={handleSaveNode}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-6 text-center h-[100vh] w-[100vw]">
       <div className="space-y-4" style={{ height: '100%', width: '100%' }}>
-      <Canvas
-    edges={edges}
-    edgeTypes={edgeTypes}
-    fitView
-    nodes={nodes}
-    nodeTypes={nodeTypes}
-    connectionLineComponent={Connection}
-    onNodesChange={onNodesChange}
-    onEdgesChange={onEdgesChange}
-    onConnect={onConnect}
-    connectionMode={ConnectionMode.Loose}
-    defaultEdgeOptions={{ type: 'animated' }}
-    fitViewOptions={{ padding: 0.2 }}
-  >
-    <Controls />
-    <Panel position="top-left">
-      <Button 
-      onClick={addNewNode}
-      //@ts-ignore
-      size="sm" variant="secondary">
-        + Add Node
-      </Button>
-      <Button 
-      //@ts-ignore
-      size="sm" variant="secondary">
-        Export
-      </Button>
-    </Panel>
-  </Canvas>
+        <WorkflowCanvas
+          edges={edges}
+          nodes={nodes}
+          nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+        >
+          <ToolbarPanel 
+            onAddNode={addNewNode} 
+            workflowData={workflowData}
+            onSaveWorkflow={handleSaveWorkflow}
+            savedWorkflows={savedWorkflows}
+            onLoadWorkflow={handleLoadWorkflow}
+            onDeleteWorkflow={handleDeleteWorkflow}
+          />
+        </WorkflowCanvas>
       </div>
+      {renderEditDialog()}
     </main>
   );
 }

@@ -18,6 +18,11 @@ export const Canvas = ({ children, ...props }: CanvasProps) => (
     nodesDraggable={true}
     nodesConnectable={true}
     elementsSelectable={true}
+    // Performance optimizations for smooth edge rendering during node drag
+    onlyRenderVisibleElements={false}
+    selectNodesOnDrag={false}
+    // Ensure edges update in real-time during node drag
+    snapToGrid={false}
     {...props}
   >
     <Background bgColor="var(--sidebar)" />

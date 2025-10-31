@@ -66,3 +66,115 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Workflow Builder Dark Theme */
+@layer components {
+  .react-flow {
+    @apply bg-zinc-950;
+  }
+
+  .react-flow__node {
+    @apply transition-none will-change-transform;
+  }
+
+  .react-flow__node.selected {
+    @apply ring-2 ring-white/50;
+  }
+
+  .react-flow__edge-path {
+    @apply stroke-zinc-600;
+  }
+
+  .react-flow__edge.selected .react-flow__edge-path {
+    @apply stroke-white;
+  }
+
+  .react-flow__handle {
+    @apply bg-zinc-700 border-zinc-600 transition-all;
+    width: 12px !important;
+    height: 12px !important;
+    border-width: 2px !important;
+    z-index: 10;
+  }
+
+  .react-flow__handle:hover {
+    @apply bg-green-500 border-green-400;
+    width: 20px !important;
+    height: 20px !important;
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+    animation: blink-green 1s ease-in-out infinite;
+  }
+
+  .react-flow__handle.connecting {
+    @apply bg-blue-500 border-blue-400;
+    width: 20px !important;
+    height: 20px !important;
+    animation: pulse-handle 1s ease-in-out infinite;
+  }
+
+  .react-flow__handle.valid {
+    @apply bg-green-500 border-green-400;
+    width: 20px !important;
+    height: 20px !important;
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.8);
+    animation: blink-green 0.8s ease-in-out infinite;
+  }
+
+  @keyframes pulse-handle {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes blink-green {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.8), 0 0 20px rgba(34, 197, 94, 0.4);
+    }
+    50% {
+      opacity: 0.7;
+      box-shadow: 0 0 16px rgba(34, 197, 94, 1), 0 0 24px rgba(34, 197, 94, 0.6);
+    }
+  }
+
+  .react-flow__connection-line {
+    stroke-width: 2 !important;
+    stroke-dasharray: 5,5 !important;
+    opacity: 0.5 !important;
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+
+  .react-flow__controls {
+    @apply bg-zinc-900/95 border border-zinc-800 rounded-lg shadow-lg backdrop-blur-sm;
+  }
+
+  .react-flow__controls-button {
+    @apply bg-transparent border-0 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors;
+  }
+
+  .react-flow__minimap {
+    @apply bg-zinc-900/95 border border-zinc-800 rounded-lg backdrop-blur-sm;
+  }
+
+  .react-flow__background {
+    @apply bg-zinc-950;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-zinc-950;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-zinc-800 rounded-full hover:bg-zinc-700;
+  }
+}
