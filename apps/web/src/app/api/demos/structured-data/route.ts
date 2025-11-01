@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateStructuredDataNode } from '@repo/ai-workers';
+import { generateStructuredDataNode, streamStructuredDataNode } from '@repo/ai-workers';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
@@ -39,7 +39,7 @@ const schemas: Record<string, any> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, schemaType, customSchema } = await request.json();
+    const { prompt, schemaType, model, stream, customSchema } = await request.json();
 
     if (!prompt) {
       return NextResponse.json(
@@ -67,11 +67,71 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const selectedModel = model || 'gpt-4o-mini';
+
+    // Streaming response
+    if (stream) {
+      const encoder = new TextEncoder();
+      const customReadable = new ReadableStream({
+        async start(controller) {
+          try {
+            await streamStructuredDataNode({
+              prompt,
+              schema,
+              schemaName,
+              model: selectedModel,
+              onPartial: (partialObject: any) => {
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ partial: partialObject })}\n\n`)
+                );
+              },
+              onFinish: (result: any) => {
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      done: true,
+                      object: result.object,
+                      usage: result.usage,
+                    })}\n\n`
+                  )
+                );
+                controller.close();
+              },
+              onError: (error: Error) => {
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({ error: error.message })}\n\n`
+                  )
+                );
+                controller.close();
+              },
+            });
+          } catch (error: any) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ error: error.message })}\n\n`
+              )
+            );
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(customReadable, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        },
+      });
+    }
+
+    // Non-streaming response
     const result = await generateStructuredDataNode({
       prompt,
       schema,
       schemaName,
-      model: 'gpt-4o-mini',
+      model: selectedModel,
     });
 
     if (!result.success) {

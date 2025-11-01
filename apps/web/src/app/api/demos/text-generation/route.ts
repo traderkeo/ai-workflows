@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, systemPrompt, temperature, maxTokens, stream } = await request.json();
+    const { prompt, systemPrompt, model, temperature, maxTokens, stream } = await request.json();
 
     if (!prompt) {
       return NextResponse.json(
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
               systemPrompt: systemPrompt || '',
               temperature: temperature ?? 0.7,
               maxTokens: maxTokens ?? 2048,
-              model: 'gpt-4o-mini',
+              model: model || 'gpt-4o-mini',
               onChunk: (chunk: string) => {
                 controller.enqueue(
                   encoder.encode(`data: ${JSON.stringify({ chunk })}\n\n`)
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       systemPrompt: systemPrompt || '',
       temperature: temperature ?? 0.7,
       maxTokens: maxTokens ?? 2048,
-      model: 'gpt-4o-mini',
+      model: model || 'gpt-4o-mini',
     });
 
     if (!result.success) {

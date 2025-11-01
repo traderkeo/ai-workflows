@@ -6,6 +6,40 @@ import type { z } from 'zod';
 import type { Tool } from 'ai';
 
 // ============================================================================
+// Model Types
+// ============================================================================
+
+/**
+ * Supported OpenAI model identifiers
+ */
+export type OpenAIModel =
+  | 'gpt-4o'           // Most capable, with vision
+  | 'gpt-4o-mini'      // Fast and efficient (default)
+  | 'gpt-4-turbo'      // Previous generation GPT-4
+  | 'gpt-3.5-turbo';   // Fastest and cheapest
+
+/**
+ * Model configuration with metadata
+ */
+export interface ModelInfo {
+  id: OpenAIModel;
+  name: string;
+  description: string;
+  maxTokens: number;
+  supportsVision?: boolean;
+}
+
+/**
+ * Available models with metadata
+ */
+export const SUPPORTED_MODELS: Record<OpenAIModel, ModelInfo>;
+
+/**
+ * Get model information by ID
+ */
+export function getModelInfo(modelId: string): ModelInfo;
+
+// ============================================================================
 // Context
 // ============================================================================
 
@@ -57,7 +91,7 @@ export interface Message {
 
 export interface GenerateTextParams {
   prompt: string;
-  model?: string;
+  model?: OpenAIModel | string;
   temperature?: number;
   maxTokens?: number;
   systemPrompt?: string;
@@ -132,6 +166,35 @@ export interface GenerateStructuredDataResult<T> extends BaseResult {
 export function generateStructuredDataNode<T extends z.ZodType>(
   params: GenerateStructuredDataParams<T>
 ): Promise<GenerateStructuredDataResult<z.infer<T>>>;
+
+export interface StreamStructuredDataParams<T extends z.ZodType> {
+  prompt: string;
+  schema: T;
+  onPartial: (partialObject: Partial<z.infer<T>>) => void;
+  onFinish?: (result: {
+    object: z.infer<T>;
+    usage?: UsageMetrics;
+    finishReason?: string;
+  }) => void;
+  onError?: (error: Error) => void;
+  schemaName?: string;
+  schemaDescription?: string;
+  model?: OpenAIModel | string;
+  temperature?: number;
+  systemPrompt?: string;
+  context?: WorkflowContext;
+  abortSignal?: AbortSignal;
+}
+
+export interface StreamStructuredDataResult<T> extends BaseResult {
+  object: T | null;
+  stream?: any;
+  error?: string;
+}
+
+export function streamStructuredDataNode<T extends z.ZodType>(
+  params: StreamStructuredDataParams<T>
+): Promise<StreamStructuredDataResult<z.infer<T>>>;
 
 // ============================================================================
 // Tool Calling

@@ -8,14 +8,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Sparkles, Loader2, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Sparkles, Loader2, Copy, Check, Zap } from 'lucide-react';
+import { ModelSelector, type ModelId } from '@/components/ui/model-selector';
 
 export default function TextGenerationDemo() {
   const [prompt, setPrompt] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
+  const [model, setModel] = useState<ModelId>('gpt-4o-mini');
   const [temperature, setTemperature] = useState([0.7]);
   const [maxTokens, setMaxTokens] = useState([2048]);
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [useStreaming, setUseStreaming] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState('');
   const [usage, setUsage] = useState<any>(null);
@@ -42,16 +44,15 @@ export default function TextGenerationDemo() {
     },
   ];
 
-  const handleGenerate = async (stream: boolean) => {
+  const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
     setIsLoading(true);
     setResult('');
     setUsage(null);
-    setIsStreaming(stream);
 
     try {
-      if (stream) {
+      if (useStreaming) {
         // Streaming mode
         const response = await fetch('/api/demos/text-generation', {
           method: 'POST',
@@ -59,6 +60,7 @@ export default function TextGenerationDemo() {
           body: JSON.stringify({
             prompt,
             systemPrompt,
+            model,
             temperature: temperature[0],
             maxTokens: maxTokens[0],
             stream: true,
@@ -105,6 +107,7 @@ export default function TextGenerationDemo() {
           body: JSON.stringify({
             prompt,
             systemPrompt,
+            model,
             temperature: temperature[0],
             maxTokens: maxTokens[0],
             stream: false,
@@ -216,6 +219,9 @@ export default function TextGenerationDemo() {
                   />
                 </div>
 
+                {/* Model Selection */}
+                <ModelSelector value={model} onChange={setModel} />
+
                 {/* Temperature */}
                 <div className="space-y-2">
                   <Label>Temperature: {temperature[0]}</Label>
@@ -243,32 +249,39 @@ export default function TextGenerationDemo() {
                   />
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-2 pt-4">
-                  <Button
-                    onClick={() => handleGenerate(false)}
-                    disabled={isLoading || !prompt.trim()}
-                    className="flex-1"
+                {/* Streaming Toggle */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-yellow-500" />
+                    <span className="text-sm font-medium">Streaming Mode</span>
+                  </div>
+                  <button
+                    onClick={() => setUseStreaming(!useStreaming)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      useStreaming ? 'bg-blue-600' : 'bg-gray-300'
+                    }`}
                   >
-                    {isLoading && !isStreaming ? (
-                      <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="mr-2 w-4 h-4" />
-                    )}
-                    Generate
-                  </Button>
-                  <Button
-                    onClick={() => handleGenerate(true)}
-                    disabled={isLoading || !prompt.trim()}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    {isLoading && isStreaming ? (
-                      <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-                    ) : null}
-                    Stream
-                  </Button>
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        useStreaming ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
                 </div>
+
+                {/* Action Button */}
+                <Button
+                  onClick={handleGenerate}
+                  disabled={isLoading || !prompt.trim()}
+                  className="w-full"
+                >
+                  {isLoading ? (
+                    <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 w-4 h-4" />
+                  )}
+                  Generate Text
+                </Button>
               </CardContent>
             </Card>
           </div>

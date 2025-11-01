@@ -9,9 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Search, Loader2, ExternalLink, MapPin, Filter } from 'lucide-react';
+import { ModelSelector, type ModelId } from '@/components/ui/model-selector';
 
 export default function WebSearchDemo() {
   const [query, setQuery] = useState('');
+  const [model, setModel] = useState<ModelId>('gpt-4o-mini');
   const [mode, setMode] = useState('simple');
   const [domains, setDomains] = useState('');
   const [location, setLocation] = useState({ country: 'US', city: '', region: '' });
@@ -34,6 +36,7 @@ export default function WebSearchDemo() {
     try {
       const body: any = {
         query,
+        model,
         mode,
         includeSources: true,
       };
@@ -132,6 +135,8 @@ export default function WebSearchDemo() {
                 <CardTitle>Search Configuration</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <ModelSelector value={model} onChange={setModel} />
+
                 {/* Query */}
                 <div className="space-y-2">
                   <Label htmlFor="query">Search Query *</Label>

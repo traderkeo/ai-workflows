@@ -26,6 +26,8 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@repo/ai-workers": "workspace:*",
+    "@repo/nodes-ai": "workspace:*",
+    "@repo/workflows-ai": "workspace:*",
     "@xyflow/react": "^12.9.1",
     "ai": "beta",
     "class-variance-authority": "^0.7.1",

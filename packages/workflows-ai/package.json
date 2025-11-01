@@ -1,0 +1,33 @@
+{
+  "name": "@repo/workflows-ai",
+  "version": "0.1.0",
+  "description": "Durable AI workflows using Vercel Workflow SDK",
+  "type": "module",
+  "main": "./src/index.mjs",
+  "exports": {
+    ".": {
+      "import": "./src/index.mjs",
+      "types": "./src/index.d.ts"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "keywords": [
+    "workflow",
+    "ai",
+    "vercel",
+    "durable",
+    "ai-workflows"
+  ],
+  "dependencies": {
+    "workflow": "4.0.1-beta.4",
+    "ai": "beta",
+    "@ai-sdk/openai": "beta",
+    "@repo/ai-workers": "workspace:*",
+    "zod": "^4.1.12"
+  },
+  "peerDependencies": {
+    "zod": "^4.0.0"
+  }
+}

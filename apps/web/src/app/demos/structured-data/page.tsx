@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, FileJson, Loader2, Copy, Check } from 'lucide-react';
+import { ArrowLeft, FileJson, Loader2, Copy, Check, Zap } from 'lucide-react';
+import { ModelSelector, type ModelId } from '@/components/ui/model-selector';
 
 const schemas = {
   contact: {
@@ -39,9 +40,12 @@ const schemas = {
 
 export default function StructuredDataDemo() {
   const [schemaType, setSchemaType] = useState<keyof typeof schemas>('contact');
+  const [model, setModel] = useState<ModelId>('gpt-4o-mini');
   const [inputText, setInputText] = useState('');
+  const [useStreaming, setUseStreaming] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [partialResult, setPartialResult] = useState<any>(null);
   const [copied, setCopied] = useState(false);
 
   const currentSchema = schemas[schemaType];
@@ -51,6 +55,7 @@ export default function StructuredDataDemo() {
 
     setIsLoading(true);
     setResult(null);
+    setPartialResult(null);
 
     try {
       const response = await fetch('/api/demos/structured-data', {
@@ -59,6 +64,8 @@ export default function StructuredDataDemo() {
         body: JSON.stringify({
           prompt: inputText,
           schemaType,
+          model,
+          stream: useStreaming,
         }),
       });
 
@@ -67,8 +74,43 @@ export default function StructuredDataDemo() {
         throw new Error(error.error || 'Extraction failed');
       }
 
-      const data = await response.json();
-      setResult(data);
+      if (useStreaming) {
+        // Handle streaming response
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) throw new Error('No reader');
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.error) {
+                throw new Error(data.error);
+              }
+
+              if (data.partial) {
+                setPartialResult(data.partial);
+              }
+
+              if (data.done) {
+                setResult({ object: data.object, usage: data.usage });
+              }
+            }
+          }
+        }
+      } else {
+        // Non-streaming
+        const data = await response.json();
+        setResult(data);
+      }
     } catch (error: any) {
       setResult({ error: error.message });
     } finally {
@@ -162,11 +204,32 @@ export default function StructuredDataDemo() {
                 <CardDescription>Paste or type unstructured text</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <ModelSelector value={model} onChange={setModel} />
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-yellow-500" />
+                    <span className="text-sm font-medium">Streaming Mode</span>
+                  </div>
+                  <button
+                    onClick={() => setUseStreaming(!useStreaming)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      useStreaming ? 'bg-blue-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        useStreaming ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
                 <Textarea
                   placeholder="Enter text to extract structured data from..."
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  rows={12}
+                  rows={8}
                   className="resize-none font-mono text-sm"
                 />
 
@@ -222,19 +285,41 @@ export default function StructuredDataDemo() {
               </CardHeader>
               <CardContent>
                 <div className="bg-gray-900 rounded-lg p-4 min-h-[500px] max-h-[600px] overflow-y-auto">
-                  {!result ? (
+                  {!result && !partialResult && !isLoading ? (
                     <div className="text-center py-12 text-gray-400">
                       <FileJson className="w-12 h-12 mx-auto mb-4 opacity-50" />
                       <p>Extracted JSON will appear here...</p>
                     </div>
-                  ) : result.error ? (
+                  ) : result?.error ? (
                     <div className="text-red-400">
                       <p className="font-mono text-sm">Error: {result.error}</p>
                     </div>
                   ) : (
-                    <pre className="text-green-400 font-mono text-sm leading-relaxed overflow-x-auto">
-                      {JSON.stringify(result.object, null, 2)}
-                    </pre>
+                    <div className="space-y-2">
+                      {/* Show streaming indicator and partial data */}
+                      {isLoading && partialResult && (
+                        <div className="flex items-center gap-2 text-yellow-400 text-sm mb-2">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>Streaming...</span>
+                        </div>
+                      )}
+
+                      {/* Show partial or final result */}
+                      <pre className="text-green-400 font-mono text-sm leading-relaxed overflow-x-auto">
+                        {JSON.stringify(
+                          result?.object || partialResult || {},
+                          null,
+                          2
+                        )}
+                      </pre>
+
+                      {/* Show incomplete fields indicator */}
+                      {isLoading && partialResult && (
+                        <div className="text-gray-500 text-xs italic">
+                          Fields are being filled progressively...
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
 

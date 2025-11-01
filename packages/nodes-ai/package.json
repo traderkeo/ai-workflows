@@ -1,0 +1,48 @@
+{
+  "name": "@repo/nodes-ai",
+  "version": "0.1.0",
+  "description": "Visual node-based AI workflow builder with React Flow",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./styles": "./src/styles/index.css"
+  },
+  "files": [
+    "src"
+  ],
+  "keywords": [
+    "react-flow",
+    "ai-workflows",
+    "visual-programming",
+    "node-editor",
+    "ai"
+  ],
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.3.5",
+    "@repo/ai-workers": "workspace:*",
+    "@repo/workflows-ai": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^4.1.12",
+    "zustand": "^5.0.2",
+    "lucide-react": "^0.469.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.6",
+    "@types/react-dom": "^19.0.2",
+    "typescript": "^5.7.3"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  }
+}

@@ -13,6 +13,53 @@ import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 // ============================================================================
+// Model Configuration
+// ============================================================================
+
+/**
+ * Supported OpenAI models with metadata
+ */
+export const SUPPORTED_MODELS = {
+  'gpt-4o': {
+    id: 'gpt-4o',
+    name: 'GPT-4 Omni',
+    description: 'Most capable model with vision support',
+    maxTokens: 16384,
+    supportsVision: true,
+  },
+  'gpt-4o-mini': {
+    id: 'gpt-4o-mini',
+    name: 'GPT-4 Omni Mini',
+    description: 'Fast and efficient, great balance',
+    maxTokens: 16384,
+    supportsVision: false,
+  },
+  'gpt-4-turbo': {
+    id: 'gpt-4-turbo',
+    name: 'GPT-4 Turbo',
+    description: 'Previous generation, still capable',
+    maxTokens: 4096,
+    supportsVision: false,
+  },
+  'gpt-3.5-turbo': {
+    id: 'gpt-3.5-turbo',
+    name: 'GPT-3.5 Turbo',
+    description: 'Fastest and most cost-effective',
+    maxTokens: 4096,
+    supportsVision: false,
+  },
+};
+
+/**
+ * Get model information
+ * @param {string} modelId - Model identifier
+ * @returns {Object} Model information
+ */
+export function getModelInfo(modelId) {
+  return SUPPORTED_MODELS[modelId] || SUPPORTED_MODELS['gpt-4o-mini'];
+}
+
+// ============================================================================
 // Configuration & Types
 // ============================================================================
 
@@ -309,6 +356,104 @@ export async function generateStructuredDataNode({
       },
     };
   } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      object: null,
+      metadata: {
+        model,
+        schemaName,
+        timestamp: Date.now(),
+        errorType: error.constructor.name,
+      },
+    };
+  }
+}
+
+/**
+ * Stream structured data generation with partial object updates
+ * Perfect for progressive display of form data or structured content
+ *
+ * @param {Object} params - Streaming parameters
+ * @param {string} params.prompt - The prompt for data generation
+ * @param {Object} params.schema - Zod schema defining the output structure
+ * @param {Function} params.onPartial - Callback for partial object updates
+ * @param {Function} [params.onFinish] - Callback when generation completes
+ * @param {Function} [params.onError] - Callback for errors
+ * @param {string} [params.schemaName] - Name for the schema
+ * @param {string} [params.schemaDescription] - Description of the schema
+ * @param {string} [params.model] - Model to use
+ * @param {number} [params.temperature] - Sampling temperature
+ * @param {string} [params.systemPrompt] - System message
+ * @param {WorkflowContext} [params.context] - Workflow context
+ * @returns {Promise<Object>} Final object and metadata
+ */
+export async function streamStructuredDataNode({
+  prompt,
+  schema,
+  onPartial,
+  onFinish = null,
+  onError = null,
+  schemaName = 'response',
+  schemaDescription = 'Structured response',
+  model = DEFAULT_CONFIG.model,
+  temperature = DEFAULT_CONFIG.temperature,
+  systemPrompt = '',
+  context = null,
+  abortSignal = null,
+}) {
+  try {
+    const { streamObject } = await import('ai');
+    const modelInstance = openai(model);
+
+    const result = await streamObject({
+      model: modelInstance,
+      schema,
+      schemaName,
+      schemaDescription,
+      prompt,
+      system: systemPrompt,
+      temperature,
+      maxRetries: DEFAULT_CONFIG.maxRetries,
+      abortSignal,
+      onFinish: (event) => {
+        if (context) {
+          context.incrementNodeExecutions();
+          context.addTokenUsage(event.usage?.totalTokens || 0);
+        }
+        if (onFinish) {
+          onFinish({
+            object: event.object,
+            usage: event.usage,
+            finishReason: event.finishReason,
+          });
+        }
+      },
+    });
+
+    // Process the stream
+    for await (const partialObject of result.partialObjectStream) {
+      if (onPartial) {
+        onPartial(partialObject);
+      }
+    }
+
+    const finalObject = await result.object;
+
+    return {
+      success: true,
+      object: finalObject,
+      stream: result,
+      metadata: {
+        model,
+        schemaName,
+        timestamp: Date.now(),
+      },
+    };
+  } catch (error) {
+    if (onError) {
+      onError(error);
+    }
     return {
       success: false,
       error: error.message,
