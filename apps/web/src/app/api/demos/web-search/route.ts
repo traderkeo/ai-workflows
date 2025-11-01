@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
   try {
     const {
       query,
+      model,
       mode,
       domains,
       location,
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const selectedModel = model || 'gpt-4o-mini';
     let result;
 
     switch (mode) {
@@ -40,6 +42,7 @@ export async function POST(request: NextRequest) {
         result = await domainFilteredSearch({
           query,
           domains,
+          model: selectedModel,
           externalWebAccess,
           includeSources,
         });
@@ -55,6 +58,7 @@ export async function POST(request: NextRequest) {
         result = await locationAwareSearch({
           query,
           location,
+          model: selectedModel,
           externalWebAccess,
           includeSources,
         });
@@ -67,12 +71,13 @@ export async function POST(request: NextRequest) {
           userLocation: location,
           externalWebAccess,
           includeSources,
-          model: 'gpt-4o-mini',
+          model: selectedModel,
         });
         break;
 
       default:
         result = await simpleWebSearch(query, {
+          model: selectedModel,
           externalWebAccess,
           includeSources,
         });

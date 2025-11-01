@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { workflowType, input } = await request.json();
+    const { workflowType, model, input } = await request.json();
 
     if (!workflowType) {
       return NextResponse.json(
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const selectedModel = model || 'gpt-4o-mini';
     const context = new WorkflowContext();
     let result;
 
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
           (inputText: string, ctx: WorkflowContext) =>
             generateTextNode({
               prompt: `Summarize this in 2 sentences: ${inputText}`,
-              model: 'gpt-4o-mini',
+              model: selectedModel,
               temperature: 0.3,
               context: ctx,
             }),
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
                 keywords: z.array(z.string()).describe('Important keywords'),
                 category: z.string().describe('Content category'),
               }),
-              model: 'gpt-4o-mini',
+              model: selectedModel,
               context: ctx,
             }),
 
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
           (keywords: any, ctx: WorkflowContext) =>
             generateTextNode({
               prompt: `Create a catchy title using these keywords: ${JSON.stringify(keywords.object?.keywords || [])}`,
-              model: 'gpt-4o-mini',
+              model: selectedModel,
               temperature: 0.8,
               context: ctx,
             }),
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
             node: (text: string, ctx: WorkflowContext) =>
               generateTextNode({
                 prompt: `Translate to French: ${text}`,
-                model: 'gpt-4o-mini',
+                model: selectedModel,
                 context: ctx,
               }),
             input,
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
             node: (text: string, ctx: WorkflowContext) =>
               generateTextNode({
                 prompt: `Translate to Spanish: ${text}`,
-                model: 'gpt-4o-mini',
+                model: selectedModel,
                 context: ctx,
               }),
             input,
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
             node: (text: string, ctx: WorkflowContext) =>
               generateTextNode({
                 prompt: `Translate to German: ${text}`,
-                model: 'gpt-4o-mini',
+                model: selectedModel,
                 context: ctx,
               }),
             input,
@@ -151,7 +152,7 @@ export async function POST(request: NextRequest) {
             node: (text: string, ctx: WorkflowContext) =>
               generateTextNode({
                 prompt: `Analyze this from a technical perspective: ${text}`,
-                model: 'gpt-4o-mini',
+                model: selectedModel,
                 context: ctx,
               }),
             input,
@@ -160,7 +161,7 @@ export async function POST(request: NextRequest) {
             node: (text: string, ctx: WorkflowContext) =>
               generateTextNode({
                 prompt: `Analyze this from a business perspective: ${text}`,
-                model: 'gpt-4o-mini',
+                model: selectedModel,
                 context: ctx,
               }),
             input,

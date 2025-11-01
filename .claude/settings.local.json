@@ -7,7 +7,13 @@
       "Bash(pnpm add:*)",
       "Bash(NODE_ENV=development node:*)",
       "WebFetch(domain:platform.openai.com)",
-      "Bash(pnpm install:*)"
+      "Bash(pnpm install:*)",
+      "Bash(pnpm list:*)",
+      "WebFetch(domain:useworkflow.dev)",
+      "Bash(timeout 5 echo:*)",
+      "WebFetch(domain:reactflow.dev)",
+      "Bash(mkdir:*)",
+      "Bash(pnpm type-check:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

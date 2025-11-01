@@ -71,6 +71,12 @@ importers:
       '@repo/ai-workers':
         specifier: workspace:*
         version: link:../../packages/ai-workers
+      '@repo/nodes-ai':
+        specifier: workspace:*
+        version: link:../../packages/nodes-ai
+      '@repo/workflows-ai':
+        specifier: workspace:*
+        version: link:../../packages/workflows-ai
       '@xyflow/react':
         specifier: ^12.9.1
         version: 12.9.1(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -191,7 +197,62 @@ importers:
         specifier: ^17.2.3
         version: 17.2.3
 
+  packages/nodes-ai:
+    dependencies:
+      '@repo/ai-workers':
+        specifier: workspace:*
+        version: link:../ai-workers
+      '@repo/workflows-ai':
+        specifier: workspace:*
+        version: link:../workflows-ai
+      '@xyflow/react':
+        specifier: ^12.3.5
+        version: 12.9.1(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      lucide-react:
+        specifier: ^0.469.0
+        version: 0.469.0(react@19.2.0)
+      react:
+        specifier: ^19.0.0
+        version: 19.2.0
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.0(react@19.2.0)
+      zod:
+        specifier: ^4.1.12
+        version: 4.1.12
+      zustand:
+        specifier: ^5.0.2
+        version: 5.0.8(@types/react@19.2.2)(react@19.2.0)(use-sync-external-store@1.6.0(react@19.2.0))
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.6
+        version: 19.2.2
+      '@types/react-dom':
+        specifier: ^19.0.2
+        version: 19.2.2(@types/react@19.2.2)
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/tsconfig: {}
+
+  packages/workflows-ai:
+    dependencies:
+      '@ai-sdk/openai':
+        specifier: beta
+        version: 3.0.0-beta.47(zod@4.1.12)
+      '@repo/ai-workers':
+        specifier: workspace:*
+        version: link:../ai-workers
+      ai:
+        specifier: beta
+        version: 6.0.0-beta.92(zod@4.1.12)
+      workflow:
+        specifier: 4.0.1-beta.4
+        version: 4.0.1-beta.4(@aws-sdk/client-sts@3.919.0)(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(next@15.5.6(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+      zod:
+        specifier: ^4.1.12
+        version: 4.1.12
 
 packages:
 
@@ -2308,6 +2369,12 @@ packages:
 
   ai@6.0.0-beta.91:
     resolution: {integrity: sha512-22RYEce3f+R/tbINVvyzqWLdZn0wAbtrOSZYpXMVBoymQDI1j86TR1J373UcQmCa5q0bCQSL+MbW5QZKGbMwDA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  ai@6.0.0-beta.92:
+    resolution: {integrity: sha512-O6Tr2z6IqTq+nHihJdcp8BOZce3jWyOwodHd93+3Q+E1SWzQ933KQbdG1X7rRw/hREqmrFwCvydZzXfcxZmxfg==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -5619,6 +5686,24 @@ packages:
       react:
         optional: true
 
+  zustand@5.0.8:
+    resolution: {integrity: sha512-gyPKpIaxY9XcO2vSMrLbiER7QMAMGOQZVRdJ6Zi782jkbzZygq5GI9nG8g+sMgitRtndwaBSl7uiqC49o1SSiw==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      '@types/react': '>=18.0.0'
+      immer: '>=9.0.6'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+      use-sync-external-store:
+        optional: true
+
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
@@ -8164,6 +8249,18 @@ snapshots:
       humanize-ms: 1.2.1
 
   ai@6.0.0-beta.91(zod@4.1.12):
+    dependencies:
+      '@ai-sdk/gateway': 2.0.0-beta.49(zod@4.1.12)
+      '@ai-sdk/provider': 3.0.0-beta.14
+      '@ai-sdk/provider-utils': 4.0.0-beta.30(zod@4.1.12)
+      '@opentelemetry/api': 1.9.0
+      zod: 4.1.12
+    transitivePeerDependencies:
+      - '@valibot/to-json-schema'
+      - arktype
+      - effect
+
+  ai@6.0.0-beta.92(zod@4.1.12):
     dependencies:
       '@ai-sdk/gateway': 2.0.0-beta.49(zod@4.1.12)
       '@ai-sdk/provider': 3.0.0-beta.14
@@ -12200,5 +12297,11 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.2
       react: 19.2.0
+
+  zustand@5.0.8(@types/react@19.2.2)(react@19.2.0)(use-sync-external-store@1.6.0(react@19.2.0)):
+    optionalDependencies:
+      '@types/react': 19.2.2
+      react: 19.2.0
+      use-sync-external-store: 1.6.0(react@19.2.0)
 
   zwitch@2.0.4: {}

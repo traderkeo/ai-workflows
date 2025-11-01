@@ -4,6 +4,10 @@
  */
 
 export {
+  // Model Configuration
+  SUPPORTED_MODELS,
+  getModelInfo,
+
   // Context
   WorkflowContext,
 
@@ -13,6 +17,7 @@ export {
 
   // Structured Data
   generateStructuredDataNode,
+  streamStructuredDataNode,
 
   // Tool Calling
   generateWithToolsNode,
