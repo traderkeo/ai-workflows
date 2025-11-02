@@ -13,7 +13,14 @@
       "Bash(timeout 5 echo:*)",
       "WebFetch(domain:reactflow.dev)",
       "Bash(mkdir:*)",
-      "Bash(pnpm type-check:*)"
+      "Bash(pnpm type-check:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm test:*)",
+      "Bash(INTEGRATION_TESTS=true pnpm test:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx rimraf .next)",
+      "WebFetch(domain:ui.shadcn.com)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -2,12 +2,15 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import { WorkflowCanvas } from './WorkflowCanvas';
 import { ContextMenu } from './ContextMenu';
+import { CommandPalette } from './CommandPalette';
+import { ThemeProvider } from '../context/ThemeContext';
 
 const WorkflowBuilderInner: React.FC = () => {
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
   } | null>(null);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   const { getViewport } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,6 +39,31 @@ const WorkflowBuilderInner: React.FC = () => {
     return () => document.removeEventListener('click', handleClick);
   }, [contextMenu, handleCloseContextMenu]);
 
+  // Command palette keyboard shortcut (Ctrl/Cmd + K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+      if (cmdOrCtrl && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+
+      // Also support '/' key to open command palette
+      const target = e.target as HTMLElement;
+      const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      if (e.key === '/' && !isTyping) {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div
       ref={containerRef}
@@ -52,14 +80,21 @@ const WorkflowBuilderInner: React.FC = () => {
           zoom={getViewport().zoom}
         />
       )}
+
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+      />
     </div>
   );
 };
 
 export const WorkflowBuilder: React.FC = () => {
   return (
-    <ReactFlowProvider>
-      <WorkflowBuilderInner />
-    </ReactFlowProvider>
+    <ThemeProvider defaultTheme="cyber-punk">
+      <ReactFlowProvider>
+        <WorkflowBuilderInner />
+      </ReactFlowProvider>
+    </ThemeProvider>
   );
 };

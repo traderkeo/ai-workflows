@@ -14,11 +14,21 @@ import type {
   Connection,
 } from '@xyflow/react';
 import type { AINode, AIEdge, FlowState, WorkflowMetadata, SavedWorkflow, ExecutionContext } from '../types';
+import { autoLayout } from '../utils/autoLayout';
+
+interface HistoryState {
+  nodes: AINode[];
+  edges: AIEdge[];
+}
 
 interface FlowStore {
   // Flow state
   nodes: AINode[];
   edges: AIEdge[];
+
+  // History
+  history: HistoryState[];
+  historyIndex: number;
 
   // Viewport
   viewport: { x: number; y: number; zoom: number };
@@ -41,12 +51,25 @@ interface FlowStore {
   addNode: (node: AINode) => void;
   updateNode: (nodeId: string, data: Partial<AINode['data']>) => void;
   deleteNode: (nodeId: string) => void;
+  deleteSelectedNodes: () => void;
+  duplicateSelectedNodes: () => void;
+  selectAllNodes: () => void;
 
   // Edge operations
   deleteEdge: (edgeId: string) => void;
 
   // Viewport
   setViewport: (viewport: { x: number; y: number; zoom: number }) => void;
+
+  // History
+  undo: () => void;
+  redo: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
+  saveToHistory: () => void;
+
+  // Layout
+  autoLayoutNodes: () => void;
 
   // Workflow operations
   saveWorkflow: () => SavedWorkflow;
@@ -78,12 +101,16 @@ const initialMetadata: WorkflowMetadata = {
   version: '1.0.0',
 };
 
+const MAX_HISTORY = 50;
+
 export const useFlowStore = create<FlowStore>()(
   persist(
     (set, get) => ({
       // Initial state
       nodes: initialNodes,
       edges: initialEdges,
+      history: [],
+      historyIndex: -1,
       viewport: initialViewport,
       metadata: initialMetadata,
       executionContext: null,
@@ -97,6 +124,13 @@ export const useFlowStore = create<FlowStore>()(
         set({
           nodes: applyNodeChanges(changes, get().nodes as any[]) as any,
         });
+        // Save to history for certain change types
+        const shouldSaveHistory = changes.some(
+          (change) => change.type === 'remove' || change.type === 'add'
+        );
+        if (shouldSaveHistory) {
+          get().saveToHistory();
+        }
       },
 
       onEdgesChange: (changes) => {
@@ -113,6 +147,7 @@ export const useFlowStore = create<FlowStore>()(
 
       // Node operations
       addNode: (node) => {
+        get().saveToHistory();
         set({ nodes: [...get().nodes, node] });
         get().updateMetadata({ updatedAt: Date.now() });
       },
@@ -127,6 +162,7 @@ export const useFlowStore = create<FlowStore>()(
       },
 
       deleteNode: (nodeId) => {
+        get().saveToHistory();
         set({
           nodes: get().nodes.filter((node) => node.id !== nodeId),
           edges: get().edges.filter(
@@ -134,6 +170,50 @@ export const useFlowStore = create<FlowStore>()(
           ),
         });
         get().updateMetadata({ updatedAt: Date.now() });
+      },
+
+      deleteSelectedNodes: () => {
+        const selectedNodes = get().nodes.filter((node) => node.selected);
+        if (selectedNodes.length === 0) return;
+
+        get().saveToHistory();
+        const selectedIds = new Set(selectedNodes.map((n) => n.id));
+        set({
+          nodes: get().nodes.filter((node) => !selectedIds.has(node.id)),
+          edges: get().edges.filter(
+            (edge) => !selectedIds.has(edge.source) && !selectedIds.has(edge.target)
+          ),
+        });
+        get().updateMetadata({ updatedAt: Date.now() });
+      },
+
+      duplicateSelectedNodes: () => {
+        const selectedNodes = get().nodes.filter((node) => node.selected);
+        if (selectedNodes.length === 0) return;
+
+        get().saveToHistory();
+        const duplicates = selectedNodes.map((node) => ({
+          ...node,
+          id: `${node.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          position: {
+            x: node.position.x + 50,
+            y: node.position.y + 50,
+          },
+          selected: false,
+          data: {
+            ...node.data,
+            name: node.data.name ? `${node.data.name} (copy)` : undefined,
+          },
+        }));
+
+        set({ nodes: [...get().nodes, ...duplicates] });
+        get().updateMetadata({ updatedAt: Date.now() });
+      },
+
+      selectAllNodes: () => {
+        set({
+          nodes: get().nodes.map((node) => ({ ...node, selected: true })),
+        });
       },
 
       // Edge operations
@@ -146,6 +226,69 @@ export const useFlowStore = create<FlowStore>()(
 
       // Viewport
       setViewport: (viewport) => set({ viewport }),
+
+      // History
+      saveToHistory: () => {
+        const { nodes, edges, history, historyIndex } = get();
+
+        // Trim history if we're not at the end
+        const newHistory = history.slice(0, historyIndex + 1);
+
+        // Add current state
+        newHistory.push({ nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) });
+
+        // Keep only last MAX_HISTORY items
+        if (newHistory.length > MAX_HISTORY) {
+          newHistory.shift();
+        }
+
+        set({
+          history: newHistory,
+          historyIndex: newHistory.length - 1,
+        });
+      },
+
+      undo: () => {
+        const { history, historyIndex } = get();
+        if (historyIndex > 0) {
+          const prevState = history[historyIndex - 1];
+          set({
+            nodes: JSON.parse(JSON.stringify(prevState.nodes)),
+            edges: JSON.parse(JSON.stringify(prevState.edges)),
+            historyIndex: historyIndex - 1,
+          });
+        }
+      },
+
+      redo: () => {
+        const { history, historyIndex } = get();
+        if (historyIndex < history.length - 1) {
+          const nextState = history[historyIndex + 1];
+          set({
+            nodes: JSON.parse(JSON.stringify(nextState.nodes)),
+            edges: JSON.parse(JSON.stringify(nextState.edges)),
+            historyIndex: historyIndex + 1,
+          });
+        }
+      },
+
+      canUndo: () => {
+        const { historyIndex } = get();
+        return historyIndex > 0;
+      },
+
+      canRedo: () => {
+        const { history, historyIndex } = get();
+        return historyIndex < history.length - 1;
+      },
+
+      // Layout
+      autoLayoutNodes: () => {
+        const { nodes, edges } = get();
+        get().saveToHistory();
+        const layoutedNodes = autoLayout(nodes, edges);
+        set({ nodes: layoutedNodes });
+      },
 
       // Workflow operations
       saveWorkflow: () => {

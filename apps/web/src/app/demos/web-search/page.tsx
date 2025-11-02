@@ -99,7 +99,7 @@ export default function WebSearchDemo() {
             <Badge variant="default">New</Badge>
           </div>
           <p className="text-gray-600 dark:text-gray-300">
-            Search the web using OpenAI's Responses API with citations and sources
+            Search the web using OpenAI&apos;s Responses API with citations and sources
           </p>
         </div>
 

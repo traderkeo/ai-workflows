@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
           embedding: result.embedding,
           dimensions: result.dimensions,
           usage: result.usage,
-          preview: result.embedding.slice(0, 10), // First 10 values
+          preview: result.embedding?.slice(0, 10) ?? [], // First 10 values
         });
       }
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
           count: result.count,
           dimensions: result.dimensions,
           usage: result.usage,
-          previews: result.embeddings.map(emb => emb.slice(0, 5)), // First 5 values each
+          previews: result.embeddings?.map(emb => emb.slice(0, 5)) ?? [], // First 5 values each
         });
       }
 

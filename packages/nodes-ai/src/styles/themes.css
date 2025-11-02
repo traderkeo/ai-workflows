@@ -1,0 +1,129 @@
+/* ============================================================================
+   Theme System for AI Workflow Builder
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
+
+/* ============================================================================
+   CYBER-PUNK THEME (Neon Cyberpunk Gothic)
+   ============================================================================ */
+
+[data-theme="cyber-punk"] {
+  /* Cyberpunk Color Palette */
+  --cyber-neon-purple: #b026ff;
+  --cyber-neon-cyan: #00f0ff;
+  --cyber-neon-magenta: #ff00ff;
+  --cyber-neon-pink: #ff1493;
+  --cyber-neon-green: #39ff14;
+  --cyber-neon-yellow: #ffff00;
+
+  /* Gothic Dark Palette */
+  --gothic-black: #0a0a0f;
+  --gothic-charcoal: #15151f;
+  --gothic-slate: #1e1e2e;
+  --gothic-gray: #2a2a3a;
+  --gothic-mist: #3a3a4a;
+
+  /* Status Colors */
+  --status-idle: #4a4a5a;
+  --status-running: var(--cyber-neon-cyan);
+  --status-success: var(--cyber-neon-green);
+  --status-error: #ff0040;
+  --status-warning: var(--cyber-neon-yellow);
+
+  /* UI Elements */
+  --border-glow: 2px;
+  --node-shadow: 0 0 20px rgba(176, 38, 255, 0.3);
+  --edge-glow: 0 0 10px currentColor;
+
+  /* Fonts */
+  --font-primary: 'Orbitron', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+
+  /* Theme-specific variables */
+  --background-primary: var(--gothic-black);
+  --background-secondary: var(--gothic-charcoal);
+  --background-tertiary: var(--gothic-slate);
+  --text-primary: var(--cyber-neon-cyan);
+  --text-secondary: var(--cyber-neon-purple);
+  --text-muted: #888;
+  --border-primary: var(--cyber-neon-purple);
+  --border-secondary: var(--cyber-neon-cyan);
+  --accent-primary: var(--cyber-neon-cyan);
+  --accent-secondary: var(--cyber-neon-purple);
+}
+
+/* ============================================================================
+   DARK-HOME THEME (Vercel Dark + Castle Vibes)
+   ============================================================================ */
+
+[data-theme="dark-home"] {
+  /* Castle Stone Palette */
+  --stone-darkest: #0a0a0a;
+  --stone-darker: #111111;
+  --stone-dark: #171717;
+  --stone-mid: #262626;
+  --stone-light: #404040;
+  --stone-lighter: #525252;
+
+  /* Warm Accents (Castle torchlight vibes) */
+  --amber-glow: #fbbf24;
+  --ember-orange: #f97316;
+  --castle-gold: #d4af37;
+  --royal-purple: #7c3aed;
+  --sage-green: #10b981;
+
+  /* Vercel Colors */
+  --vercel-blue: #0070f3;
+  --vercel-cyan: #50e3c2;
+  --vercel-pink: #f81ce5;
+  --vercel-purple: #7928ca;
+
+  /* Status Colors */
+  --status-idle: #525252;
+  --status-running: var(--vercel-blue);
+  --status-success: var(--sage-green);
+  --status-error: #ef4444;
+  --status-warning: var(--amber-glow);
+
+  /* UI Elements */
+  --border-glow: 1px;
+  --node-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --edge-glow: 0 0 8px currentColor;
+
+  /* Fonts */
+  --font-primary: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Theme-specific variables */
+  --background-primary: var(--stone-darkest);
+  --background-secondary: var(--stone-darker);
+  --background-tertiary: var(--stone-dark);
+  --text-primary: #fafafa;
+  --text-secondary: #a3a3a3;
+  --text-muted: #737373;
+  --border-primary: var(--stone-mid);
+  --border-secondary: var(--stone-light);
+  --accent-primary: var(--castle-gold);
+  --accent-secondary: var(--royal-purple);
+}
+
+/* ============================================================================
+   Common Styles (Apply to all themes)
+   ============================================================================ */
+
+:root {
+  /* Ensure defaults if no theme is set */
+  --background-primary: #0a0a0f;
+  --background-secondary: #15151f;
+  --background-tertiary: #1e1e2e;
+  --text-primary: #00f0ff;
+  --text-secondary: #b026ff;
+  --text-muted: #888;
+  --border-primary: #b026ff;
+  --border-secondary: #00f0ff;
+  --accent-primary: #00f0ff;
+  --accent-secondary: #b026ff;
+  --font-primary: 'Orbitron', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+}

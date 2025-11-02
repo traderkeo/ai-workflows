@@ -118,8 +118,8 @@ export function EditStopNodeDialog({
             <label className="text-sm font-medium">Status</label>
             <Select
               value={formData.status}
-              onValueChange={(value: StopNodeData['status']) =>
-                setFormData({ ...formData, status: value })
+              onValueChange={(value) =>
+                setFormData({ ...formData, status: value as StopNodeData['status'] })
               }
             >
               <SelectTrigger>

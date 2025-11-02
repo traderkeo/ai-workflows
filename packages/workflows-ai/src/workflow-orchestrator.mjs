@@ -6,6 +6,7 @@
 
 import {
   textGenerationStep,
+  streamTextGenerationStep,
   structuredDataStep,
   transformStep,
   validationStep,
@@ -78,11 +79,22 @@ export async function sequentialWorkflow(config) {
         } else {
           prompt = prompt || currentInput;
         }
-        stepResult = await textGenerationStep({
+        
+        // Use streaming step to send chunks in real-time
+        stepResult = await streamTextGenerationStep({
           prompt,
           model: model || step.model,
           temperature: step.temperature,
           systemPrompt: step.systemPrompt,
+          onChunk: (chunk, fullText) => {
+            // Send incremental text chunk via SSE
+            sendUpdate('text-chunk', {
+              stepNumber: i + 1,
+              chunk,
+              fullText,
+              stepType: 'text-generation',
+            });
+          },
         });
         currentInput = stepResult.text;
         break;
@@ -198,11 +210,20 @@ export async function parallelWorkflow(config) {
 
       switch (task.type) {
         case 'text-generation':
-          result = await textGenerationStep({
+          result = await streamTextGenerationStep({
             prompt: task.prompt,
             model: model || task.model,
             temperature: task.temperature,
             systemPrompt: task.systemPrompt,
+            onChunk: (chunk, fullText) => {
+              // Send incremental text chunk via SSE
+              sendUpdate('text-chunk', {
+                taskNumber: index + 1,
+                chunk,
+                fullText,
+                stepType: 'text-generation',
+              });
+            },
           });
           break;
 
@@ -305,11 +326,20 @@ export async function conditionalWorkflow(config) {
 
   switch (selectedBranch.type) {
     case 'text-generation':
-      result = await textGenerationStep({
+      result = await streamTextGenerationStep({
         prompt: selectedBranch.prompt || input,
         model: model || selectedBranch.model,
         temperature: selectedBranch.temperature,
         systemPrompt: selectedBranch.systemPrompt,
+        onChunk: (chunk, fullText) => {
+          // Send incremental text chunk via SSE
+          sendUpdate('text-chunk', {
+            chunk,
+            fullText,
+            stepType: 'text-generation',
+            branchTaken: conditionResult ? 'true' : 'false',
+          });
+        },
       });
       break;
 
@@ -348,25 +378,51 @@ export async function conditionalWorkflow(config) {
 /**
  * Delayed workflow - waits before executing
  * @param {Object} config - Workflow configuration
+ * @param {WritableStream} config.writableStream - Stream to send SSE updates
  * @returns {Promise<Object>} Workflow result after delay
  */
 export async function delayedWorkflow(config) {
+  const { delay, task, model, writableStream } = config;
 
-  const { delay, task, model } = config;
+  if (!writableStream) {
+    throw new Error('writableStream is required');
+  }
+
+  const writer = writableStream.getWriter();
+  const encoder = new TextEncoder();
+
+  // Helper to send SSE updates
+  const sendUpdate = async (type, data) => {
+    const message = `data: ${JSON.stringify({ type, data, timestamp: Date.now() })}\n\n`;
+    await writer.write(encoder.encode(message));
+  };
+
+  await sendUpdate('start', { workflowType: 'delayed', model, delay: delay || 0 });
+  await sendUpdate('progress', { step: `Waiting ${delay || 0}ms before execution...` });
 
   // Sleep for specified duration (in milliseconds)
   await new Promise(resolve => setTimeout(resolve, delay || 0));
+
+  await sendUpdate('progress', { step: 'Delay complete, executing task...' });
 
   // Execute task after delay
   let result;
 
   switch (task.type) {
     case 'text-generation':
-      result = await textGenerationStep({
+      result = await streamTextGenerationStep({
         prompt: task.prompt,
         model: model || task.model,
         temperature: task.temperature,
         systemPrompt: task.systemPrompt,
+        onChunk: (chunk, fullText) => {
+          // Send incremental text chunk via SSE
+          sendUpdate('text-chunk', {
+            chunk,
+            fullText,
+            stepType: 'text-generation',
+          });
+        },
       });
       break;
 
@@ -383,33 +439,70 @@ export async function delayedWorkflow(config) {
       throw new Error(`Unknown task type: ${task.type}`);
   }
 
-  return {
+  await sendUpdate('step-complete', {
+    type: task.type,
+    result,
+  });
+
+  const finalResult = {
     success: true,
     delay,
     result,
   };
+
+  await sendUpdate('complete', { result: finalResult });
+
+  await writer.close();
+  writer.releaseLock();
+
+  return finalResult;
 }
 
 /**
  * Human-in-the-loop workflow - waits for external approval/input
  * @param {Object} config - Workflow configuration
+ * @param {WritableStream} config.writableStream - Stream to send SSE updates
  * @returns {Promise<Object>} Workflow result including human feedback
  */
 export async function humanInLoopWorkflow(config) {
   'use workflow';
 
-  const { initialTask, approvalHook, model } = config;
+  const { initialTask, approvalHook, model, writableStream } = config;
+
+  if (!writableStream) {
+    throw new Error('writableStream is required');
+  }
+
+  const writer = writableStream.getWriter();
+  const encoder = new TextEncoder();
+
+  // Helper to send SSE updates
+  const sendUpdate = async (type, data) => {
+    const message = `data: ${JSON.stringify({ type, data, timestamp: Date.now() })}\n\n`;
+    await writer.write(encoder.encode(message));
+  };
+
+  await sendUpdate('start', { workflowType: 'humanInLoop', model });
+  await sendUpdate('progress', { step: 'Executing initial task...' });
 
   // Execute initial task
   let initialResult;
 
   switch (initialTask.type) {
     case 'text-generation':
-      initialResult = await textGenerationStep({
+      initialResult = await streamTextGenerationStep({
         prompt: initialTask.prompt,
         model: model || initialTask.model,
         temperature: initialTask.temperature,
         systemPrompt: initialTask.systemPrompt,
+        onChunk: (chunk, fullText) => {
+          // Send incremental text chunk via SSE
+          sendUpdate('text-chunk', {
+            chunk,
+            fullText,
+            stepType: 'initial-generation',
+          });
+        },
       });
       break;
 
@@ -426,44 +519,92 @@ export async function humanInLoopWorkflow(config) {
       throw new Error(`Unknown task type: ${initialTask.type}`);
   }
 
+  await sendUpdate('step-complete', {
+    stepNumber: 1,
+    type: 'initial-task',
+    result: initialResult,
+  });
+  await sendUpdate('progress', { step: 'Waiting for human approval...' });
+
   // Wait for human approval
   const events = approvalHook.create({ token: config.workflowId });
 
   for await (const event of events) {
     if (event.action === 'approve') {
-      return {
+      await sendUpdate('human-response', { action: 'approved', feedback: event.feedback });
+
+      const finalResult = {
         success: true,
         approved: true,
         result: initialResult,
         feedback: event.feedback,
       };
+
+      await sendUpdate('complete', { result: finalResult });
+      await writer.close();
+      writer.releaseLock();
+
+      return finalResult;
     } else if (event.action === 'revise') {
+      await sendUpdate('human-response', { action: 'revision-requested', feedback: event.feedback });
+      await sendUpdate('progress', { step: 'Executing revision...' });
+
       // Execute revision
-      const revisionResult = await textGenerationStep({
+      const revisionResult = await streamTextGenerationStep({
         prompt: `Revise the following based on feedback: "${event.feedback}"\n\nOriginal: ${
           initialResult.text || JSON.stringify(initialResult.data)
         }`,
         model: model || initialTask.model,
+        onChunk: (chunk, fullText) => {
+          // Send incremental text chunk via SSE
+          sendUpdate('text-chunk', {
+            chunk,
+            fullText,
+            stepType: 'revision',
+          });
+        },
       });
 
-      return {
+      await sendUpdate('step-complete', {
+        stepNumber: 2,
+        type: 'revision',
+        result: revisionResult,
+      });
+
+      const finalResult = {
         success: true,
         approved: true,
         revised: true,
         result: revisionResult,
         feedback: event.feedback,
       };
+
+      await sendUpdate('complete', { result: finalResult });
+      await writer.close();
+      writer.releaseLock();
+
+      return finalResult;
     } else if (event.action === 'reject') {
-      return {
+      await sendUpdate('human-response', { action: 'rejected', feedback: event.feedback });
+
+      const finalResult = {
         success: false,
         approved: false,
         result: initialResult,
         feedback: event.feedback,
       };
+
+      await sendUpdate('complete', { result: finalResult });
+      await writer.close();
+      writer.releaseLock();
+
+      return finalResult;
     }
   }
 
   // If loop exits without approval (shouldn't happen normally)
+  await writer.close();
+  writer.releaseLock();
   throw new Error('Workflow ended without resolution');
 }
 
@@ -514,11 +655,20 @@ export async function retryWorkflow(config) {
 
       switch (retryTask.type) {
         case 'text-generation':
-          result = await textGenerationStep({
+          result = await streamTextGenerationStep({
             prompt: retryTask.prompt,
             model: model || retryTask.model,
             temperature: retryTask.temperature,
             systemPrompt: retryTask.systemPrompt,
+            onChunk: (chunk, fullText) => {
+              // Send incremental text chunk via SSE
+              sendUpdate('text-chunk', {
+                attempt: attempts,
+                chunk,
+                fullText,
+                stepType: 'text-generation',
+              });
+            },
           });
           break;
 
@@ -620,9 +770,17 @@ export async function complexWorkflow(config) {
 
   // Step 1: Parallel analysis
   await sendUpdate('progress', { step: 'Analyzing from technical perspective...' });
-  const technicalResult = await textGenerationStep({
+  const technicalResult = await streamTextGenerationStep({
     prompt: `Analyze from a technical perspective: ${input}`,
     model,
+    onChunk: (chunk, fullText) => {
+      sendUpdate('text-chunk', {
+        stepNumber: 1,
+        chunk,
+        fullText,
+        stepType: 'technical-analysis',
+      });
+    },
   });
 
   await sendUpdate('step-complete', {
@@ -632,9 +790,17 @@ export async function complexWorkflow(config) {
   });
 
   await sendUpdate('progress', { step: 'Analyzing from business perspective...' });
-  const businessResult = await textGenerationStep({
+  const businessResult = await streamTextGenerationStep({
     prompt: `Analyze from a business perspective: ${input}`,
     model,
+    onChunk: (chunk, fullText) => {
+      sendUpdate('text-chunk', {
+        stepNumber: 2,
+        chunk,
+        fullText,
+        stepType: 'business-analysis',
+      });
+    },
   });
 
   await sendUpdate('step-complete', {
@@ -655,9 +821,16 @@ export async function complexWorkflow(config) {
 
   const combined = `Technical Perspective:\n${technicalResult.text}\n\nBusiness Perspective:\n${businessResult.text}`;
 
-  const synthesis = await textGenerationStep({
+  const synthesis = await streamTextGenerationStep({
     prompt: `Synthesize these perspectives into a balanced conclusion:\n\n${combined}`,
     model,
+    onChunk: (chunk, fullText) => {
+      sendUpdate('text-chunk', {
+        chunk,
+        fullText,
+        stepType: 'synthesis',
+      });
+    },
   });
 
   await sendUpdate('synthesis-complete', {

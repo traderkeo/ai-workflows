@@ -12,17 +12,23 @@ export type NodeStatus = 'idle' | 'running' | 'success' | 'error' | 'warning';
 // ============================================================================
 
 export type AINodeType =
-  | 'input'
-  | 'output'
+  | 'start'
+  | 'stop'
+  | 'ai-agent'
   | 'text-generation'
   | 'structured-data'
   | 'tool-calling'
   | 'embedding'
   | 'semantic-search'
   | 'transform'
+  | 'merge'
+  | 'condition'
+  | 'template'
   | 'conditional'
   | 'parallel'
-  | 'retry';
+  | 'retry'
+  | 'http-request'
+  | 'loop';
 
 // ============================================================================
 // Base Node Data
@@ -30,6 +36,8 @@ export type AINodeType =
 
 export interface BaseNodeData {
   label: string;
+  name?: string; // Custom name for the node (used as variable reference)
+  isCollapsed?: boolean; // Whether the node is collapsed
   status?: NodeStatus;
   error?: string;
   description?: string;
@@ -41,12 +49,12 @@ export interface BaseNodeData {
 // Specific Node Data Types
 // ============================================================================
 
-export interface InputNodeData extends BaseNodeData {
+export interface StartNodeData extends BaseNodeData {
   value: any;
   valueType: 'string' | 'number' | 'object' | 'array';
 }
 
-export interface OutputNodeData extends BaseNodeData {
+export interface StopNodeData extends BaseNodeData {
   value: any;
 }
 
@@ -67,10 +75,43 @@ export interface TextGenerationNodeData extends BaseNodeData {
 export interface StructuredDataNodeData extends BaseNodeData {
   prompt: string;
   schema?: z.ZodType;
+  schemaFields?: Array<{
+    name: string;
+    type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+    description?: string;
+  }>;
   schemaName?: string;
   schemaDescription?: string;
   model?: string;
   temperature?: number;
+  result?: any;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+}
+
+export interface AIAgentNodeData extends BaseNodeData {
+  mode: 'text' | 'structured';
+  prompt: string;
+  instructions?: string; // System prompt / instructions
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  // Text generation fields
+  streamingText?: string;
+  isStreaming?: boolean;
+  // Structured data fields
+  schema?: z.ZodType;
+  schemaFields?: Array<{
+    name: string;
+    type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+    description?: string;
+  }>;
+  schemaName?: string;
+  schemaDescription?: string;
+  // Common fields
   result?: any;
   usage?: {
     promptTokens: number;
@@ -136,13 +177,35 @@ export interface RetryNodeData extends BaseNodeData {
   attempts?: number;
 }
 
+export interface HttpRequestNodeData extends BaseNodeData {
+  url: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  headers?: Record<string, string>;
+  body?: string;
+  result?: {
+    status: number;
+    data: any;
+    headers: Record<string, string>;
+  };
+}
+
+export interface LoopNodeData extends BaseNodeData {
+  loopType: 'count' | 'array' | 'condition';
+  count?: number;
+  array?: any[];
+  conditionCode?: string;
+  currentIteration?: number;
+  results?: any[];
+}
+
 // ============================================================================
 // Node Data Union Type
 // ============================================================================
 
 export type AINodeData =
-  | InputNodeData
-  | OutputNodeData
+  | StartNodeData
+  | StopNodeData
+  | AIAgentNodeData
   | TextGenerationNodeData
   | StructuredDataNodeData
   | ToolCallingNodeData
@@ -151,7 +214,9 @@ export type AINodeData =
   | TransformNodeData
   | ConditionalNodeData
   | ParallelNodeData
-  | RetryNodeData;
+  | RetryNodeData
+  | HttpRequestNodeData
+  | LoopNodeData;
 
 // ============================================================================
 // Typed Nodes & Edges

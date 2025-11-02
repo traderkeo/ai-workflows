@@ -1,53 +1,32 @@
 /* ============================================================================
-   Cyberpunk Gothic Theme for AI Workflow Nodes
+   AI Workflow Nodes - Theme System
    ============================================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap');
-
-:root {
-  /* Cyberpunk Color Palette */
-  --cyber-neon-purple: #b026ff;
-  --cyber-neon-cyan: #00f0ff;
-  --cyber-neon-magenta: #ff00ff;
-  --cyber-neon-pink: #ff1493;
-  --cyber-neon-green: #39ff14;
-  --cyber-neon-yellow: #ffff00;
-
-  /* Gothic Dark Palette */
-  --gothic-black: #0a0a0f;
-  --gothic-charcoal: #15151f;
-  --gothic-slate: #1e1e2e;
-  --gothic-gray: #2a2a3a;
-  --gothic-mist: #3a3a4a;
-
-  /* Status Colors */
-  --status-idle: #4a4a5a;
-  --status-running: var(--cyber-neon-cyan);
-  --status-success: var(--cyber-neon-green);
-  --status-error: #ff0040;
-  --status-warning: var(--cyber-neon-yellow);
-
-  /* UI Elements */
-  --border-glow: 2px;
-  --node-shadow: 0 0 20px rgba(176, 38, 255, 0.3);
-  --edge-glow: 0 0 10px currentColor;
-
-  /* Fonts */
-  --font-primary: 'Orbitron', sans-serif;
-  --font-mono: 'Share Tech Mono', monospace;
-}
+@import './themes.css';
 
 /* ============================================================================
    React Flow Base Overrides
    ============================================================================ */
 
 .react-flow {
-  background-color: var(--gothic-black);
+  background-color: var(--background-primary);
+  font-family: var(--font-primary);
+}
+
+/* Cyber-punk theme grid */
+[data-theme="cyber-punk"] .react-flow {
   background-image:
     linear-gradient(rgba(176, 38, 255, 0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(176, 38, 255, 0.05) 1px, transparent 1px);
   background-size: 40px 40px;
-  font-family: var(--font-primary);
+}
+
+/* Dark-home theme subtle grid */
+[data-theme="dark-home"] .react-flow {
+  background-image:
+    linear-gradient(rgba(64, 64, 64, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(64, 64, 64, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
 .react-flow__viewport {
@@ -65,13 +44,20 @@
   background: linear-gradient(135deg, var(--gothic-charcoal) 0%, var(--gothic-slate) 100%);
   box-shadow: var(--node-shadow);
   padding: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 200px;
+  /* Transition only for visual effects, not position */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-width: 370px;
+  width: 370px;
+  max-width: 450px;
+}
+
+/* Disable transition when dragging for instant response */
+.react-flow__node.dragging {
+  transition: none !important;
 }
 
 .react-flow__node:hover {
   box-shadow: 0 0 30px rgba(176, 38, 255, 0.5);
-  transform: translateY(-2px);
 }
 
 .react-flow__node.selected {
@@ -142,21 +128,21 @@
    ============================================================================ */
 
 .react-flow__edge-path {
-  stroke: var(--cyber-neon-purple);
-  stroke-width: 2px;
-  filter: drop-shadow(var(--edge-glow));
-  animation: edge-flow 3s linear infinite;
+  stroke: var(--cyber-neon-green) !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 8px var(--cyber-neon-green)) !important;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: var(--cyber-neon-cyan);
-  stroke-width: 3px;
-  filter: drop-shadow(0 0 15px var(--cyber-neon-cyan));
+  stroke: var(--cyber-neon-cyan) !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 15px var(--cyber-neon-cyan)) !important;
 }
 
 .react-flow__edge:hover .react-flow__edge-path {
-  stroke: var(--cyber-neon-magenta);
-  stroke-width: 3px;
+  stroke: var(--cyber-neon-cyan) !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 12px var(--cyber-neon-cyan)) !important;
 }
 
 /* Animated edge flow */
@@ -286,6 +272,15 @@
   }
 }
 
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
 /* ============================================================================
    Custom Node Components
    ============================================================================ */
@@ -388,14 +383,27 @@
   width: 100%;
   background: var(--gothic-black);
   border: 1px solid var(--cyber-neon-purple);
-  border-radius: 4px;
-  padding: 8px;
+  border-radius: 6px;
+  padding: 10px 12px;
   color: var(--cyber-neon-cyan);
-  font-family: var(--font-mono);
-  font-size: 12px;
+  font-family: var(--font-geist-sans, "Geist", "Inter", sans-serif);
+  font-size: 14px;
+  font-weight: 400;
   outline: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ai-node-select > *:first-child {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ai-node-select:hover {
@@ -470,6 +478,342 @@
   background: var(--gothic-gray);
   color: var(--cyber-neon-magenta);
   box-shadow: 0 0 10px rgba(255, 0, 255, 0.2);
+}
+
+/* ============================================================================
+   Radix Select Component Styles
+   ============================================================================ */
+
+.ai-select-content {
+  background: var(--gothic-slate);
+  border: 1px solid var(--cyber-neon-purple);
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow: 0 0 20px rgba(176, 38, 255, 0.5);
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.ai-select-viewport {
+  padding: 2px;
+}
+
+.ai-select-label {
+  padding: 6px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--cyber-neon-cyan);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: var(--font-mono);
+}
+
+.ai-select-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 8px 8px 8px 28px;
+  font-size: 11px;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 4px;
+  outline: none;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.ai-select-item:hover,
+.ai-select-item[data-highlighted] {
+  background: rgba(176, 38, 255, 0.2);
+  color: var(--cyber-neon-cyan);
+}
+
+.ai-select-item[data-disabled] {
+  color: var(--gothic-gray);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.ai-select-item-indicator {
+  position: absolute;
+  left: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--cyber-neon-cyan);
+}
+
+.ai-select-separator {
+  height: 1px;
+  background: var(--gothic-gray);
+  margin: 4px 0;
+}
+
+/* ============================================================================
+   Dialog Component Styles
+   ============================================================================ */
+
+.ai-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.8);
+  animation: ai-dialog-overlay-show 0.2s ease-out;
+}
+
+@keyframes ai-dialog-overlay-show {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ai-dialog-content {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 51;
+  transform: translate(-50%, -50%);
+  width: 90vw;
+  max-width: 700px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--gothic-slate);
+  border: 2px solid var(--cyber-neon-purple);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 0 40px rgba(176, 38, 255, 0.6);
+  animation: ai-dialog-content-show 0.2s ease-out;
+}
+
+@keyframes ai-dialog-content-show {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.ai-dialog-close {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  padding: 6px;
+  background: transparent;
+  border: 1px solid var(--gothic-gray);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-dialog-close:hover {
+  background: rgba(176, 38, 255, 0.2);
+  border-color: var(--cyber-neon-purple);
+  color: var(--cyber-neon-cyan);
+}
+
+.ai-dialog-header {
+  margin-bottom: 20px;
+}
+
+.ai-dialog-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgb(250, 250, 250);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  margin-bottom: 4px;
+  letter-spacing: -0.02em;
+}
+
+.ai-dialog-description {
+  font-size: 14px;
+  color: rgb(161, 161, 170);
+  line-height: 1.6;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.ai-dialog-footer {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* ============================================================================
+   Tabs Component Styles
+   ============================================================================ */
+
+.ai-tabs-list {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px;
+  gap: 4px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(176, 38, 255, 0.2);
+}
+
+.ai-tabs-trigger {
+  all: unset;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  font-family: var(--font-primary);
+}
+
+.ai-tabs-trigger:hover {
+  color: var(--cyber-neon-cyan);
+  background: rgba(176, 38, 255, 0.1);
+}
+
+.ai-tabs-trigger[data-state="active"] {
+  color: var(--cyber-neon-cyan);
+  background: rgba(176, 38, 255, 0.3);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+  font-weight: 600;
+}
+
+.ai-tabs-content {
+  outline: none;
+  animation: ai-tabs-content-show 0.2s ease-out;
+}
+
+@keyframes ai-tabs-content-show {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   Label Component Styles
+   ============================================================================ */
+
+.ai-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgb(228, 228, 231);
+  margin-bottom: 8px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* ============================================================================
+   Slider Component Styles
+   ============================================================================ */
+
+.ai-slider-root {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 20px;
+  cursor: pointer;
+}
+
+.ai-slider-track {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  background: rgba(176, 38, 255, 0.2);
+  border-radius: 2px;
+}
+
+.ai-slider-range {
+  position: absolute;
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyber-neon-purple) 0%, var(--cyber-neon-cyan) 100%);
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(176, 38, 255, 0.4);
+}
+
+.ai-slider-thumb {
+  display: block;
+  width: 16px;
+  height: 16px;
+  background: var(--cyber-neon-cyan);
+  border: 2px solid var(--gothic-slate);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+  transition: all 0.2s ease;
+  cursor: grab;
+}
+
+.ai-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.8);
+}
+
+.ai-slider-thumb:active {
+  cursor: grabbing;
+}
+
+/* ============================================================================
+   Badge Component Styles
+   ============================================================================ */
+
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid;
+}
+
+.ai-badge-default {
+  background: rgba(176, 38, 255, 0.2);
+  color: var(--cyber-neon-purple);
+  border-color: rgba(176, 38, 255, 0.4);
+}
+
+.ai-badge-secondary {
+  background: rgba(0, 240, 255, 0.2);
+  color: var(--cyber-neon-cyan);
+  border-color: rgba(0, 240, 255, 0.4);
+}
+
+.ai-badge-outline {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: var(--gothic-gray);
+}
+
+.ai-badge-success {
+  background: rgba(57, 255, 20, 0.2);
+  color: var(--status-success);
+  border-color: rgba(57, 255, 20, 0.4);
+}
+
+.ai-badge-warning {
+  background: rgba(255, 255, 0, 0.2);
+  color: var(--status-warning);
+  border-color: rgba(255, 255, 0, 0.4);
 }
 
 /* ============================================================================

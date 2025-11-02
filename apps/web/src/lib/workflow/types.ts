@@ -1,6 +1,6 @@
 export type WorkflowNodeType = 'trigger' | 'action' | 'logic' | 'transform';
 
-export interface WorkflowNodeData {
+export interface WorkflowNodeData extends Record<string, unknown> {
   nodeType: WorkflowNodeType;
   label: string;
   description: string;

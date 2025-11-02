@@ -1,6 +1,6 @@
 /**
- * OpenAI Workflow Library
- * Main entry point
+ * AI Workflow Library
+ * Main entry point - supports multiple AI providers
  */
 
 export {
@@ -42,6 +42,30 @@ export {
   // Default export
   default,
 } from './openai-workflow.mjs';
+
+// Provider Utilities
+export {
+  // Model Collections
+  OPENAI_MODELS,
+  OPENAI_CHAT_MODELS,
+  OPENAI_EMBEDDING_MODELS,
+  OPENAI_IMAGE_MODELS,
+  OPENAI_AUDIO_MODELS,
+  ANTHROPIC_MODELS,
+  GOOGLE_MODELS,
+
+  // Capability System
+  ModelCapabilities,
+  getModelsByCapability,
+  modelSupports,
+  getChatModels,
+
+  // Provider Functions
+  getProviderModel,
+  getModelsByProvider,
+  getAllModelIds,
+  isValidModel,
+} from './providers.mjs';
 
 // Web Search
 export {

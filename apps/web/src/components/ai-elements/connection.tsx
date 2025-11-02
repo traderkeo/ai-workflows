@@ -7,8 +7,7 @@ export const Connection: ConnectionLineComponent = ({
   fromY,
   toX,
   toY,
-  fromHandleId,
-}) => {
+}: any) => {
   // Calculate arrow direction
   const angle = Math.atan2(toY - fromY, toX - fromX);
   const arrowLength = 10;
@@ -55,17 +54,6 @@ export const Connection: ConnectionLineComponent = ({
           filter: 'drop-shadow(0 0 4px hsl(var(--primary)))',
         }}
       />
-      {fromHandleId && (
-        <text
-          x={fromX + 10}
-          y={fromY - 10}
-          className="text-xs fill-primary"
-          fontSize={10}
-          fontWeight="bold"
-        >
-          {fromHandleId}
-        </text>
-      )}
     </g>
   );
 };
