@@ -8,6 +8,7 @@
 // Export workflow steps
 export {
   textGenerationStep,
+  streamTextGenerationStep,
   structuredDataStep,
   transformStep,
   validationStep,
@@ -23,6 +24,26 @@ export {
   retryWorkflow,
   complexWorkflow,
 } from './workflow-orchestrator.mjs';
+
+// Export node-based workflow system
+export {
+  WorkflowGraph,
+  InputNode,
+  TextGenNode,
+  StructuredDataNode,
+  TransformNode,
+  MergeNode,
+  ConditionNode,
+  TemplateNode,
+  OutputNode,
+} from './workflow-nodes.mjs';
+
+// Export workflow builder
+export {
+  WorkflowBuilder,
+  createWorkflow,
+  WorkflowTemplates,
+} from './workflow-builder.mjs';
 
 // Re-export Vercel Workflow SDK utilities
 export { sleep, defineHook } from 'workflow';

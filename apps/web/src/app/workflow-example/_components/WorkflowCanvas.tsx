@@ -72,7 +72,7 @@ function ConnectionHandler({
   // Find closest handle to the connection endpoint
   const findClosestHandle = useCallback(
     (targetNodeId: string, handleType: 'target' | 'source', mousePos: { x: number; y: number }): string | null => {
-      const targetNode = getNode(targetNodeId);
+      const targetNode = getNode(targetNodeId) as any;
       if (!targetNode) {
         return null;
       }

@@ -3,10 +3,10 @@ import { NodeProps } from '@xyflow/react';
 import { PlayCircle } from 'lucide-react';
 import { BaseAINode } from '../components/BaseAINode';
 import { useFlowStore } from '../hooks/useFlowStore';
-import type { InputNodeData } from '../types';
+import type { StartNodeData } from '../types';
 
 export const InputNode: React.FC<NodeProps> = (props) => {
-  const data = props.data as InputNodeData;
+  const data = props.data as StartNodeData;
   const updateNode = useFlowStore((state) => state.updateNode);
 
   const handleValueChange = (value: string) => {
@@ -26,7 +26,7 @@ export const InputNode: React.FC<NodeProps> = (props) => {
     updateNode(props.id, { value: parsedValue });
   };
 
-  const handleTypeChange = (type: InputNodeData['valueType']) => {
+  const handleTypeChange = (type: StartNodeData['valueType']) => {
     updateNode(props.id, { valueType: type });
   };
 
@@ -48,7 +48,7 @@ export const InputNode: React.FC<NodeProps> = (props) => {
         <select
           className="ai-node-select"
           value={data.valueType}
-          onChange={(e) => handleTypeChange(e.target.value as InputNodeData['valueType'])}
+          onChange={(e) => handleTypeChange(e.target.value as StartNodeData['valueType'])}
         >
           <option value="string">String</option>
           <option value="number">Number</option>

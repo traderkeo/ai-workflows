@@ -10,19 +10,37 @@ import type { Tool } from 'ai';
 // ============================================================================
 
 /**
- * Supported OpenAI model identifiers
+ * Supported AI model identifiers across all providers
  */
-export type OpenAIModel =
-  | 'gpt-4o'           // Most capable, with vision
-  | 'gpt-4o-mini'      // Fast and efficient (default)
-  | 'gpt-4-turbo'      // Previous generation GPT-4
-  | 'gpt-3.5-turbo';   // Fastest and cheapest
+export type AIModel =
+  // OpenAI Models
+  | 'gpt-4o'
+  | 'gpt-4o-mini'
+  | 'gpt-4-turbo'
+  | 'gpt-3.5-turbo'
+  // Anthropic Models
+  | 'claude-3-5-sonnet-20241022'
+  | 'claude-3-5-haiku-20241022'
+  | 'claude-3-opus-20240229'
+  | 'claude-3-sonnet-20240229'
+  | 'claude-3-haiku-20240307'
+  // Google Models
+  | 'gemini-2.0-flash-exp'
+  | 'gemini-1.5-pro'
+  | 'gemini-1.5-flash'
+  | 'gemini-1.5-flash-8b';
+
+/**
+ * Backward compatibility type alias
+ */
+export type OpenAIModel = AIModel;
 
 /**
  * Model configuration with metadata
  */
 export interface ModelInfo {
-  id: OpenAIModel;
+  id: string;
+  provider: 'openai' | 'anthropic' | 'google';
   name: string;
   description: string;
   maxTokens: number;
@@ -30,14 +48,53 @@ export interface ModelInfo {
 }
 
 /**
- * Available models with metadata
+ * Available models with metadata (all providers)
  */
-export const SUPPORTED_MODELS: Record<OpenAIModel, ModelInfo>;
+export const SUPPORTED_MODELS: Record<string, ModelInfo>;
+
+/**
+ * OpenAI models only
+ */
+export const OPENAI_MODELS: Record<string, ModelInfo>;
+
+/**
+ * Anthropic (Claude) models only
+ */
+export const ANTHROPIC_MODELS: Record<string, ModelInfo>;
+
+/**
+ * Google (Gemini) models only
+ */
+export const GOOGLE_MODELS: Record<string, ModelInfo>;
 
 /**
  * Get model information by ID
  */
 export function getModelInfo(modelId: string): ModelInfo;
+
+/**
+ * Get provider model instance
+ */
+export function getProviderModel(modelId: string): any;
+
+/**
+ * Get all models grouped by provider
+ */
+export function getModelsByProvider(): {
+  openai: ModelInfo[];
+  anthropic: ModelInfo[];
+  google: ModelInfo[];
+};
+
+/**
+ * Get all model IDs
+ */
+export function getAllModelIds(): string[];
+
+/**
+ * Check if a model ID is valid
+ */
+export function isValidModel(modelId: string): boolean;
 
 // ============================================================================
 // Context
@@ -404,6 +461,108 @@ export function retryNode(
   initialDelay?: number,
   context?: WorkflowContext
 ): Promise<RetryNodeResult>;
+
+// ============================================================================
+// Web Search
+// ============================================================================
+
+export interface Citation {
+  title: string;
+  url: string;
+  content?: string;
+}
+
+export interface WebSearchFilters {
+  allowedDomains?: string[];
+  blockedDomains?: string[];
+  maxResults?: number;
+  timeRange?: 'day' | 'week' | 'month' | 'year';
+}
+
+export interface UserLocation {
+  country?: string;
+  city?: string;
+  region?: string;
+}
+
+export interface WebSearchParams {
+  query: string;
+  model?: OpenAIModel | string;
+  filters?: WebSearchFilters;
+  userLocation?: UserLocation;
+  externalWebAccess?: boolean;
+  includeSources?: boolean;
+  context?: WorkflowContext;
+  abortSignal?: AbortSignal;
+}
+
+export interface WebSearchResult extends BaseResult {
+  text: string | null;
+  citations?: Citation[];
+  sources?: string[];
+  searchCalls?: any[];
+  usage?: UsageMetrics;
+  finishReason?: string;
+  error?: string;
+}
+
+export function webSearchNode(params: WebSearchParams): Promise<WebSearchResult>;
+
+export interface SimpleWebSearchOptions {
+  model?: OpenAIModel | string;
+  externalWebAccess?: boolean;
+  includeSources?: boolean;
+}
+
+export function simpleWebSearch(
+  query: string,
+  options?: SimpleWebSearchOptions
+): Promise<WebSearchResult>;
+
+export interface DomainFilteredSearchParams {
+  query: string;
+  domains: string[];
+  model?: OpenAIModel | string;
+  externalWebAccess?: boolean;
+  includeSources?: boolean;
+}
+
+export function domainFilteredSearch(
+  params: DomainFilteredSearchParams
+): Promise<WebSearchResult>;
+
+export interface LocationAwareSearchParams {
+  query: string;
+  location: UserLocation;
+  model?: OpenAIModel | string;
+  externalWebAccess?: boolean;
+  includeSources?: boolean;
+}
+
+export function locationAwareSearch(
+  params: LocationAwareSearchParams
+): Promise<WebSearchResult>;
+
+export interface CachedWebSearchOptions extends SimpleWebSearchOptions {
+  cacheKey?: string;
+  cacheDuration?: number;
+}
+
+export function cachedWebSearch(
+  query: string,
+  options?: CachedWebSearchOptions
+): Promise<WebSearchResult>;
+
+export function webSearchWithSources(
+  query: string,
+  options?: SimpleWebSearchOptions
+): Promise<WebSearchResult>;
+
+export function formatCitations(citations: Citation[]): string;
+
+export function extractDomains(urls: string[]): string[];
+
+export function createMarkdownCitations(citations: Citation[]): string;
 
 // ============================================================================
 // Default Export

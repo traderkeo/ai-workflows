@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,74 +60,88 @@ const workflows = {
 
 type WorkflowType = keyof typeof workflows;
 
-const STORAGE_KEY = 'workflows-demo-state';
-
-function loadState() {
-  if (typeof window === 'undefined') return null;
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (e) {
-    console.warn('Failed to load workflow state:', e);
-  }
-  return null;
-}
-
-function saveState(state: any) {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (e) {
-    console.warn('Failed to save workflow state:', e);
-  }
-}
-
 export default function WorkflowsDemo() {
-  const [workflowType, setWorkflowType] = useState<WorkflowType>(() => {
-    const saved = loadState();
-    return (saved?.workflowType as WorkflowType) || 'sequential';
-  });
-  const [model, setModel] = useState<ModelId>(() => {
-    const saved = loadState();
-    return (saved?.model as ModelId) || 'gpt-4o-mini';
-  });
-  const [input, setInput] = useState(() => {
-    const saved = loadState();
-    return saved?.input || '';
-  });
+  // State persists only while on this page - no localStorage
+  const [workflowType, setWorkflowType] = useState<WorkflowType>('sequential');
+  const [model, setModel] = useState<ModelId>('gpt-4o-mini');
+  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<any>(() => {
-    const saved = loadState();
-    return saved?.result || null;
-  });
-  const [progress, setProgress] = useState<any[]>(() => {
-    const saved = loadState();
-    return saved?.progress || [];
-  });
+  // Store results per workflow type
+  const [resultsByType, setResultsByType] = useState<Record<WorkflowType, any>>({} as Record<WorkflowType, any>);
+  // Store progress per workflow type
+  const [progressByType, setProgressByType] = useState<Record<WorkflowType, any[]>>({} as Record<WorkflowType, any[]>);
+  // Store streaming text chunks per step (for incremental display)
+  const [streamingTextByType, setStreamingTextByType] = useState<Record<WorkflowType, Record<string, string>>>({} as Record<WorkflowType, Record<string, string>>);
   const [currentStep, setCurrentStep] = useState('');
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const progressScrollRef = useRef<HTMLDivElement>(null);
+
+  // Get current result and progress for the selected workflow type
+  const result = resultsByType[workflowType] || null;
+  const progress = progressByType[workflowType] || [];
+  const streamingText = streamingTextByType[workflowType] || {};
 
   const currentWorkflow = workflows[workflowType];
   const Icon = currentWorkflow.icon;
 
-  // Save state whenever it changes
+  // Cleanup on unmount
   useEffect(() => {
-    saveState({
-      workflowType,
-      model,
-      input,
-      result,
-      progress,
-    });
-  }, [workflowType, model, input, result, progress]);
+    return () => {
+      if (abortController) {
+        abortController.abort();
+      }
+    };
+  }, [abortController]);
+
+  // Auto-scroll to bottom when progress or streaming text updates
+  useEffect(() => {
+    if (progressScrollRef.current && progress.length > 0) {
+      // Small delay to ensure DOM has updated
+      setTimeout(() => {
+        progressScrollRef.current?.scrollTo({
+          top: progressScrollRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      }, 50);
+    }
+  }, [progress, streamingText, isLoading]);
 
   const handleExecute = async () => {
     if (!input.trim()) return;
 
+    // Prevent multiple simultaneous executions
+    if (isLoading) {
+      console.warn('[Workflows Demo] Already executing, ignoring duplicate request');
+      return;
+    }
+
+    // Cancel any previous request
+    if (abortController) {
+      abortController.abort();
+    }
+
+    // Capture workflowType at the start to ensure we store results for the correct type
+    // even if user switches types during execution
+    const executingWorkflowType = workflowType;
+
+    // Validate workflowType before sending
+    const validTypes = ['sequential', 'parallel', 'conditional', 'retry', 'complex'];
+    if (!validTypes.includes(executingWorkflowType)) {
+      console.error(`[Workflows Demo] Invalid workflow type: ${executingWorkflowType}`);
+      return;
+    }
+
+    // Create new abort controller for this request
+    const controller = new AbortController();
+    setAbortController(controller);
+
+    console.log(`[Workflows Demo] Executing ONLY workflow type: ${executingWorkflowType} (input length: ${input.length})`);
+
     setIsLoading(true);
-    setResult(null);
-    setProgress([]);
+    // Clear results and progress for this specific workflow type
+    setResultsByType((prev) => ({ ...prev, [executingWorkflowType]: null }));
+    setProgressByType((prev) => ({ ...prev, [executingWorkflowType]: [] }));
+    setStreamingTextByType((prev) => ({ ...prev, [executingWorkflowType]: {} }));
     setCurrentStep('Starting workflow...');
 
     let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
@@ -137,10 +151,11 @@ export default function WorkflowsDemo() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          workflowType,
+          workflowType: executingWorkflowType, // Explicitly pass only the selected type
           model,
           input,
         }),
+        signal: controller.signal, // Allow cancellation
       });
 
       if (!response.ok) {
@@ -163,101 +178,167 @@ export default function WorkflowsDemo() {
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const event = JSON.parse(line.slice(6));
+            let event;
+            try {
+              event = JSON.parse(line.slice(6));
+            } catch (error) {
+              console.error('[Workflows Demo] Failed to parse SSE event:', error, 'Line:', line);
+              // Skip malformed events
+              continue;
+            }
 
             switch (event.type) {
               case 'start':
                 setCurrentStep(`Starting ${event.data.workflowType} workflow...`);
-                setProgress((prev) => [
+                setProgressByType((prev) => ({
                   ...prev,
-                  { type: 'start', message: 'Workflow initiated', timestamp: event.timestamp },
-                ]);
+                  [workflowType]: [
+                    ...(prev[workflowType] || []),
+                    { type: 'start', message: 'Workflow initiated', timestamp: event.timestamp },
+                  ],
+                }));
                 break;
 
               case 'progress':
                 setCurrentStep(event.data.step);
-                setProgress((prev) => [
+                setProgressByType((prev) => ({
                   ...prev,
-                  { type: 'progress', message: event.data.step, timestamp: event.timestamp },
-                ]);
+                  [workflowType]: [
+                    ...(prev[workflowType] || []),
+                    { type: 'progress', message: event.data.step, timestamp: event.timestamp },
+                  ],
+                }));
                 break;
 
               case 'step-complete':
-                setProgress((prev) => [
+                setProgressByType((prev) => ({
                   ...prev,
-                  {
-                    type: 'step-complete',
-                    stepNumber: event.data.stepNumber,
-                    stepType: event.data.type,
-                    result: event.data.result,
-                    timestamp: event.timestamp,
-                  },
-                ]);
+                  [workflowType]: [
+                    ...(prev[workflowType] || []),
+                    {
+                      type: 'step-complete',
+                      stepNumber: event.data.stepNumber,
+                      stepType: event.data.type,
+                      result: event.data.result,
+                      timestamp: event.timestamp,
+                    },
+                  ],
+                }));
                 break;
 
               case 'parallel-complete':
               case 'parallel-analysis-complete':
-                setProgress((prev) => [
+                setProgressByType((prev) => ({
                   ...prev,
-                  {
-                    type: 'parallel',
-                    results: event.data.results,
-                    timestamp: event.timestamp,
-                  },
-                ]);
+                  [workflowType]: [
+                    ...(prev[workflowType] || []),
+                    {
+                      type: 'parallel',
+                      results: event.data.results,
+                      timestamp: event.timestamp,
+                    },
+                  ],
+                }));
                 break;
 
               case 'condition-evaluated':
-                setProgress((prev) => [
+                setProgressByType((prev) => ({
                   ...prev,
-                  {
-                    type: 'condition',
-                    evaluated: true,
-                    isLongText: event.data.isLongText,
-                    textLength: event.data.textLength,
-                    timestamp: event.timestamp,
-                  },
-                ]);
+                  [workflowType]: [
+                    ...(prev[workflowType] || []),
+                    {
+                      type: 'condition',
+                      evaluated: true,
+                      isLongText: event.data.isLongText,
+                      textLength: event.data.textLength,
+                      timestamp: event.timestamp,
+                    },
+                  ],
+                }));
                 break;
 
               case 'branch-executed':
-                setProgress((prev) => [
+                setProgressByType((prev) => ({
                   ...prev,
-                  {
-                    type: 'branch',
-                    branchTaken: event.data.branchTaken,
-                    result: event.data.result,
-                    timestamp: event.timestamp,
-                  },
-                ]);
+                  [workflowType]: [
+                    ...(prev[workflowType] || []),
+                    {
+                      type: 'branch',
+                      branchTaken: event.data.branchTaken,
+                      result: event.data.result,
+                      timestamp: event.timestamp,
+                    },
+                  ],
+                }));
                 break;
 
               case 'synthesis-complete':
-                setProgress((prev) => [
+                setProgressByType((prev) => ({
                   ...prev,
-                  {
-                    type: 'synthesis',
-                    synthesis: event.data.synthesis,
-                    timestamp: event.timestamp,
-                  },
-                ]);
+                  [workflowType]: [
+                    ...(prev[workflowType] || []),
+                    {
+                      type: 'synthesis',
+                      synthesis: event.data.synthesis,
+                      timestamp: event.timestamp,
+                    },
+                  ],
+                }));
                 break;
 
               case 'retry-complete':
-                setProgress((prev) => [
+                setProgressByType((prev) => ({
                   ...prev,
-                  {
-                    type: 'retry',
-                    attempts: event.data.attempts,
-                    result: event.data.result,
-                    timestamp: event.timestamp,
+                  [workflowType]: [
+                    ...(prev[workflowType] || []),
+                    {
+                      type: 'retry',
+                      attempts: event.data.attempts,
+                      result: event.data.result,
+                      timestamp: event.timestamp,
+                    },
+                  ],
+                }));
+                break;
+
+              case 'text-chunk':
+                // Handle incremental text chunks for streaming display
+                // For complex workflow, prioritize stepType-based keys over stepNumber
+                // to match progress message lookups
+                const chunkKey = event.data.stepType === 'synthesis'
+                  ? 'synthesis'
+                  : event.data.stepType === 'technical-analysis'
+                  ? 'technical'
+                  : event.data.stepType === 'business-analysis'
+                  ? 'business'
+                  : event.data.stepNumber 
+                  ? `step-${event.data.stepNumber}` 
+                  : event.data.taskNumber 
+                  ? `task-${event.data.taskNumber}`
+                  : event.data.attempt
+                  ? `attempt-${event.data.attempt}`
+                  : 'default';
+                
+                setStreamingTextByType((prev) => ({
+                  ...prev,
+                  [executingWorkflowType]: {
+                    ...(prev[executingWorkflowType] || {}),
+                    [chunkKey]: event.data.fullText,
                   },
-                ]);
+                }));
                 break;
 
               case 'complete':
                 setCurrentStep('Workflow complete!');
-                setResult(event.data);
+                // Store result for this specific workflow type
+                try {
+                  setResultsByType((prev) => ({ ...prev, [executingWorkflowType]: event.data }));
+                  console.log(`[Workflows Demo] Result stored for workflow type: ${executingWorkflowType}`);
+                } catch (error) {
+                  console.error('[Workflows Demo] Error storing result:', error);
+                  const errorMessage = error instanceof Error ? error.message : String(error);
+                  setResultsByType((prev) => ({ ...prev, [executingWorkflowType]: { error: 'Failed to process result: ' + errorMessage } }));
+                }
                 break;
 
               case 'error':
@@ -267,7 +348,12 @@ export default function WorkflowsDemo() {
         }
       }
     } catch (error: any) {
-      setResult({ error: error.message });
+      // Ignore abort errors
+      if (error.name === 'AbortError') {
+        console.log('[Workflows Demo] Request aborted');
+        return;
+      }
+      setResultsByType((prev) => ({ ...prev, [workflowType]: { error: error.message } }));
       setCurrentStep('Error occurred');
     } finally {
       // Ensure stream is closed
@@ -280,6 +366,7 @@ export default function WorkflowsDemo() {
         }
       }
       setIsLoading(false);
+      setAbortController(null);
     }
   };
 
@@ -305,6 +392,9 @@ export default function WorkflowsDemo() {
       );
     }
 
+    // Get the workflow config for the currently selected type
+    const resultWorkflow = workflows[workflowType];
+
     return (
       <div className="space-y-4">
         {/* Metadata */}
@@ -322,8 +412,8 @@ export default function WorkflowsDemo() {
           </div>
         )}
 
-        {/* Sequential Results */}
-        {workflowType === 'sequential' && result.result?.results && (
+        {/* Sequential Results - Only show if result type matches */}
+        {workflowType === 'sequential' && result.result?.results && Array.isArray(result.result.results) && (
           <div className="space-y-3">
             {result.result.results.map((step: any, i: number) => (
               <Card key={i}>
@@ -332,7 +422,7 @@ export default function WorkflowsDemo() {
                     <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-bold text-blue-600">
                       {i + 1}
                     </div>
-                    {currentWorkflow.steps[i]}
+                    {workflows.sequential.steps[i] || `Step ${i + 1}`}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -346,26 +436,28 @@ export default function WorkflowsDemo() {
                 </CardContent>
               </Card>
             ))}
-            <Card className="border-2 border-blue-500">
-              <CardHeader>
-                <CardTitle className="text-sm">Final Output</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3 text-sm font-medium">
-                  {result.result.finalOutput}
-                </div>
-              </CardContent>
-            </Card>
+            {result.result.finalOutput && (
+              <Card className="border-2 border-blue-500">
+                <CardHeader>
+                  <CardTitle className="text-sm">Final Output</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3 text-sm font-medium">
+                    {result.result.finalOutput}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
-        {/* Parallel Results */}
-        {workflowType === 'parallel' && result.result?.results && (
+        {/* Parallel Results - Only show if result type matches */}
+        {workflowType === 'parallel' && result.result?.results && Array.isArray(result.result.results) && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {result.result.results.map((task: any, i: number) => (
               <Card key={i}>
                 <CardHeader>
-                  <CardTitle className="text-sm">{currentWorkflow.steps[i]}</CardTitle>
+                  <CardTitle className="text-sm">{workflows.parallel.steps[i] || `Task ${i + 1}`}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="bg-gray-50 dark:bg-gray-900 rounded p-3 text-sm">
@@ -377,8 +469,8 @@ export default function WorkflowsDemo() {
           </div>
         )}
 
-        {/* Conditional Result */}
-        {workflowType === 'conditional' && result.result && (
+        {/* Conditional Result - Only show if result type matches */}
+        {workflowType === 'conditional' && result.result && !result.result.results && (
           <div className="space-y-3">
             <Card>
               <CardHeader>
@@ -398,8 +490,8 @@ export default function WorkflowsDemo() {
           </div>
         )}
 
-        {/* Retry Result */}
-        {workflowType === 'retry' && result.result && (
+        {/* Retry Result - Only show if result type matches */}
+        {workflowType === 'retry' && result.result && !result.result.results && !result.result.synthesis && (
           <div className="space-y-3">
             <Card>
               <CardHeader>
@@ -419,7 +511,7 @@ export default function WorkflowsDemo() {
           </div>
         )}
 
-        {/* Complex Workflow Result */}
+        {/* Complex Workflow Result - Only show if result type matches */}
         {workflowType === 'complex' && result.result?.synthesis && (
           <div className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -432,7 +524,14 @@ export default function WorkflowsDemo() {
                   </CardHeader>
                   <CardContent>
                     <div className="bg-gray-50 dark:bg-gray-900 rounded p-3 text-sm">
-                      {perspective.result?.text || perspective.text || JSON.stringify(perspective.result, null, 2)}
+                      {(() => {
+                        try {
+                          return perspective.result?.text || perspective.text || JSON.stringify(perspective.result, null, 2);
+                        } catch (error) {
+                          console.error('[Workflows Demo] Error rendering perspective result:', error);
+                          return String(perspective.result || 'Unable to display result');
+                        }
+                      })()}
                     </div>
                   </CardContent>
                 </Card>
@@ -495,10 +594,11 @@ export default function WorkflowsDemo() {
                       variant={isActive ? 'default' : 'outline'}
                       className="w-full justify-start"
                       onClick={() => {
-                        // Only reset if switching to a different workflow type
+                        // Switch workflow type - results are now tied to each type
                         if (key !== workflowType) {
                           setWorkflowType(key as WorkflowType);
-                          // Don't clear results - keep them for reference
+                          // Results are automatically shown/hidden based on workflowType
+                          // via the resultsByType lookup
                         }
                       }}
                     >
@@ -580,42 +680,149 @@ export default function WorkflowsDemo() {
           {/* Results */}
           <div className="lg:col-span-2 space-y-6">
             {/* Progress Tracker */}
-            {isLoading && (
+            {progress.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                    Workflow Executing
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                        Workflow Executing
+                      </>
+                    ) : (
+                      <>
+                        <Workflow className="w-5 h-5 text-green-500" />
+                        Workflow Complete
+                      </>
+                    )}
                   </CardTitle>
-                  <CardDescription>{currentStep}</CardDescription>
+                  <CardDescription>{isLoading ? currentStep : 'All steps completed successfully'}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                    {progress.map((item, index) => (
+                  <div ref={progressScrollRef} className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {progress.map((item, index) => {
+                      // Determine if this progress item should be shown (only if it has streaming content)
+                      const shouldHideProgress = item.type === 'progress' && (() => {
+                        const stepMatch = item.message?.match(/step (\d+)/i) || item.message?.match(/task (\d+)/i);
+                        const attemptMatch = item.message?.match(/attempt (\d+)/i);
+                        let stepKey = null;
+                        let streamingContent = null;
+                        
+                        if (stepMatch) {
+                          const stepNum = stepMatch[1];
+                          stepKey = item.message?.includes('task') ? `task-${stepNum}` : `step-${stepNum}`;
+                          streamingContent = stepKey ? streamingText[stepKey] : null;
+                        } else if (attemptMatch) {
+                          // Handle retry attempts
+                          const attemptNum = attemptMatch[1];
+                          stepKey = `attempt-${attemptNum}`;
+                          streamingContent = streamingText[stepKey] || null;
+                        }
+                        
+                        if (!streamingContent) {
+                          if (item.message?.includes('Synthesiz')) {
+                            streamingContent = streamingText['synthesis'];
+                          } else if (item.message?.includes('technical')) {
+                            streamingContent = streamingText['technical'];
+                          } else if (item.message?.includes('business')) {
+                            streamingContent = streamingText['business'];
+                          } else if (item.message?.includes('branch') || item.message?.includes('Expand') || item.message?.includes('Summarize')) {
+                            streamingContent = streamingText['default'];
+                          }
+                        }
+                        
+                        // Hide if no streaming content or not loading
+                        return !streamingContent || !isLoading;
+                      })();
+                      
+                      return (
                       <div
                         key={index}
-                        className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg animate-in fade-in slide-in-from-left"
+                        className={`flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg animate-in fade-in slide-in-from-left ${shouldHideProgress ? 'hidden' : ''}`}
                       >
                         <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-500 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           {item.type === 'start' && (
                             <p className="text-sm font-medium">{item.message}</p>
                           )}
-                          {item.type === 'progress' && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{item.message}</p>
-                          )}
+                          {item.type === 'progress' && (() => {
+                            // Show progress items as step cards when they have streaming content
+                            const stepMatch = item.message?.match(/step (\d+)/i) || item.message?.match(/task (\d+)/i);
+                            const attemptMatch = item.message?.match(/attempt (\d+)/i);
+                            let stepNum = null;
+                            let attemptNum = null;
+                            let stepKey = null;
+                            let streamingContent = null;
+                            
+                            if (stepMatch) {
+                              stepNum = stepMatch[1];
+                              stepKey = item.message?.includes('task') ? `task-${stepNum}` : `step-${stepNum}`;
+                              streamingContent = stepKey ? streamingText[stepKey] : null;
+                            } else if (attemptMatch) {
+                              // Handle retry attempts
+                              attemptNum = attemptMatch[1];
+                              stepKey = `attempt-${attemptNum}`;
+                              streamingContent = streamingText[stepKey] || null;
+                            }
+                            
+                            // Check for other streaming types
+                            if (!streamingContent) {
+                              if (item.message?.includes('Synthesiz')) {
+                                streamingContent = streamingText['synthesis'];
+                              } else if (item.message?.includes('technical')) {
+                                streamingContent = streamingText['technical'];
+                              } else if (item.message?.includes('business')) {
+                                streamingContent = streamingText['business'];
+                              } else if (item.message?.includes('branch') || item.message?.includes('Expand') || item.message?.includes('Summarize')) {
+                                streamingContent = streamingText['default'];
+                              }
+                            }
+                            
+                            // Only show as a card if there's streaming content
+                            if (streamingContent && isLoading) {
+                              return (
+                                <div className="space-y-2">
+                                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                                    {stepNum ? `Step ${stepNum}${item.message?.includes('task') ? ' (Task)' : ''}` : attemptNum ? `Attempt ${attemptNum}` : item.message}
+                                  </p>
+                                  <div className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
+                                    <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                      {streamingContent}
+                                      <span className="inline-block w-2 h-4 ml-1 bg-blue-500 animate-pulse" />
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            
+                            // No streaming content, hide this progress item
+                            return null;
+                          })()}
                           {item.type === 'step-complete' && (
                             <div className="space-y-2">
                               <p className="text-sm font-medium text-green-600 dark:text-green-400">
                                 ✓ Step {item.stepNumber || item.taskNumber} Complete {item.stepType && `(${item.stepType})`}
                               </p>
-                              {item.result?.text && (
-                                <div className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
-                                  <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                                    {item.result.text}
-                                  </p>
-                                </div>
-                              )}
+                              {(() => {
+                                // Show result text or streaming content
+                                const stepKey = item.stepNumber ? `step-${item.stepNumber}` : item.taskNumber ? `task-${item.taskNumber}` : null;
+                                const streamingContent = stepKey ? streamingText[stepKey] : null;
+                                
+                                // Show result if available, otherwise show streaming content
+                                const displayText = item.result?.text || streamingContent;
+                                const isStreaming = streamingContent && isLoading && !item.result?.text;
+                                
+                                return displayText ? (
+                                  <div className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
+                                    <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                      {displayText}
+                                      {isStreaming && (
+                                        <span className="inline-block w-2 h-4 ml-1 bg-blue-500 animate-pulse" />
+                                      )}
+                                    </p>
+                                  </div>
+                                ) : null;
+                              })()}
                               {item.result?.data && (
                                 <div className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
                                   <pre className="text-xs text-gray-700 dark:text-gray-300 overflow-x-auto">
@@ -630,16 +837,26 @@ export default function WorkflowsDemo() {
                               <p className="text-sm font-medium text-green-600 dark:text-green-400">
                                 ✓ Parallel execution completed ({item.results?.length} tasks)
                               </p>
-                              {item.results?.map((res: any, idx: number) => (
-                                <div key={idx} className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
-                                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                    Task {idx + 1}:
-                                  </p>
-                                  <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                                    {res.result?.text || JSON.stringify(res.result, null, 2)}
-                                  </p>
-                                </div>
-                              ))}
+                              {item.results?.map((res: any, idx: number) => {
+                                const taskKey = `task-${idx + 1}`;
+                                const streamingContent = streamingText[taskKey];
+                                const displayText = res.result?.text || streamingContent || JSON.stringify(res.result, null, 2);
+                                const isStreaming = streamingContent && isLoading && !res.result?.text;
+                                
+                                return (
+                                  <div key={idx} className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
+                                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                      Task {idx + 1}:
+                                    </p>
+                                    <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                      {displayText}
+                                      {isStreaming && (
+                                        <span className="inline-block w-2 h-4 ml-1 bg-blue-500 animate-pulse" />
+                                      )}
+                                    </p>
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                           {item.type === 'condition' && (
@@ -657,13 +874,31 @@ export default function WorkflowsDemo() {
                               <p className="text-sm font-medium text-green-600 dark:text-green-400">
                                 ✓ Branch executed: {item.branchTaken}
                               </p>
-                              {item.result?.text && (
-                                <div className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
-                                  <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                                    {item.result.text}
-                                  </p>
-                                </div>
-                              )}
+                              {(() => {
+                                // Check for streaming text (no specific step number for branches)
+                                const streamingContent = streamingText['default'];
+                                const wasStreamedInProgress = streamingContent && !isLoading && progress.some((p: any) => 
+                                  p.type === 'progress' && (p.message?.includes('branch') || p.message?.includes('Expand') || p.message?.includes('Summarize'))
+                                );
+                                
+                                if (wasStreamedInProgress) {
+                                  return null; // Don't duplicate
+                                }
+                                
+                                const displayText = item.result?.text || streamingContent;
+                                const isStreaming = streamingContent && isLoading;
+                                
+                                return displayText ? (
+                                  <div className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
+                                    <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                      {displayText}
+                                      {isStreaming && (
+                                        <span className="inline-block w-2 h-4 ml-1 bg-blue-500 animate-pulse" />
+                                      )}
+                                    </p>
+                                  </div>
+                                ) : null;
+                              })()}
                             </div>
                           )}
                           {item.type === 'synthesis' && (
@@ -671,13 +906,31 @@ export default function WorkflowsDemo() {
                               <p className="text-sm font-medium text-pink-600 dark:text-pink-400">
                                 ✓ Synthesis complete
                               </p>
-                              {item.synthesis?.text && (
-                                <div className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
-                                  <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                                    {item.synthesis.text}
-                                  </p>
-                                </div>
-                              )}
+                              {(() => {
+                                // Check for streaming synthesis text
+                                const streamingContent = streamingText['synthesis'];
+                                const wasStreamedInProgress = streamingContent && !isLoading && progress.some((p: any) => 
+                                  p.type === 'progress' && p.message?.includes('Synthesiz')
+                                );
+                                
+                                if (wasStreamedInProgress) {
+                                  return null; // Don't duplicate
+                                }
+                                
+                                const displayText = item.synthesis?.text || streamingContent;
+                                const isStreaming = streamingContent && isLoading;
+                                
+                                return displayText ? (
+                                  <div className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
+                                    <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                      {displayText}
+                                      {isStreaming && (
+                                        <span className="inline-block w-2 h-4 ml-1 bg-blue-500 animate-pulse" />
+                                      )}
+                                    </p>
+                                  </div>
+                                ) : null;
+                              })()}
                             </div>
                           )}
                           {item.type === 'retry' && (
@@ -685,13 +938,32 @@ export default function WorkflowsDemo() {
                               <p className="text-sm font-medium text-green-600 dark:text-green-400">
                                 ✓ Retry successful (attempts: {item.attempts})
                               </p>
-                              {item.result?.text && (
-                                <div className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
-                                  <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                                    {item.result.text}
-                                  </p>
-                                </div>
-                              )}
+                              {(() => {
+                                // Check for streaming text for this attempt
+                                const attemptKey = item.attempts ? `attempt-${item.attempts}` : null;
+                                const streamingContent = attemptKey ? streamingText[attemptKey] : null;
+                                const wasStreamedInProgress = streamingContent && !isLoading && progress.some((p: any) => 
+                                  p.type === 'progress' && p.message?.includes(`Attempt ${item.attempts}`)
+                                );
+                                
+                                if (wasStreamedInProgress) {
+                                  return null; // Don't duplicate
+                                }
+                                
+                                const displayText = item.result?.text || streamingContent;
+                                const isStreaming = streamingContent && isLoading;
+                                
+                                return displayText ? (
+                                  <div className="bg-white dark:bg-gray-800 rounded p-2 border border-gray-200 dark:border-gray-700">
+                                    <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                      {displayText}
+                                      {isStreaming && (
+                                        <span className="inline-block w-2 h-4 ml-1 bg-blue-500 animate-pulse" />
+                                      )}
+                                    </p>
+                                  </div>
+                                ) : null;
+                              })()}
                             </div>
                           )}
                         </div>
@@ -699,7 +971,8 @@ export default function WorkflowsDemo() {
                           {new Date(item.timestamp).toLocaleTimeString()}
                         </span>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>

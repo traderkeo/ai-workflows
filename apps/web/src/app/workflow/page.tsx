@@ -44,7 +44,7 @@ export default function WorkflowBuilderPage() {
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      setNodes((nds) => applyNodeChanges(changes, nds));
+      setNodes((nds) => applyNodeChanges(changes, nds) as ReactFlowNode<WorkflowNodeData>[]);
     },
     []
   );
@@ -69,8 +69,8 @@ export default function WorkflowBuilderPage() {
     []
   );
 
-  const onNodeClick = useCallback((_event: React.MouseEvent, node: ReactFlowNode<WorkflowNodeData>) => {
-    setSelectedNode(node);
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: ReactFlowNode) => {
+    setSelectedNode(node as ReactFlowNode<WorkflowNodeData>);
   }, []);
 
   const onPaneClick = useCallback(() => {

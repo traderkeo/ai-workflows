@@ -12,21 +12,38 @@ import '@xyflow/react/dist/style.css';
 import '../styles/index.css';
 
 import { useFlowStore } from '../hooks/useFlowStore';
-import { InputNode } from '../nodes/InputNode';
-import { OutputNode } from '../nodes/OutputNode';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { StartNode } from '../nodes/StartNode';
+import { StopNode } from '../nodes/StopNode';
+import { AIAgentNode } from '../nodes/AIAgentNode';
 import { TextGenerationNode } from '../nodes/TextGenerationNode';
 import { StructuredDataNode } from '../nodes/StructuredDataNode';
 import { TransformNode } from '../nodes/TransformNode';
+import { MergeNode } from '../nodes/MergeNode';
+import { ConditionNode } from '../nodes/ConditionNode';
+import { TemplateNode } from '../nodes/TemplateNode';
+import { HttpRequestNode } from '../nodes/HttpRequestNode';
+import { LoopNode } from '../nodes/LoopNode';
+import { SavedWorkflowsPanel } from './SavedWorkflowsPanel';
+import { VariablesPanel } from './VariablesPanel';
+import { ThemeSettings } from './ThemeSettings';
 import { executeWorkflow, validateWorkflow } from '../utils/executionEngine';
-import { Play, Save, Upload, Download, Trash2, AlertCircle } from 'lucide-react';
+import { Play, Upload, Download, Trash2, AlertCircle, MoreVertical, FileJson, FolderOpen, Grid3x3 } from 'lucide-react';
+import { useNotifications } from '../context/NotificationContext';
 import type { AINode } from '../types';
 
 const nodeTypes = {
-  input: InputNode,
-  output: OutputNode,
+  start: StartNode,
+  stop: StopNode,
+  'ai-agent': AIAgentNode,
   'text-generation': TextGenerationNode,
   'structured-data': StructuredDataNode,
   transform: TransformNode,
+  merge: MergeNode,
+  condition: ConditionNode,
+  template: TemplateNode,
+  'http-request': HttpRequestNode,
+  loop: LoopNode,
 };
 
 export const WorkflowCanvas: React.FC = () => {
@@ -40,21 +57,28 @@ export const WorkflowCanvas: React.FC = () => {
     resetWorkflow,
     exportWorkflow,
     importWorkflow,
+    saveWorkflow,
+    loadWorkflow,
     isExecuting,
     startExecution,
     stopExecution,
     metadata,
     updateMetadata,
+    autoLayoutNodes,
   } = useFlowStore();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { fitView } = useReactFlow();
+  const notifications = useNotifications();
 
   const handleExecute = useCallback(async () => {
     // Validate workflow
     const validation = validateWorkflow(nodes, edges);
     if (!validation.valid) {
-      alert(`Workflow validation failed:\n\n${validation.errors.join('\n')}`);
+      await notifications.showAlert(
+        `Workflow validation failed:\n\n${validation.errors.join('\n')}`,
+        'Validation Error'
+      );
       return;
     }
 
@@ -65,13 +89,13 @@ export const WorkflowCanvas: React.FC = () => {
         updateNode(nodeId, updates);
       });
 
-      alert('Workflow executed successfully!');
+      notifications.showToast('Workflow executed successfully!', 'success');
     } catch (error: any) {
-      alert(`Workflow execution failed: ${error.message}`);
+      notifications.showToast(`Workflow execution failed: ${error.message}`, 'destructive');
     } finally {
       stopExecution();
     }
-  }, [nodes, edges, updateNode, startExecution, stopExecution]);
+  }, [nodes, edges, updateNode, startExecution, stopExecution, notifications]);
 
   const handleSave = useCallback(() => {
     const json = exportWorkflow();
@@ -89,19 +113,19 @@ export const WorkflowCanvas: React.FC = () => {
   }, []);
 
   const handleFileChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const json = e.target?.result as string;
           importWorkflow(json);
           setTimeout(() => fitView(), 100);
-          alert('Workflow loaded successfully!');
+          notifications.showToast('Workflow loaded successfully!', 'success');
         } catch (error) {
-          alert('Failed to load workflow. Invalid file format.');
+          notifications.showToast('Failed to load workflow. Invalid file format.', 'destructive');
         }
       };
       reader.readAsText(file);
@@ -111,39 +135,80 @@ export const WorkflowCanvas: React.FC = () => {
         fileInputRef.current.value = '';
       }
     },
-    [importWorkflow, fitView]
+    [importWorkflow, fitView, notifications]
   );
 
-  const handleReset = useCallback(() => {
-    if (confirm('Are you sure you want to reset the workflow? This cannot be undone.')) {
+  const handleReset = useCallback(async () => {
+    const confirmed = await notifications.showConfirm(
+      'Are you sure you want to reset the workflow? This cannot be undone.',
+      'Reset Workflow'
+    );
+    if (confirmed) {
       resetWorkflow();
     }
-  }, [resetWorkflow]);
+  }, [resetWorkflow, notifications]);
 
-  const handleNameChange = useCallback(() => {
-    const newName = prompt('Enter workflow name:', metadata.name);
+  const handleNameChange = useCallback(async () => {
+    const newName = await notifications.showPrompt('Enter workflow name:', metadata.name);
     if (newName && newName.trim()) {
       updateMetadata({ name: newName.trim() });
     }
-  }, [metadata.name, updateMetadata]);
+  }, [metadata.name, updateMetadata, notifications]);
+
+  const handleAutoLayout = useCallback(() => {
+    autoLayoutNodes();
+    setTimeout(() => fitView({ duration: 300 }), 50);
+    notifications.showToast('Nodes auto-arranged', 'success');
+  }, [autoLayoutNodes, fitView, notifications]);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onExecute: handleExecute,
+    onSave: handleSave,
+  });
+
+  // Track selected node
+  const [selectedNodeId, setSelectedNodeId] = React.useState<string | undefined>();
+  const [fileMenuOpen, setFileMenuOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const selected = nodes.find(n => n.selected);
+    setSelectedNodeId(selected?.id);
+  }, [nodes]);
+
+  // Close file menu when clicking outside
+  React.useEffect(() => {
+    if (!fileMenuOpen) return;
+    const handleClick = () => setFileMenuOpen(false);
+    setTimeout(() => document.addEventListener('click', handleClick), 0);
+    return () => document.removeEventListener('click', handleClick);
+  }, [fileMenuOpen]);
 
   return (
-    <>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        nodeTypes={nodeTypes}
-        fitView
-        minZoom={0.1}
-        maxZoom={2}
-        defaultEdgeOptions={{
-          animated: true,
-          style: { strokeWidth: 2 },
-        }}
-      >
+    <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative' }}>
+      {/* Variables Panel - Left Sidebar */}
+      <VariablesPanel nodes={nodes} selectedNodeId={selectedNodeId} />
+
+      {/* Main Canvas */}
+      <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          fitView
+          minZoom={0.1}
+          maxZoom={2}
+          nodesDraggable={true}
+          selectNodesOnDrag={false}
+          snapToGrid={false}
+          defaultEdgeOptions={{
+            animated: true,
+            style: { strokeWidth: 2 },
+          }}
+        >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
         <Controls />
         <MiniMap
@@ -155,134 +220,144 @@ export const WorkflowCanvas: React.FC = () => {
           }}
         />
 
-        {/* Top Panel - Workflow Info & Controls */}
-        <Panel position="top-left" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div
-            className="gothic-panel"
-            style={{
-              padding: '12px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px',
-            }}
-          >
-            <div>
-              <div
-                onClick={handleNameChange}
-                style={{
-                  fontFamily: 'var(--font-primary)',
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  color: 'var(--cyber-neon-cyan)',
-                  cursor: 'pointer',
-                  textShadow: '0 0 10px var(--cyber-neon-cyan)',
-                }}
-              >
-                {metadata.name}
+        {/* Compact Toolbar */}
+        <Panel position="top-center" className="w-full">
+          <div className="bg-card/95 backdrop-blur-sm border-b border-border shadow-sm">
+            <div className="flex items-center justify-between px-4 py-2 gap-4 max-w-full">
+              {/* Left: Workflow Info */}
+              <div className="flex items-center gap-4 min-w-0 flex-1">
+                <div
+                  onClick={handleNameChange}
+                  className="text-base font-semibold text-foreground cursor-pointer hover:text-primary transition-colors truncate"
+                  title="Click to rename"
+                >
+                  {metadata.name}
+                </div>
+                <div className="hidden sm:flex items-center gap-3 text-xs text-muted-foreground font-mono">
+                  <span>{nodes.length} nodes</span>
+                  <span className="text-border">•</span>
+                  <span>{edges.length} edges</span>
+                </div>
               </div>
-              <div
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '10px',
-                  color: 'var(--cyber-neon-purple)',
-                  marginTop: '2px',
-                }}
-              >
-                {nodes.length} nodes • {edges.length} connections
+
+              {/* Right: Actions */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {/* Execute Button */}
+                <button
+                  onClick={handleExecute}
+                  disabled={isExecuting}
+                  className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-8 px-3 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                  title="Execute workflow"
+                >
+                  <Play size={14} />
+                  <span className="hidden sm:inline">{isExecuting ? 'Running...' : 'Execute'}</span>
+                </button>
+
+                {/* Saved Workflows */}
+                <SavedWorkflowsPanel
+                  onSave={saveWorkflow}
+                  onLoad={(workflow) => {
+                    loadWorkflow(workflow);
+                    setTimeout(() => fitView(), 100);
+                  }}
+                  currentWorkflowId={metadata.id}
+                />
+
+                {/* File Actions Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFileMenuOpen(!fileMenuOpen);
+                    }}
+                    className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-8 px-3 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
+                    title="File actions"
+                  >
+                    <FileJson size={14} />
+                    <span className="hidden sm:inline">File</span>
+                    <span className="sm:hidden"><MoreVertical size={14} /></span>
+                  </button>
+                  {fileMenuOpen && (
+                    <div 
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-md shadow-lg min-w-[180px] overflow-hidden animate-in fade-in-0 zoom-in-95"
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSave();
+                          setFileMenuOpen(false);
+                        }}
+                        className="w-full inline-flex items-center justify-start gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
+                      >
+                        <Download size={14} />
+                        Export JSON
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLoad();
+                          setFileMenuOpen(false);
+                        }}
+                        className="w-full inline-flex items-center justify-start gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors border-t border-border"
+                      >
+                        <Upload size={14} />
+                        Import JSON
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAutoLayout();
+                          setFileMenuOpen(false);
+                        }}
+                        className="w-full inline-flex items-center justify-start gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors border-t border-border"
+                      >
+                        <Grid3x3 size={14} />
+                        Auto Arrange
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFileMenuOpen(false);
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleReset();
+                        }}
+                        className="w-full inline-flex items-center justify-start gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors border-t border-border"
+                      >
+                        <Trash2 size={14} />
+                        Reset Workflow
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Theme Settings - Compact */}
+                <ThemeSettings />
               </div>
             </div>
           </div>
         </Panel>
 
-        {/* Top Panel - Action Buttons */}
-        <Panel position="top-right" style={{ display: 'flex', gap: '8px' }}>
-          <button
-            className="ai-node-button"
-            onClick={handleExecute}
-            disabled={isExecuting}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              opacity: isExecuting ? 0.5 : 1,
-              cursor: isExecuting ? 'not-allowed' : 'pointer',
-            }}
-          >
-            <Play size={14} />
-            {isExecuting ? 'Running...' : 'Execute'}
-          </button>
-
-          <button
-            className="ai-node-button"
-            onClick={handleSave}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'linear-gradient(135deg, #00f0ff 0%, #b026ff 100%)',
-            }}
-          >
-            <Download size={14} />
-            Export
-          </button>
-
-          <button
-            className="ai-node-button"
-            onClick={handleLoad}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'linear-gradient(135deg, #39ff14 0%, #00f0ff 100%)',
-            }}
-          >
-            <Upload size={14} />
-            Import
-          </button>
-
-          <button
-            className="ai-node-button"
-            onClick={handleReset}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'linear-gradient(135deg, #ff0040 0%, #ff1493 100%)',
-            }}
-          >
-            <Trash2 size={14} />
-            Reset
-          </button>
-        </Panel>
-
         {/* Bottom Panel - Instructions */}
         <Panel position="bottom-center">
-          <div
-            className="gothic-panel"
-            style={{
-              padding: '8px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '11px',
-              color: 'var(--cyber-neon-purple)',
-            }}
-          >
+          <div className="bg-card border border-border rounded-lg shadow-sm px-4 py-2 flex items-center gap-2 text-xs text-muted-foreground font-mono">
             <AlertCircle size={14} />
-            Right-click canvas to add nodes • Connect nodes by dragging from handles • Double-click node name to edit workflow name
+            Right-click canvas to add nodes • Connect nodes by dragging from handles • Click workflow name to edit
           </div>
         </Panel>
-      </ReactFlow>
+        </ReactFlow>
 
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".json"
-        onChange={handleFileChange}
-        style={{ display: 'none' }}
-      />
-    </>
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
+      </div>
+    </div>
   );
 };

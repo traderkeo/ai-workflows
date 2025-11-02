@@ -5,7 +5,7 @@
  * Each step uses the 'use step' directive for automatic retries and durability.
  */
 
-import { generateTextNode, generateStructuredDataNode } from '@repo/ai-workers';
+import { generateTextNode, generateStructuredDataNode, streamTextNode } from '@repo/ai-workers';
 
 /**
  * Text generation step
@@ -20,6 +20,41 @@ export async function textGenerationStep({ prompt, model, temperature, systemPro
     model: model || 'gpt-4o-mini',
     temperature: temperature ?? 0.7,
     systemPrompt: systemPrompt || '',
+  });
+
+  if (!result.success) {
+    throw new Error(result.error || 'Text generation failed');
+  }
+
+  return {
+    text: result.text,
+    usage: result.usage,
+    model: result.metadata.model,
+  };
+}
+
+/**
+ * Streaming text generation step - streams chunks in real-time
+ * @param {Object} params - Parameters for streaming text generation
+ * @param {Function} params.onChunk - Callback for each text chunk (chunk, fullText)
+ * @returns {Promise<Object>} Generated text result
+ */
+export async function streamTextGenerationStep({ prompt, model, temperature, systemPrompt, onChunk }) {
+  'use step';
+
+  let fullText = '';
+  
+  const result = await streamTextNode({
+    prompt,
+    model: model || 'gpt-4o-mini',
+    temperature: temperature ?? 0.7,
+    systemPrompt: systemPrompt || '',
+    onChunk: (chunk, accumulatedText) => {
+      fullText = accumulatedText;
+      if (onChunk) {
+        onChunk(chunk, accumulatedText);
+      }
+    },
   });
 
   if (!result.success) {

@@ -1,18 +1,20 @@
 import {
-  generateTextNode,
-  generateStructuredDataNode,
   WorkflowContext,
-  type GenerateTextParams,
-  type GenerateStructuredDataParams,
 } from '@repo/ai-workers';
 import type { AINode, AIEdge, ExecutionContext } from '../types';
 import type {
+  AIAgentNodeData,
   TextGenerationNodeData,
   StructuredDataNodeData,
   TransformNodeData,
-  InputNodeData,
-  OutputNodeData,
+  StartNodeData,
+  StopNodeData,
 } from '../types';
+import type { MergeNodeData } from '../nodes/MergeNode';
+import type { ConditionNodeData } from '../nodes/ConditionNode';
+import type { TemplateNodeData } from '../nodes/TemplateNode';
+import type { HttpRequestNodeData, LoopNodeData } from '../types';
+import { resolveVariables } from './variableResolver';
 
 /**
  * Build a dependency graph from nodes and edges
@@ -65,6 +67,7 @@ async function executeNode(
   node: AINode,
   context: ExecutionContext,
   workflowContext: WorkflowContext,
+  nodes: AINode[],
   edges: AIEdge[],
   onNodeUpdate: (nodeId: string, updates: any) => void
 ): Promise<any> {
@@ -84,9 +87,154 @@ async function executeNode(
     let result: any;
 
     switch (node.type) {
-      case 'input': {
-        const data = node.data as InputNodeData;
+      case 'start': {
+        const data = node.data as StartNodeData;
         result = data.value;
+        break;
+      }
+
+      case 'ai-agent': {
+        const data = node.data as AIAgentNodeData;
+        const mode = data.mode || 'text';
+
+        // Resolve variables in prompt and instructions
+        let resolvedPrompt = data.prompt || '';
+        if (!resolvedPrompt.trim() && input !== undefined) {
+          resolvedPrompt = String(input);
+        }
+        resolvedPrompt = resolveVariables(resolvedPrompt, node.id, nodes, edges);
+
+        const resolvedInstructions = data.instructions
+          ? resolveVariables(data.instructions, node.id, nodes, edges)
+          : undefined;
+
+        if (!resolvedPrompt.trim()) {
+          throw new Error('Prompt is required for AI agent');
+        }
+
+        if (mode === 'text') {
+          // Text generation mode
+          const apiResponse = await fetch('/api/workflows/test-node', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nodeType: 'text-generation',
+              config: {
+                prompt: resolvedPrompt,
+                model: data.model || 'gpt-4o-mini',
+                temperature: data.temperature ?? 0.7,
+                maxTokens: data.maxTokens ?? 1000,
+                systemPrompt: resolvedInstructions,
+              },
+            }),
+            signal: context.abortSignal,
+          });
+
+          if (!apiResponse.ok) {
+            const error = await apiResponse.json();
+            throw new Error(error.error || 'Text generation failed');
+          }
+
+          // Handle streaming response
+          const reader = apiResponse.body?.getReader();
+          const decoder = new TextDecoder();
+
+          if (!reader) throw new Error('No reader available');
+
+          let finalText = '';
+          let finalUsage: any = null;
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const responseData = JSON.parse(line.slice(6));
+
+                if (responseData.error) {
+                  throw new Error(responseData.error);
+                }
+
+                if (responseData.fullText) {
+                  finalText = responseData.fullText;
+                  onNodeUpdate(node.id, { streamingText: finalText, isStreaming: true });
+                }
+
+                if (responseData.done) {
+                  finalText = responseData.text || responseData.fullText || '';
+                  finalUsage = responseData.usage;
+                  onNodeUpdate(node.id, {
+                    result: finalText,
+                    usage: finalUsage,
+                    isStreaming: false,
+                    streamingText: undefined,
+                  });
+                }
+              }
+            }
+          }
+
+          result = finalText;
+        } else {
+          // Structured data mode
+          const buildSchema = () => {
+            if (!data.schemaFields || data.schemaFields.length === 0) {
+              return null;
+            }
+            const schemaObj: Record<string, any> = {};
+            data.schemaFields.filter(f => f.name.trim()).forEach(field => {
+              schemaObj[field.name] = {
+                type: field.type,
+                description: field.description || undefined
+              };
+            });
+            return schemaObj;
+          };
+
+          const schema = buildSchema();
+          if (!schema) {
+            throw new Error('Schema fields are required for structured data mode');
+          }
+
+          const apiResponse = await fetch('/api/workflows/test-node', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nodeType: 'structured-data',
+              config: {
+                prompt: resolvedPrompt,
+                schema,
+                schemaName: data.schemaName || 'GeneratedData',
+                schemaDescription: data.schemaDescription || 'Structured data schema',
+                model: data.model || 'gpt-4o-mini',
+                temperature: data.temperature ?? 0.7,
+              },
+            }),
+            signal: context.abortSignal,
+          });
+
+          if (!apiResponse.ok) {
+            const error = await apiResponse.json();
+            throw new Error(error.error || 'Structured data generation failed');
+          }
+
+          const response = await apiResponse.json();
+
+          if (!response.success) {
+            throw new Error(response.error || 'Structured data generation failed');
+          }
+
+          onNodeUpdate(node.id, {
+            result: response.object,
+            usage: response.usage,
+          });
+
+          result = response.object;
+        }
         break;
       }
 
@@ -94,54 +242,161 @@ async function executeNode(
         const data = node.data as TextGenerationNodeData;
 
         // Use input as prompt if prompt is empty
-        const prompt = data.prompt || String(input || '');
+        let resolvedPrompt = data.prompt || '';
+        if (!resolvedPrompt.trim() && input !== undefined) {
+          resolvedPrompt = String(input);
+        }
 
-        const params: GenerateTextParams = {
-          prompt,
-          model: data.model,
-          temperature: data.temperature,
-          maxTokens: data.maxTokens,
-          systemPrompt: data.systemPrompt,
-          context: workflowContext,
-          abortSignal: context.abortSignal,
-        };
+        // Resolve all variables in prompt and system prompt
+        resolvedPrompt = resolveVariables(resolvedPrompt, node.id, nodes, edges);
+        const resolvedSystemPrompt = data.systemPrompt
+          ? resolveVariables(data.systemPrompt, node.id, nodes, edges)
+          : undefined;
 
-        const response = await generateTextNode(params);
+        if (!resolvedPrompt.trim()) {
+          throw new Error('Prompt is required for text generation');
+        }
 
-        if (!response.success) {
-          throw new Error(response.error || 'Text generation failed');
+        // Call server-side API instead of client-side function
+        const apiResponse = await fetch('/api/workflows/test-node', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nodeType: 'text-generation',
+            config: {
+              prompt: resolvedPrompt,
+              model: data.model || 'gpt-4o-mini',
+              temperature: data.temperature ?? 0.7,
+              maxTokens: data.maxTokens ?? 1000,
+              systemPrompt: resolvedSystemPrompt,
+            },
+          }),
+          signal: context.abortSignal,
+        });
+
+        if (!apiResponse.ok) {
+          const error = await apiResponse.json();
+          throw new Error(error.error || 'Text generation failed');
+        }
+
+        // Handle streaming response
+        const reader = apiResponse.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) throw new Error('No reader available');
+
+        let finalText = '';
+        let finalUsage: any = null;
+
+        while (true) {
+          if (context.abortSignal?.aborted) {
+            reader.cancel();
+            throw new Error('Text generation aborted');
+          }
+
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const streamData = JSON.parse(line.slice(6));
+
+                if (streamData.error) {
+                  throw new Error(streamData.error);
+                }
+
+                if (streamData.fullText !== undefined) {
+                  finalText = streamData.fullText;
+                  onNodeUpdate(node.id, {
+                    streamingText: streamData.fullText,
+                    isStreaming: true,
+                  });
+                }
+
+                if (streamData.done) {
+                  finalText = streamData.text || streamData.fullText || finalText;
+                  finalUsage = streamData.usage || null;
+                }
+              } catch (parseError) {
+                // Skip invalid JSON lines
+              }
+            }
+          }
         }
 
         onNodeUpdate(node.id, {
-          result: response.text,
-          usage: response.usage,
+          result: finalText,
+          streamingText: undefined,
+          isStreaming: false,
+          usage: finalUsage,
         });
 
-        result = response.text;
+        result = finalText;
         break;
       }
 
       case 'structured-data': {
         const data = node.data as StructuredDataNodeData;
 
-        if (!data.schema) {
-          throw new Error('Schema is required for structured data generation');
-        }
-
-        const prompt = data.prompt || String(input || '');
-
-        const params: GenerateStructuredDataParams<any> = {
-          prompt,
-          schema: data.schema,
-          schemaName: data.schemaName,
-          schemaDescription: data.schemaDescription,
-          model: data.model,
-          temperature: data.temperature,
-          context: workflowContext,
-          abortSignal: context.abortSignal,
+        // Build schema from schemaFields
+        const buildSchema = () => {
+          if (!data.schemaFields || data.schemaFields.length === 0) {
+            return null;
+          }
+          const schemaObj: Record<string, any> = {};
+          data.schemaFields.filter(f => f.name.trim()).forEach(field => {
+            schemaObj[field.name] = {
+              type: field.type,
+              description: field.description || undefined
+            };
+          });
+          return schemaObj;
         };
 
-        const response = await generateStructuredDataNode(params);
+        const schema = buildSchema();
+        if (!schema) {
+          throw new Error('Schema fields are required for structured data generation');
+        }
+
+        // Resolve variables in prompt
+        let prompt = data.prompt || '';
+        if (!prompt.trim() && input !== undefined) {
+          prompt = String(input);
+        }
+        prompt = resolveVariables(prompt, node.id, nodes, edges);
+
+        if (!prompt.trim()) {
+          throw new Error('Prompt is required for structured data generation');
+        }
+
+        // Call server-side API
+        const apiResponse = await fetch('/api/workflows/test-node', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nodeType: 'structured-data',
+            config: {
+              prompt,
+              schema,
+              schemaName: data.schemaName || 'GeneratedData',
+              schemaDescription: data.schemaDescription || 'Structured data schema',
+              model: data.model || 'gpt-4o-mini',
+              temperature: data.temperature ?? 0.7,
+            },
+          }),
+          signal: context.abortSignal,
+        });
+
+        if (!apiResponse.ok) {
+          const error = await apiResponse.json();
+          throw new Error(error.error || 'Structured data generation failed');
+        }
+
+        const response = await apiResponse.json();
 
         if (!response.success) {
           throw new Error(response.error || 'Structured data generation failed');
@@ -172,9 +427,188 @@ async function executeNode(
         break;
       }
 
-      case 'output': {
+      case 'merge': {
+        const data = node.data as MergeNodeData;
+        const mergeStrategy = data.mergeStrategy || 'object';
+
+        // Merge based on strategy
+        switch (mergeStrategy) {
+          case 'array':
+            result = Array.isArray(inputs) ? inputs : [inputs];
+            break;
+          case 'concat':
+            result = Array.isArray(inputs)
+              ? inputs.map(i => String(i)).join('\n\n')
+              : String(inputs);
+            break;
+          case 'object':
+          default:
+            if (Array.isArray(inputs)) {
+              result = {};
+              inputs.forEach((val, idx) => {
+                result[`input${idx + 1}`] = val;
+              });
+            } else {
+              result = { input: inputs };
+            }
+            break;
+        }
+
+        onNodeUpdate(node.id, { result });
+        break;
+      }
+
+      case 'condition': {
+        const data = node.data as ConditionNodeData;
+        let conditionMet = false;
+
+        switch (data.conditionType) {
+          case 'length':
+            const minLength = Number(data.conditionValue ?? 100);
+            conditionMet = String(input || '').length > minLength;
+            break;
+          case 'contains':
+            const searchText = String(data.conditionValue || '');
+            conditionMet = String(input || '').includes(searchText);
+            break;
+          case 'custom':
+            try {
+              // eslint-disable-next-line no-new-func
+              const conditionFn = new Function('input', data.conditionCode || 'return true;');
+              conditionMet = Boolean(conditionFn(input));
+            } catch (error: any) {
+              throw new Error(`Condition code error: ${error.message}`);
+            }
+            break;
+        }
+
+        onNodeUpdate(node.id, { conditionMet, result: conditionMet });
+        result = { condition: conditionMet, data: input };
+        break;
+      }
+
+      case 'template': {
+        const data = node.data as TemplateNodeData;
+        let template = data.template || '';
+
+        // Replace {{input}} with the actual input
+        if (typeof input === 'object' && input !== null) {
+          // Replace {{input.property}} patterns
+          template = template.replace(/\{\{input\.(\w+)\}\}/g, (match, prop) => {
+            return input[prop] !== undefined ? String(input[prop]) : match;
+          });
+          // Replace {{input}} with JSON
+          template = template.replace(/\{\{input\}\}/g, JSON.stringify(input));
+        } else {
+          // Replace {{input}} with string value
+          template = template.replace(/\{\{input\}\}/g, String(input || ''));
+        }
+
+        result = template;
+        onNodeUpdate(node.id, { result });
+        break;
+      }
+
+      case 'stop': {
         result = input;
         onNodeUpdate(node.id, { value: input });
+        break;
+      }
+
+      case 'http-request': {
+        const data = node.data as HttpRequestNodeData;
+
+        // Resolve variables in URL and body
+        let url = data.url || '';
+        url = resolveVariables(url, node.id, nodes, edges);
+
+        if (!url.trim()) {
+          throw new Error('URL is required for HTTP request');
+        }
+
+        let body = data.body;
+        if (body) {
+          body = resolveVariables(body, node.id, nodes, edges);
+        }
+
+        // Make the HTTP request
+        const requestOptions: RequestInit = {
+          method: data.method,
+          headers: data.headers || {},
+          signal: context.abortSignal,
+        };
+
+        if (body && (data.method === 'POST' || data.method === 'PUT' || data.method === 'PATCH')) {
+          requestOptions.body = body;
+        }
+
+        const response = await fetch(url, requestOptions);
+        const responseData = await response.json();
+
+        const httpResult = {
+          status: response.status,
+          data: responseData,
+          headers: Object.fromEntries(response.headers.entries()),
+        };
+
+        onNodeUpdate(node.id, { result: httpResult });
+        result = responseData;
+        break;
+      }
+
+      case 'loop': {
+        const data = node.data as LoopNodeData;
+        const results: any[] = [];
+        let iterations = 0;
+
+        switch (data.loopType) {
+          case 'count':
+            iterations = data.count || 5;
+            for (let i = 0; i < iterations; i++) {
+              onNodeUpdate(node.id, { currentIteration: i });
+              results.push(input);
+            }
+            break;
+
+          case 'array':
+            if (!Array.isArray(input)) {
+              throw new Error('Loop input must be an array for array loop type');
+            }
+            for (let i = 0; i < input.length; i++) {
+              onNodeUpdate(node.id, { currentIteration: i });
+              results.push(input[i]);
+            }
+            break;
+
+          case 'condition':
+            const conditionCode = data.conditionCode || 'return iteration < 10;';
+            // eslint-disable-next-line no-new-func
+            const conditionFn = new Function('iteration', 'input', conditionCode);
+
+            let iteration = 0;
+            const maxIterations = 1000; // Safety limit
+
+            while (iteration < maxIterations) {
+              try {
+                const shouldContinue = conditionFn(iteration, input);
+                if (!shouldContinue) break;
+
+                onNodeUpdate(node.id, { currentIteration: iteration });
+                results.push(input);
+                iteration++;
+              } catch (error: any) {
+                throw new Error(`Loop condition error: ${error.message}`);
+              }
+            }
+
+            if (iteration >= maxIterations) {
+              throw new Error('Loop exceeded maximum iterations (1000)');
+            }
+            break;
+        }
+
+        onNodeUpdate(node.id, { results, result: results, currentIteration: undefined });
+        result = results;
         break;
       }
 
@@ -262,6 +696,7 @@ export async function executeWorkflow(
               node,
               context,
               workflowContext,
+              nodes,
               edges,
               onNodeUpdate
             );
@@ -291,19 +726,19 @@ export function validateWorkflow(nodes: AINode[], edges: AIEdge[]): {
 } {
   const errors: string[] = [];
 
-  // Check for at least one input node
-  const hasInput = nodes.some((node) => node.type === 'input');
-  if (!hasInput) {
-    errors.push('Workflow must have at least one Input node');
+  // Check for at least one start node
+  const hasStart = nodes.some((node) => node.type === 'start');
+  if (!hasStart) {
+    errors.push('Workflow must have at least one Start node');
   }
 
-  // Check for at least one output node
-  const hasOutput = nodes.some((node) => node.type === 'output');
-  if (!hasOutput) {
-    errors.push('Workflow must have at least one Output node');
+  // Check for at least one stop node
+  const hasStop = nodes.some((node) => node.type === 'stop');
+  if (!hasStop) {
+    errors.push('Workflow must have at least one Stop node');
   }
 
-  // Check for disconnected nodes (except input nodes)
+  // Check for disconnected nodes (except start nodes)
   const connectedNodes = new Set<string>();
   edges.forEach((edge) => {
     connectedNodes.add(edge.source);
@@ -311,7 +746,7 @@ export function validateWorkflow(nodes: AINode[], edges: AIEdge[]): {
   });
 
   nodes.forEach((node) => {
-    if (node.type !== 'input' && !connectedNodes.has(node.id)) {
+    if (node.type !== 'start' && !connectedNodes.has(node.id)) {
       errors.push(`Node "${node.data.label}" is not connected`);
     }
   });

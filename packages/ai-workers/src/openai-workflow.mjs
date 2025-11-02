@@ -11,53 +11,14 @@
 import { generateText, streamText, generateObject, embed, embedMany, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
+import { getProviderModel, SUPPORTED_MODELS, getModelInfo } from './providers.mjs';
 
 // ============================================================================
 // Model Configuration
 // ============================================================================
 
-/**
- * Supported OpenAI models with metadata
- */
-export const SUPPORTED_MODELS = {
-  'gpt-4o': {
-    id: 'gpt-4o',
-    name: 'GPT-4 Omni',
-    description: 'Most capable model with vision support',
-    maxTokens: 16384,
-    supportsVision: true,
-  },
-  'gpt-4o-mini': {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4 Omni Mini',
-    description: 'Fast and efficient, great balance',
-    maxTokens: 16384,
-    supportsVision: false,
-  },
-  'gpt-4-turbo': {
-    id: 'gpt-4-turbo',
-    name: 'GPT-4 Turbo',
-    description: 'Previous generation, still capable',
-    maxTokens: 4096,
-    supportsVision: false,
-  },
-  'gpt-3.5-turbo': {
-    id: 'gpt-3.5-turbo',
-    name: 'GPT-3.5 Turbo',
-    description: 'Fastest and most cost-effective',
-    maxTokens: 4096,
-    supportsVision: false,
-  },
-};
-
-/**
- * Get model information
- * @param {string} modelId - Model identifier
- * @returns {Object} Model information
- */
-export function getModelInfo(modelId) {
-  return SUPPORTED_MODELS[modelId] || SUPPORTED_MODELS['gpt-4o-mini'];
-}
+// Export models and utilities from providers
+export { SUPPORTED_MODELS, getModelInfo };
 
 // ============================================================================
 // Configuration & Types
@@ -150,7 +111,7 @@ export async function generateTextNode({
   abortSignal = null,
 }) {
   try {
-    const modelInstance = openai(model);
+    const modelInstance = getProviderModel(model);
 
     const messagesArray = [
       ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
@@ -229,7 +190,7 @@ export async function streamTextNode({
   abortSignal = null,
 }) {
   try {
-    const modelInstance = openai(model);
+    const modelInstance = getProviderModel(model);
 
     const messagesArray = [
       ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
@@ -325,7 +286,7 @@ export async function generateStructuredDataNode({
   abortSignal = null,
 }) {
   try {
-    const modelInstance = openai(model);
+    const modelInstance = getProviderModel(model);
 
     const result = await generateObject({
       model: modelInstance,
@@ -404,7 +365,7 @@ export async function streamStructuredDataNode({
 }) {
   try {
     const { streamObject } = await import('ai');
-    const modelInstance = openai(model);
+    const modelInstance = getProviderModel(model);
 
     const result = await streamObject({
       model: modelInstance,
@@ -501,7 +462,7 @@ export async function generateWithToolsNode({
   abortSignal = null,
 }) {
   try {
-    const modelInstance = openai(model);
+    const modelInstance = getProviderModel(model);
 
     const messagesArray = [
       ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),

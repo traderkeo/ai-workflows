@@ -1,29 +1,50 @@
 // Main components
 export { WorkflowBuilder } from './components/WorkflowBuilder';
 export { WorkflowCanvas } from './components/WorkflowCanvas';
-export { ContextMenu } from './components/ContextMenu';
+export { ContextMenu, nodeTemplates } from './components/ContextMenu';
+export type { NodeTemplate } from './components/ContextMenu';
 export { BaseAINode } from './components/BaseAINode';
+export { SavedWorkflowsPanel } from './components/SavedWorkflowsPanel';
+export { VariablesPanel } from './components/VariablesPanel';
+export { ThemeSettings } from './components/ThemeSettings';
+export { CommandPalette } from './components/CommandPalette';
+export { ExecutionHistoryPanel } from './components/ExecutionHistoryPanel';
+export type { ExecutionRecord } from './components/ExecutionHistoryPanel';
+
+// Context
+export { ThemeProvider, useTheme } from './context/ThemeContext';
+export type { Theme } from './context/ThemeContext';
+export { NotificationProvider, useNotifications } from './context/NotificationContext';
 
 // Node components
-export { InputNode } from './nodes/InputNode';
-export { OutputNode } from './nodes/OutputNode';
+export { StartNode } from './nodes/StartNode';
+export { StopNode } from './nodes/StopNode';
+export { AIAgentNode } from './nodes/AIAgentNode';
 export { TextGenerationNode } from './nodes/TextGenerationNode';
 export { StructuredDataNode } from './nodes/StructuredDataNode';
 export { TransformNode } from './nodes/TransformNode';
+export { MergeNode } from './nodes/MergeNode';
+export { ConditionNode } from './nodes/ConditionNode';
+export { TemplateNode } from './nodes/TemplateNode';
+export { HttpRequestNode } from './nodes/HttpRequestNode';
+export { LoopNode } from './nodes/LoopNode';
 
 // Hooks
 export { useFlowStore } from './hooks/useFlowStore';
+export { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 // Utilities
 export { executeWorkflow, validateWorkflow } from './utils/executionEngine';
+export { autoLayout, centerNodes } from './utils/autoLayout';
 
 // Types
 export type {
   AINodeType,
   NodeStatus,
   BaseNodeData,
-  InputNodeData,
-  OutputNodeData,
+  StartNodeData,
+  StopNodeData,
+  AIAgentNodeData,
   TextGenerationNodeData,
   StructuredDataNodeData,
   ToolCallingNodeData,
@@ -33,6 +54,8 @@ export type {
   ConditionalNodeData,
   ParallelNodeData,
   RetryNodeData,
+  HttpRequestNodeData,
+  LoopNodeData,
   AINodeData,
   AINode,
   AIEdge,

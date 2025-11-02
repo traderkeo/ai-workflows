@@ -107,9 +107,9 @@ export type WorkflowStep = TextGenerationWorkflowStep | StructuredDataWorkflowSt
 
 // Sequential Workflow
 export interface SequentialWorkflowConfig {
-  steps: WorkflowStep[];
   input: any;
   model?: string;
+  writableStream?: WritableStream;
 }
 
 export interface SequentialWorkflowResult {
@@ -128,8 +128,9 @@ export function sequentialWorkflow(
 
 // Parallel Workflow
 export interface ParallelWorkflowConfig {
-  tasks: WorkflowStep[];
+  input: any;
   model?: string;
+  writableStream?: WritableStream;
 }
 
 export interface ParallelWorkflowResult {
@@ -147,11 +148,9 @@ export function parallelWorkflow(
 
 // Conditional Workflow
 export interface ConditionalWorkflowConfig {
-  condition: (input: any) => Promise<boolean> | boolean;
-  trueBranch: WorkflowStep;
-  falseBranch: WorkflowStep;
   input: any;
   model?: string;
+  writableStream?: WritableStream;
 }
 
 export interface ConditionalWorkflowResult {
@@ -167,8 +166,9 @@ export function conditionalWorkflow(
 // Delayed Workflow
 export interface DelayedWorkflowConfig {
   delay: string; // e.g., '5s', '1m', '2h', '1d'
-  task: WorkflowStep;
+  input: any;
   model?: string;
+  writableStream?: WritableStream;
 }
 
 export interface DelayedWorkflowResult {
@@ -183,10 +183,11 @@ export function delayedWorkflow(
 
 // Human-in-the-loop Workflow
 export interface HumanInLoopWorkflowConfig {
-  initialTask: WorkflowStep;
+  input: any;
   approvalHook: any; // Hook from defineHook()
   workflowId: string;
   model?: string;
+  writableStream?: WritableStream;
 }
 
 export interface HumanInLoopWorkflowResult {
@@ -203,9 +204,10 @@ export function humanInLoopWorkflow(
 
 // Retry Workflow
 export interface RetryWorkflowConfig {
-  task: WorkflowStep;
+  input: any;
   maxRetries?: number;
   model?: string;
+  writableStream?: WritableStream;
 }
 
 export interface RetryWorkflowResult {
@@ -223,6 +225,7 @@ export function retryWorkflow(
 export interface ComplexWorkflowConfig {
   input: string;
   model?: string;
+  writableStream?: WritableStream;
 }
 
 export interface ComplexWorkflowResult {
@@ -234,6 +237,82 @@ export interface ComplexWorkflowResult {
 export function complexWorkflow(
   config: ComplexWorkflowConfig
 ): Promise<ComplexWorkflowResult>;
+
+// ============================================================================
+// Node-based Workflow System
+// ============================================================================
+
+export class WorkflowGraph {
+  constructor();
+  addNode(node: any): void;
+  getNode(id: string): any;
+  execute(context?: any): Promise<any>;
+  reset(): void;
+}
+
+export class InputNode {
+  constructor(id: string, data: any);
+  connectTo(targetNode: any, outputKey?: string, inputKey?: string): void;
+}
+
+export class TextGenNode {
+  constructor(id: string, config: any);
+  connectTo(targetNode: any, outputKey?: string, inputKey?: string): void;
+}
+
+export class StructuredDataNode {
+  constructor(id: string, config: any);
+  connectTo(targetNode: any, outputKey?: string, inputKey?: string): void;
+}
+
+export class TransformNode {
+  constructor(id: string, transformFn: (data: any) => any);
+  connectTo(targetNode: any, outputKey?: string, inputKey?: string): void;
+}
+
+export class MergeNode {
+  constructor(id: string, mergeStrategy?: string);
+  connectTo(targetNode: any, outputKey?: string, inputKey?: string): void;
+}
+
+export class ConditionNode {
+  constructor(id: string, conditionFn: (data: any) => boolean);
+  connectTo(targetNode: any, outputKey?: string, inputKey?: string): void;
+}
+
+export class TemplateNode {
+  constructor(id: string, template: string);
+  connectTo(targetNode: any, outputKey?: string, inputKey?: string): void;
+}
+
+export class OutputNode {
+  constructor(id: string);
+  connectTo(targetNode: any, outputKey?: string, inputKey?: string): void;
+}
+
+// ============================================================================
+// Workflow Builder
+// ============================================================================
+
+export class WorkflowBuilder {
+  constructor();
+  generateId(prefix?: string): string;
+  input(data: any, id?: string | null): any;
+  getNode(id: string): any;
+  run(context?: any): Promise<any>;
+  reset(): void;
+  toJSON(): { nodes: any[]; connections: any[] };
+  static fromJSON(json: { nodes: any[]; connections: any[] }): WorkflowBuilder;
+}
+
+export function createWorkflow(): WorkflowBuilder;
+
+export const WorkflowTemplates: {
+  contentPipeline: (input: string, model?: string) => WorkflowBuilder;
+  translationPipeline: (input: string, languages?: string[], model?: string) => WorkflowBuilder;
+  analysisPipeline: (input: string, model?: string) => WorkflowBuilder;
+  moderationPipeline: (input: string, model?: string) => WorkflowBuilder;
+};
 
 // ============================================================================
 // Workflow SDK Utilities

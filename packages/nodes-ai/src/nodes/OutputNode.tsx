@@ -2,10 +2,10 @@ import React from 'react';
 import { NodeProps } from '@xyflow/react';
 import { CheckCircle } from 'lucide-react';
 import { BaseAINode } from '../components/BaseAINode';
-import type { OutputNodeData } from '../types';
+import type { StopNodeData } from '../types';
 
 export const OutputNode: React.FC<NodeProps> = (props) => {
-  const data = props.data as OutputNodeData;
+  const data = props.data as StopNodeData;
 
   const displayValue = () => {
     if (!data.value) return 'No output yet';
