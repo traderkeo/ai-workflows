@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { streamTextNode, generateStructuredDataNode } from '@repo/ai-workers';
+import {
+  streamTextNode,
+  generateStructuredDataNode,
+  generateImageNode,
+  editImageNode,
+  createImageVariationNode,
+  generateSpeechNode,
+  transcribeAudioNode,
+} from '@repo/ai-workers';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
@@ -169,6 +177,279 @@ export async function POST(request: NextRequest) {
         });
       } catch (error: any) {
         console.error('Structured data generation error:', error);
+        return NextResponse.json(
+          { error: error.message || 'Internal server error' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Handle image generation node
+    if (nodeType === 'image-generation') {
+      const {
+        prompt,
+        model,
+        size,
+        quality,
+        style,
+        response_format,
+        background,
+        moderation,
+        output_format,
+        output_compression,
+        n,
+        stream,
+        partial_images,
+      } = config;
+
+      if (!prompt?.trim()) {
+        return NextResponse.json(
+          { error: 'Prompt is required for image generation' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const response = await generateImageNode({
+          prompt,
+          model: model || 'dall-e-3',
+          size: size || '1024x1024',
+          quality: quality || 'standard',
+          style: style || 'natural',
+          response_format: response_format || 'b64_json',
+          background: background || 'auto',
+          moderation: moderation || 'auto',
+          output_format: output_format || 'png',
+          output_compression: output_compression ?? 100,
+          n: n ?? 1,
+          stream: stream ?? false,
+          partial_images: partial_images ?? 0,
+        });
+
+        if (!response.success) {
+          return NextResponse.json(
+            { error: response.error || 'Image generation failed' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          image: response.image,
+          format: response.format,
+          revisedPrompt: response.revisedPrompt,
+          metadata: response.metadata,
+        });
+      } catch (error: any) {
+        console.error('Image generation error:', error);
+        return NextResponse.json(
+          { error: error.message || 'Internal server error' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Handle image edit node
+    if (nodeType === 'image-edit') {
+      const { prompt, image, mask, model, size, n, response_format } = config;
+
+      if (!prompt?.trim()) {
+        return NextResponse.json(
+          { error: 'Prompt is required for image editing' },
+          { status: 400 }
+        );
+      }
+
+      if (!image) {
+        return NextResponse.json(
+          { error: 'Image is required for image editing' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const response = await editImageNode({
+          prompt,
+          image,
+          mask,
+          model: model || 'dall-e-2',
+          size: size || '1024x1024',
+          n: n ?? 1,
+          response_format: response_format || 'b64_json',
+        });
+
+        if (!response.success) {
+          return NextResponse.json(
+            { error: response.error || 'Image editing failed' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          image: response.image,
+          format: response.format,
+          metadata: response.metadata,
+        });
+      } catch (error: any) {
+        console.error('Image edit error:', error);
+        return NextResponse.json(
+          { error: error.message || 'Internal server error' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Handle image variation node
+    if (nodeType === 'image-variation') {
+      const { image, model, size, n, response_format } = config;
+
+      if (!image) {
+        return NextResponse.json(
+          { error: 'Image is required for creating variations' },
+          { status: 400 }
+        );
+      }
+
+      console.log('[image-variation] Request:', {
+        model: model || 'dall-e-2',
+        size: size || '1024x1024',
+        n: n ?? 1,
+        response_format: response_format || 'b64_json',
+        imageType: typeof image,
+        imageLength: image?.length,
+        imagePrefix: image?.substring(0, 50)
+      });
+
+      try {
+        const response = await createImageVariationNode({
+          image,
+          model: model || 'dall-e-2', // Supports dall-e-2 and gpt-image-1
+          size: size || '1024x1024',
+          n: n ?? 1,
+          response_format: response_format || 'b64_json',
+        });
+
+        console.log('[image-variation] Response:', {
+          success: response.success,
+          hasImage: !!response.image,
+          error: response.error
+        });
+
+        if (!response.success) {
+          return NextResponse.json(
+            { error: response.error || 'Image variation failed' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          image: response.image,
+          format: response.format,
+          metadata: response.metadata,
+        });
+      } catch (error: any) {
+        console.error('Image variation error:', error);
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+        return NextResponse.json(
+          { error: error.message || 'Internal server error' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Handle speech generation node
+    if (nodeType === 'speech-generation') {
+      const { text, model, voice, speed, responseFormat, instructions } = config;
+
+      if (!text?.trim()) {
+        return NextResponse.json(
+          { error: 'Text is required for speech generation' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const response = await generateSpeechNode({
+          text,
+          model: model || 'tts-1',
+          voice: voice || 'alloy',
+          speed: speed ?? 1.0,
+          responseFormat: responseFormat || 'mp3',
+          instructions,
+        });
+
+        if (!response.success) {
+          return NextResponse.json(
+            { error: response.error || 'Speech generation failed' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          audio: response.audio,
+          format: response.format,
+          metadata: response.metadata,
+        });
+      } catch (error: any) {
+        console.error('Speech generation error:', error);
+        return NextResponse.json(
+          { error: error.message || 'Internal server error' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Handle audio transcription node
+    if (nodeType === 'audio-transcription') {
+      const { audio, model, language, prompt, temperature, timestampGranularities } = config;
+
+      if (!audio) {
+        return NextResponse.json(
+          { error: 'Audio data is required for transcription' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        // Convert base64 audio to buffer if needed
+        const audioBuffer = typeof audio === 'string'
+          ? Buffer.from(audio, 'base64')
+          : audio;
+
+        const response = await transcribeAudioNode({
+          audio: audioBuffer,
+          model: model || 'whisper-1',
+          language,
+          prompt,
+          temperature: temperature ?? 0,
+          timestampGranularities: timestampGranularities || ['segment'],
+        });
+
+        if (!response.success) {
+          return NextResponse.json(
+            { error: response.error || 'Transcription failed' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          text: response.text,
+          language: response.language,
+          duration: response.duration,
+          segments: response.segments,
+          words: response.words,
+          metadata: response.metadata,
+        });
+      } catch (error: any) {
+        console.error('Transcription error:', error);
         return NextResponse.json(
           { error: error.message || 'Internal server error' },
           { status: 500 }

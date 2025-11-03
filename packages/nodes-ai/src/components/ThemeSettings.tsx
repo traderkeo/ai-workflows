@@ -20,6 +20,7 @@ export const ThemeSettings: React.FC = () => {
 
   return (
     <div className="relative">
+     
       <button
         className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-8 px-3 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
         title={themes.find((t) => t.value === theme)?.description}

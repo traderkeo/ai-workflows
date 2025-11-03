@@ -158,3 +158,174 @@ export function getAvailableVariables(
 
   return variables;
 }
+
+export interface VariableInfo {
+  name: string;
+  variable: string; // e.g. {{nodeName}}
+  value: any;
+  type: 'text' | 'object' | 'image' | 'audio' | 'number' | 'boolean' | 'array';
+  preview: string; // Short preview of the value
+  nodeId: string;
+  nodeLabel: string;
+}
+
+/**
+ * Get all upstream nodes (nodes that come before current node in the graph)
+ * This performs a recursive traversal to find ALL ancestors, not just direct parents
+ */
+function getAllUpstreamNodes(
+  currentNodeId: string,
+  edges: AIEdge[],
+  visited = new Set<string>()
+): Set<string> {
+  // Find all edges that connect TO this node
+  const incomingEdges = edges.filter(e => e.target === currentNodeId);
+
+  incomingEdges.forEach(edge => {
+    if (!visited.has(edge.source)) {
+      visited.add(edge.source);
+      // Recursively find upstream nodes of this source
+      getAllUpstreamNodes(edge.source, edges, visited);
+    }
+  });
+
+  return visited;
+}
+
+/**
+ * Get detailed information about available variables including their values and types
+ */
+export function getAvailableVariablesWithInfo(
+  currentNodeId: string,
+  nodes: AINode[],
+  edges: AIEdge[]
+): VariableInfo[] {
+  const variablesInfo: VariableInfo[] = [];
+
+  // Get ALL upstream nodes (not just directly connected ones)
+  const upstreamNodeIds = getAllUpstreamNodes(currentNodeId, edges);
+
+  // Add all upstream nodes (including those without outputs yet)
+  nodes.forEach(node => {
+    if (node.id === currentNodeId) return; // Skip self
+
+    // ONLY include nodes that are upstream (preceding) this node
+    if (!upstreamNodeIds.has(node.id)) return;
+
+    const output = node.data.result
+      ?? node.data.value
+      ?? node.data.streamingText
+      ?? node.data.results  // For LoopNode
+      ?? node.data.conditionMet; // For ConditionNode
+
+    // Determine the display name for "from:" label
+    const displayName = node.data.name || node.data.label || node.id;
+
+    // Determine the variable name to use
+    const varName = node.data.name || node.data.label || node.id;
+
+    // Even if no output yet, show the variable (will be available at runtime)
+    if (output !== undefined) {
+      const { type, preview } = getValueTypeAndPreview(output, node.data);
+
+      // Build main variable info
+      const mainVariable: VariableInfo = {
+        name: varName,
+        variable: `{{${varName}}}`,
+        value: output,
+        type,
+        preview,
+        nodeId: node.id,
+        nodeLabel: displayName,
+      };
+
+      variablesInfo.push(mainVariable);
+
+      // If the output is an object, also expose its properties as separate variables
+      if (typeof output === 'object' && output !== null && !Array.isArray(output)) {
+        const keys = Object.keys(output);
+
+        // Add nested property variables (e.g., {{ai-agent-3.image}})
+        keys.forEach(key => {
+          const propValue = output[key];
+          const { type: propType, preview: propPreview } = getValueTypeAndPreview(propValue, {});
+
+          variablesInfo.push({
+            name: `${varName}.${key}`,
+            variable: `{{${varName}.${key}}}`,
+            value: propValue,
+            type: propType,
+            preview: propPreview,
+            nodeId: node.id,
+            nodeLabel: `${displayName}.${key}`,
+          });
+        });
+      }
+    } else {
+      // No output yet, but still show the variable placeholder
+      variablesInfo.push({
+        name: varName,
+        variable: `{{${varName}}}`,
+        value: undefined,
+        type: 'text',
+        preview: '(not executed yet)',
+        nodeId: node.id,
+        nodeLabel: displayName,
+      });
+    }
+  });
+
+  return variablesInfo;
+}
+
+/**
+ * Determine the type and preview of a value
+ */
+function getValueTypeAndPreview(value: any, nodeData: any): { type: VariableInfo['type']; preview: string } {
+  // Check if it's an image (has image property or is image result)
+  if (nodeData.mode === 'image' || (typeof value === 'object' && value !== null && 'image' in value)) {
+    return {
+      type: 'image',
+      preview: '🖼️ Image data',
+    };
+  }
+
+  // Check if it's audio (has audio property or is speech/audio result)
+  if (nodeData.mode === 'audio' || nodeData.mode === 'speech' || (typeof value === 'object' && value !== null && 'audio' in value)) {
+    return {
+      type: 'audio',
+      preview: '🔊 Audio data',
+    };
+  }
+
+  // Check primitive types
+  if (typeof value === 'string') {
+    const truncated = value.length > 100 ? value.substring(0, 100) + '...' : value;
+    return { type: 'text', preview: truncated };
+  }
+
+  if (typeof value === 'number') {
+    return { type: 'number', preview: String(value) };
+  }
+
+  if (typeof value === 'boolean') {
+    return { type: 'boolean', preview: String(value) };
+  }
+
+  if (Array.isArray(value)) {
+    return {
+      type: 'array',
+      preview: `Array (${value.length} items)`,
+    };
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    const keys = Object.keys(value);
+    return {
+      type: 'object',
+      preview: `Object {${keys.slice(0, 3).join(', ')}${keys.length > 3 ? '...' : ''}}`,
+    };
+  }
+
+  return { type: 'text', preview: String(value) };
+}

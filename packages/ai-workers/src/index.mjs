@@ -28,6 +28,17 @@ export {
   semanticSearchNode,
   cosineSimilarity,
 
+  // Image Generation
+  generateImageNode,
+  editImageNode,
+  createImageVariationNode,
+
+  // Speech Generation
+  generateSpeechNode,
+
+  // Audio Transcription
+  transcribeAudioNode,
+
   // Pre-built Tools
   searchTool,
   calculatorTool,

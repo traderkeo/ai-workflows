@@ -10,6 +10,8 @@ export { ThemeSettings } from './components/ThemeSettings';
 export { CommandPalette } from './components/CommandPalette';
 export { ExecutionHistoryPanel } from './components/ExecutionHistoryPanel';
 export type { ExecutionRecord } from './components/ExecutionHistoryPanel';
+export { FileAttachment } from './components/FileAttachment';
+export { ImageSourceSelector } from './components/ImageSourceSelector';
 
 // Context
 export { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -28,10 +30,12 @@ export { ConditionNode } from './nodes/ConditionNode';
 export { TemplateNode } from './nodes/TemplateNode';
 export { HttpRequestNode } from './nodes/HttpRequestNode';
 export { LoopNode } from './nodes/LoopNode';
+export { FileUploadNode } from './nodes/FileUploadNode';
 
 // Hooks
 export { useFlowStore } from './hooks/useFlowStore';
 export { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+export { clearWorkflowStorage, getStorageStats } from './hooks/indexedDBStorage';
 
 // Utilities
 export { executeWorkflow, validateWorkflow } from './utils/executionEngine';

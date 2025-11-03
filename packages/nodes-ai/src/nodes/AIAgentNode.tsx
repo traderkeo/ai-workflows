@@ -113,12 +113,15 @@ export const AIAgentNode: React.FC<NodeProps> = (props) => {
               }
 
               if (data.done) {
-                setTestResult(data.text || data.fullText || '');
+                const finalText = data.text || data.fullText || '';
+                setTestResult(finalText);
+                // Save result to node data so other nodes can access it
+                updateNode(props.id, { result: finalText });
               }
             }
           }
         }
-      } else {
+      } else if (mode === 'structured') {
         const schema = buildZodSchema();
         const response = await fetch('/api/workflows/test-node', {
           method: 'POST',
@@ -148,6 +151,203 @@ export const AIAgentNode: React.FC<NodeProps> = (props) => {
         }
 
         setTestResult(result.object);
+        // Save result to node data so other nodes can access it
+        updateNode(props.id, { result: result.object });
+      } else if (mode === 'image') {
+        // Set loading state for image
+        setTestResult({
+          type: 'image',
+          loading: true,
+        });
+
+        const imageOperation = data.imageOperation || 'generate';
+
+        // Helper to resolve image variables to actual base64 data
+        const resolveImageVariable = (source: string | undefined): string | undefined => {
+          if (!source) return undefined;
+          if (source.startsWith('{{')) {
+            // Extract variable name: {{ai-agent-3.image}} -> ai-agent-3.image
+            const varName = source.replace(/[{}]/g, '').trim();
+            const parts = varName.split('.');
+            const nodeId = parts[0];
+            const property = parts[1];
+
+            console.log('[resolveImageVariable]', {
+              source,
+              varName,
+              nodeId,
+              property,
+              availableNodeIds: nodes.map(n => n.id),
+              allNodes: nodes.map(n => ({ id: n.id, label: n.data.label, name: n.data.name }))
+            });
+
+            // Find the node - search by name/label first (matches how variables are created), then by ID
+            const sourceNode = nodes.find((n) =>
+              n.data.name === nodeId ||
+              n.data.label === nodeId ||
+              n.id === nodeId
+            );
+
+            if (!sourceNode?.data) {
+              console.warn(`Source node "${nodeId}" not found. Available nodes:`, nodes.map(n => ({
+                id: n.id,
+                name: n.data.name,
+                label: n.data.label
+              })));
+              return undefined;
+            }
+
+            // Get the value
+            if (property === 'image') {
+              // Explicitly requesting the image property
+              if (sourceNode.data.result?.image) {
+                return sourceNode.data.result.image;
+              }
+              return sourceNode.data.image;
+            } else if (!property || property === 'result') {
+              // No property specified or explicitly requesting result
+              const result = sourceNode.data.result;
+              if (!result) {
+                console.warn(`Source node "${nodeId}" has no result`);
+                return undefined;
+              }
+              // If result is an image object with image property
+              if (typeof result === 'object' && result.image) {
+                return result.image;
+              }
+              // If result is the image directly (base64 string)
+              if (typeof result === 'string') {
+                return result;
+              }
+              console.warn(`Source node "${nodeId}" result is not an image:`, result);
+              return undefined;
+            } else {
+              // Custom property
+              return sourceNode.data[property];
+            }
+          }
+          // Already a base64 or URL
+          return source;
+        };
+
+        let nodeType = 'image-generation';
+        let config: any = {
+          prompt: resolvedPrompt,
+          model: data.model || 'dall-e-3',
+          size: data.imageSize || '1024x1024',
+          quality: data.imageQuality || 'standard',
+          style: data.imageStyle || 'natural',
+        };
+
+        if (imageOperation === 'edit') {
+          nodeType = 'image-edit';
+          const resolvedImage = resolveImageVariable(data.imageSource);
+          if (!resolvedImage) {
+            if (data.imageSource?.startsWith('{{')) {
+              const varName = data.imageSource.replace(/[{}]/g, '').trim();
+              throw new Error(`Source node "${varName}" hasn't generated an image yet. Please run that node first or upload an image directly.`);
+            }
+            throw new Error('Image source is required for edit operation. Please upload an image or select a generated image.');
+          }
+          config = {
+            prompt: resolvedPrompt,
+            image: resolvedImage,
+            mask: resolveImageVariable(data.imageMask),
+            model: data.model || 'dall-e-2',
+            size: data.imageSize || '1024x1024',
+          };
+        } else if (imageOperation === 'variation') {
+          nodeType = 'image-variation';
+          const resolvedImage = resolveImageVariable(data.imageSource);
+          if (!resolvedImage) {
+            if (data.imageSource?.startsWith('{{')) {
+              const varName = data.imageSource.replace(/[{}]/g, '').trim();
+              throw new Error(`Source node "${varName}" hasn't generated an image yet. Please run that node first or upload an image directly.`);
+            }
+            throw new Error('Image source is required for variation operation. Please upload an image or select a generated image.');
+          }
+          config = {
+            image: resolvedImage,
+            model: data.model || 'dall-e-2',
+            size: data.imageSize || '1024x1024',
+          };
+        }
+
+        const response = await fetch('/api/workflows/test-node', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nodeType,
+            config,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Request failed');
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Image operation failed');
+        }
+
+        const imageResult = {
+          type: 'image',
+          image: result.image,
+          format: result.format,
+          revisedPrompt: result.revisedPrompt,
+          loading: false,
+        };
+        setTestResult(imageResult);
+        // Save result to node data so other nodes can access it
+        updateNode(props.id, { result: imageResult });
+      } else if (mode === 'speech') {
+        // Set loading state for speech
+        setTestResult({
+          type: 'audio',
+          loading: true,
+        });
+
+        const response = await fetch('/api/workflows/test-node', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nodeType: 'speech-generation',
+            config: {
+              text: resolvedPrompt,
+              model: data.model || 'tts-1',
+              voice: data.voice || 'alloy',
+              speed: data.speechSpeed ?? 1.0,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Request failed');
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+          throw new Error(result.error || 'Speech generation failed');
+        }
+
+        const audioResult = {
+          type: 'audio',
+          audio: result.audio,
+          format: result.format,
+          loading: false,
+        };
+        setTestResult(audioResult);
+        // Save result to node data so other nodes can access it
+        updateNode(props.id, { result: audioResult });
+      } else if (mode === 'audio') {
+        // For audio transcription, we'd need audio file input
+        // This is a placeholder for now
+        alert('Audio transcription requires file upload - feature coming soon');
       }
     } catch (error: any) {
       setTestResult({ error: error.message });
@@ -276,6 +476,14 @@ export const AIAgentNode: React.FC<NodeProps> = (props) => {
             className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
               mode === 'text'
                 ? 'bg-cyan-600/40 text-cyan-300 border border-cyan-500/50'
+                : mode === 'structured'
+                ? 'bg-purple-600/20 text-purple-300 border border-purple-500/30'
+                : mode === 'image'
+                ? 'bg-pink-600/20 text-pink-300 border border-pink-500/30'
+                : mode === 'speech'
+                ? 'bg-orange-600/20 text-orange-300 border border-orange-500/30'
+                : mode === 'audio'
+                ? 'bg-violet-600/20 text-violet-300 border border-violet-500/30'
                 : 'bg-purple-600/20 text-purple-300 border border-purple-500/30'
             }`}
             style={{
@@ -284,7 +492,17 @@ export const AIAgentNode: React.FC<NodeProps> = (props) => {
               fontFamily: 'inherit',
             }}
           >
-            {mode === 'text' ? 'TEXT' : 'STRUCTURED'}
+            {mode === 'text'
+              ? 'TEXT'
+              : mode === 'structured'
+              ? 'STRUCTURED'
+              : mode === 'image'
+              ? 'IMAGE'
+              : mode === 'speech'
+              ? 'SPEECH'
+              : mode === 'audio'
+              ? 'AUDIO'
+              : String(mode).toUpperCase()}
           </button>
           <button
             disabled
@@ -298,7 +516,13 @@ export const AIAgentNode: React.FC<NodeProps> = (props) => {
             {getModelDisplayName(model).toUpperCase()}
           </button>
         </div>
-        <AIAgentSettingsDialog data={data} onUpdate={handleChange}>
+        <AIAgentSettingsDialog
+          data={data}
+          onUpdate={handleChange}
+          nodeId={props.id}
+          nodes={nodes}
+          edges={edges}
+        >
           <button
             style={{
               padding: '4px',
@@ -336,44 +560,101 @@ export const AIAgentNode: React.FC<NodeProps> = (props) => {
         </div>
       </div>
 
-      {/* Result Display */}
-      {(data.streamingText || data.result) && (
-        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)' }}>
-          <div className="text-xs text-zinc-400 mb-1.5" style={{ fontWeight: 500, letterSpacing: '0.01em' }}>
-            {data.isStreaming ? 'Streaming...' : 'Result'}
-          </div>
-          <div className="max-h-[120px] overflow-y-auto px-3 py-2 bg-black/30 rounded-md border border-purple-500/30 text-[13px] text-zinc-200" style={{
-            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
-            fontWeight: 400,
-            letterSpacing: '0.01em',
-          }}>
-            <pre className="whitespace-pre-wrap break-words m-0" style={{ fontFamily: 'inherit', fontWeight: 'inherit' }}>
-              {mode === 'structured' && typeof data.result === 'object'
-                ? JSON.stringify(data.result, null, 2)
-                : (data.streamingText || data.result)}
-            </pre>
+      {/* Result Display - Show both persisted results and test results */}
+      {(testResult || data.result) && (() => {
+        const displayResult = testResult || data.result;
+        return (
+          <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)' }}>
+            <div className="text-xs text-zinc-400 mb-1.5" style={{ fontWeight: 500, letterSpacing: '0.01em' }}>Result</div>
+            <div className="max-h-[120px] overflow-y-auto px-3 py-2 bg-black/30 rounded-md border border-green-500/30 text-[13px] text-zinc-200" style={{
+              fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+              fontWeight: 400,
+              letterSpacing: '0.01em',
+            }}>
+              {/* Image Result */}
+              {displayResult?.type === 'image' && (
+              <div className="space-y-2">
+                {displayResult.loading ? (
+                  // Shimmer loading placeholder
+                  <div
+                    className="w-full rounded-md bg-gradient-to-r from-zinc-800 via-zinc-700 to-zinc-800 animate-pulse"
+                    style={{
+                      height: '200px',
+                      backgroundSize: '200% 100%',
+                      animation: 'shimmer 2s infinite linear'
+                    }}
+                  >
+                    <style>{`
+                      @keyframes shimmer {
+                        0% { background-position: 200% 0; }
+                        100% { background-position: -200% 0; }
+                      }
+                    `}</style>
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-zinc-500 text-sm font-medium">
+                        Generating image...
+                      </div>
+                    </div>
+                  </div>
+                ) : displayResult.image ? (
+                  <>
+                    <img
+                      src={displayResult.image}
+                      alt="Generated"
+                      className="w-full rounded-md"
+                      style={{ maxHeight: '200px', objectFit: 'contain' }}
+                    />
+                    {displayResult.revisedPrompt && (
+                      <div className="text-xs text-zinc-400 italic">
+                        Revised: {displayResult.revisedPrompt}
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </div>
+            )}
+
+            {/* Audio Result */}
+            {displayResult?.type === 'audio' && (
+              <div>
+                {displayResult.loading ? (
+                  // Shimmer loading placeholder for audio
+                  <div
+                    className="w-full rounded-md bg-gradient-to-r from-zinc-800 via-zinc-700 to-zinc-800"
+                    style={{
+                      height: '54px',
+                      backgroundSize: '200% 100%',
+                      animation: 'shimmer 2s infinite linear'
+                    }}
+                  >
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-zinc-500 text-sm font-medium">
+                        Generating speech...
+                      </div>
+                    </div>
+                  </div>
+                ) : displayResult.audio ? (
+                  <audio
+                    controls
+                    className="w-full"
+                    src={`data:audio/${displayResult.format || 'mp3'};base64,${displayResult.audio}`}
+                  />
+                ) : null}
+              </div>
+            )}
+
+            {/* Text/JSON Result */}
+            {!displayResult.type && (
+              <pre className="whitespace-pre-wrap break-words m-0" style={{ fontFamily: 'inherit', fontWeight: 'inherit' }}>
+                {typeof displayResult === 'object'
+                  ? JSON.stringify(displayResult, null, 2)
+                  : displayResult}
+              </pre>
+            )}
           </div>
         </div>
-      )}
-
-
-      {/* Test Result */}
-      {testResult && (
-        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)' }}>
-          <div className="text-xs text-zinc-400 mb-1.5" style={{ fontWeight: 500, letterSpacing: '0.01em' }}>Test Result</div>
-          <div className="max-h-[120px] overflow-y-auto px-3 py-2 bg-black/30 rounded-md border border-green-500/30 text-[13px] text-zinc-200" style={{
-            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
-            fontWeight: 400,
-            letterSpacing: '0.01em',
-          }}>
-            <pre className="whitespace-pre-wrap break-words m-0" style={{ fontFamily: 'inherit', fontWeight: 'inherit' }}>
-              {typeof testResult === 'object'
-                ? JSON.stringify(testResult, null, 2)
-                : testResult}
-            </pre>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Action Buttons */}
       <div className="ai-node-field flex items-center gap-2">

@@ -71,13 +71,13 @@ export const HttpRequestNode: React.FC<NodeProps> = (props) => {
           onChange={(e) => setHeaders(e.target.value)}
           onBlur={handleUpdate}
           rows={3}
-          style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}
+          style={{ fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)', fontSize: '13px', fontWeight: 400, letterSpacing: '0.01em' }}
         />
       </div>
 
       {(method === 'POST' || method === 'PUT' || method === 'PATCH') && (
-        <div className="ai-node-field">
-          <span className="ai-node-field-label">Body</span>
+        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+          <span className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Body</span>
           <textarea
             className="ai-node-input"
             placeholder="Request body (supports {{input}} and {{nodeId}})"
@@ -85,22 +85,24 @@ export const HttpRequestNode: React.FC<NodeProps> = (props) => {
             onChange={(e) => setBody(e.target.value)}
             onBlur={handleUpdate}
             rows={4}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}
+            style={{ fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)', fontSize: '13px', fontWeight: 400, letterSpacing: '0.01em' }}
           />
         </div>
       )}
 
       {nodeData.result && (
-        <div className="ai-node-field">
-          <span className="ai-node-field-label">Response</span>
+        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+          <span className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Response</span>
           <div className="ai-node-field-value">
-            <div style={{ marginBottom: '4px', color: 'var(--cyber-neon-purple)' }}>
+            <div style={{ marginBottom: '4px', color: 'var(--cyber-neon-purple)', fontSize: '11px', fontWeight: 400, letterSpacing: '0.01em' }}>
               Status: {nodeData.result.status}
             </div>
             <pre
               style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '10px',
+                fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+                fontSize: '13px',
+                fontWeight: 400,
+                letterSpacing: '0.01em',
                 maxHeight: '150px',
                 overflow: 'auto',
                 whiteSpace: 'pre-wrap',

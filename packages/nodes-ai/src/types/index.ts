@@ -28,7 +28,8 @@ export type AINodeType =
   | 'parallel'
   | 'retry'
   | 'http-request'
-  | 'loop';
+  | 'loop'
+  | 'file-upload';
 
 // ============================================================================
 // Base Node Data
@@ -93,7 +94,7 @@ export interface StructuredDataNodeData extends BaseNodeData {
 }
 
 export interface AIAgentNodeData extends BaseNodeData {
-  mode: 'text' | 'structured';
+  mode: 'text' | 'structured' | 'image' | 'image-edit' | 'image-variation' | 'audio' | 'speech';
   prompt: string;
   instructions?: string; // System prompt / instructions
   model?: string;
@@ -111,6 +112,36 @@ export interface AIAgentNodeData extends BaseNodeData {
   }>;
   schemaName?: string;
   schemaDescription?: string;
+  // Image operation type
+  imageOperation?: 'generate' | 'edit' | 'variation';
+  // Source image for edit/variation operations
+  imageSource?: string; // Base64 data URI or variable reference like {{ai-agent-3.image}}
+  imageMask?: string; // Base64 data URI for mask (edit only)
+  // Image generation fields (for /v1/images/generations)
+  imageSize?: '256x256' | '512x512' | '1024x1024' | '1536x1024' | '1024x1536' | '1792x1024' | 'auto';
+  imageQuality?: 'standard' | 'hd' | 'high' | 'medium' | 'low' | 'auto';
+  imageStyle?: 'natural' | 'vivid';
+  imageResponseFormat?: 'url' | 'b64_json'; // DALL-E 2/3 only (gpt-image-1 always uses b64)
+  imageBackground?: 'transparent' | 'opaque' | 'auto' | string; // gpt-image-1 only (string for custom color)
+  imageModeration?: 'low' | 'auto'; // gpt-image-1 only
+  imageOutputFormat?: 'png' | 'jpeg' | 'webp'; // gpt-image-1 only
+  imageOutputCompression?: number; // 0-100, gpt-image-1 only
+  imageNumImages?: number; // 1-10 (dall-e-3 only supports 1)
+  imageStream?: boolean; // gpt-image-1 only
+  imagePartialImages?: number; // 0-3, gpt-image-1 only
+  // Image edit fields (for /v1/images/edits)
+  imageEditFidelity?: 'high' | 'low'; // gpt-image-1 only
+  // Speech generation fields
+  voice?: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+  speechSpeed?: number; // 0.25 to 4.0
+  // Audio fields
+  audioTranscription?: string;
+  // File attachments
+  attachments?: Array<{
+    type: 'image' | 'pdf' | 'audio';
+    url: string;
+    name?: string;
+  }>;
   // Common fields
   result?: any;
   usage?: {
@@ -258,6 +289,7 @@ export interface WorkflowMetadata {
   id: string;
   name: string;
   description?: string;
+  tags?: string[];
   createdAt: number;
   updatedAt: number;
   version: string;

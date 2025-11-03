@@ -565,6 +565,132 @@ export function extractDomains(urls: string[]): string[];
 export function createMarkdownCitations(citations: Citation[]): string;
 
 // ============================================================================
+// Image Generation
+// ============================================================================
+
+export interface GenerateImageParams {
+  prompt: string;
+  model?: string; // dall-e-2, dall-e-3, gpt-image-1, gpt-image-1-mini
+  size?: string; // dall-e-2: 256x256, 512x512, 1024x1024; dall-e-3/gpt-image: 1024x1024, 1792x1024, 1024x1792, auto
+  quality?: 'standard' | 'hd' | 'high' | 'medium' | 'low' | 'auto';
+  style?: 'natural' | 'vivid';
+  response_format?: 'url' | 'b64_json'; // DALL-E 2/3 only (gpt-image-1 always uses b64)
+  background?: 'transparent' | 'opaque' | 'auto'; // gpt-image-1 only
+  moderation?: 'low' | 'auto'; // gpt-image-1 only
+  output_format?: 'png' | 'jpeg' | 'webp'; // gpt-image-1 only
+  output_compression?: number; // 0-100, gpt-image-1 only
+  n?: number; // 1-10 (dall-e-3 only supports 1)
+  stream?: boolean; // gpt-image-1 only
+  partial_images?: number; // 0-3, gpt-image-1 only
+  context?: WorkflowContext;
+  abortSignal?: AbortSignal;
+}
+
+export interface GenerateImageResult extends BaseResult {
+  image: string | null; // URL or base64
+  format?: 'url' | 'base64';
+  revisedPrompt?: string;
+  error?: string;
+}
+
+export function generateImageNode(params: GenerateImageParams): Promise<GenerateImageResult>;
+
+export interface EditImageParams {
+  prompt: string;
+  image: string; // Base64 data URI or URL
+  mask?: string; // Optional base64 data URI or URL
+  model?: string; // dall-e-2 only
+  size?: string; // 256x256, 512x512, 1024x1024
+  n?: number; // 1-10
+  response_format?: 'url' | 'b64_json';
+  context?: WorkflowContext;
+  abortSignal?: AbortSignal;
+}
+
+export interface EditImageResult extends BaseResult {
+  image: string | null; // URL or base64
+  format?: 'url' | 'base64';
+  error?: string;
+}
+
+export function editImageNode(params: EditImageParams): Promise<EditImageResult>;
+
+export interface CreateImageVariationParams {
+  image: string; // Base64 data URI or URL
+  model?: string; // dall-e-2 only
+  size?: string; // 256x256, 512x512, 1024x1024
+  n?: number; // 1-10
+  response_format?: 'url' | 'b64_json';
+  context?: WorkflowContext;
+  abortSignal?: AbortSignal;
+}
+
+export interface CreateImageVariationResult extends BaseResult {
+  image: string | null; // URL or base64
+  format?: 'url' | 'base64';
+  error?: string;
+}
+
+export function createImageVariationNode(params: CreateImageVariationParams): Promise<CreateImageVariationResult>;
+
+// ============================================================================
+// Speech Generation
+// ============================================================================
+
+export interface GenerateSpeechParams {
+  text: string;
+  model?: string; // tts-1, tts-1-hd, gpt-4o-mini-tts
+  voice?: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+  speed?: number; // 0.25 to 4.0
+  responseFormat?: 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm';
+  instructions?: string;
+  context?: WorkflowContext;
+  abortSignal?: AbortSignal;
+}
+
+export interface GenerateSpeechResult extends BaseResult {
+  audio: string | null; // base64 encoded audio
+  format?: string;
+  error?: string;
+}
+
+export function generateSpeechNode(params: GenerateSpeechParams): Promise<GenerateSpeechResult>;
+
+// ============================================================================
+// Audio Transcription
+// ============================================================================
+
+export interface TranscribeAudioParams {
+  audio: Buffer | Uint8Array;
+  model?: string; // whisper-1, gpt-4o-mini-transcribe, gpt-4o-transcribe
+  language?: string; // ISO-639-1 format (e.g., 'en')
+  prompt?: string;
+  temperature?: number;
+  timestampGranularities?: string[]; // ['word'], ['segment'], or both
+  context?: WorkflowContext;
+  abortSignal?: AbortSignal;
+}
+
+export interface TranscribeAudioResult extends BaseResult {
+  text: string | null;
+  language?: string;
+  duration?: number;
+  segments?: Array<{
+    text: string;
+    startSecond: number;
+    endSecond: number;
+  }>;
+  words?: Array<{
+    word: string;
+    startSecond: number;
+    endSecond: number;
+  }>;
+  error?: string;
+}
+
+export function transcribeAudioNode(params: TranscribeAudioParams): Promise<TranscribeAudioResult>;
+
+// ============================================================================
 // Default Export
 // ============================================================================
 
@@ -578,6 +704,9 @@ declare const defaultExport: {
   generateEmbeddingsBatchNode: typeof generateEmbeddingsBatchNode;
   semanticSearchNode: typeof semanticSearchNode;
   cosineSimilarity: typeof cosineSimilarity;
+  generateImageNode: typeof generateImageNode;
+  generateSpeechNode: typeof generateSpeechNode;
+  transcribeAudioNode: typeof transcribeAudioNode;
   searchTool: typeof searchTool;
   calculatorTool: typeof calculatorTool;
   dateTimeTool: typeof dateTimeTool;

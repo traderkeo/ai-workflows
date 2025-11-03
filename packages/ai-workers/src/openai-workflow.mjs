@@ -973,6 +973,521 @@ export async function retryNode(node, input, maxRetries = 3, initialDelay = 1000
 }
 
 // ============================================================================
+// Image Generation Nodes
+// ============================================================================
+
+/**
+ * Generate images using OpenAI DALL-E models
+ *
+ * @param {Object} params - Generation parameters
+ * @param {string} params.prompt - The prompt to generate image from
+ * @param {string} [params.model] - Model to use (dall-e-2, dall-e-3, gpt-image-1, gpt-image-1-mini)
+ * @param {string} [params.size] - Image size (dall-e-2: 256x256, 512x512, 1024x1024; dall-e-3: 1024x1024, 1792x1024, 1024x1792)
+ * @param {string} [params.quality] - Image quality ('standard' or 'hd', dall-e-3 only)
+ * @param {string} [params.style] - Image style ('natural' or 'vivid', dall-e-3 only)
+ * @param {WorkflowContext} [params.context] - Workflow context
+ * @param {AbortSignal} [params.abortSignal] - Abort signal for cancellation
+ * @returns {Promise<Object>} Generated image data
+ */
+export async function generateImageNode({
+  prompt,
+  model = 'dall-e-3',
+  size = '1024x1024',
+  quality = 'standard',
+  style = 'natural',
+  response_format = 'b64_json', // Changed default to b64_json for attachments
+  background = 'auto',
+  moderation = 'auto',
+  output_format = 'png',
+  output_compression = 100,
+  n = 1,
+  stream = false,
+  partial_images = 0,
+  context = new WorkflowContext(),
+  abortSignal,
+}) {
+  const startTime = Date.now();
+
+  try {
+    context.incrementNodeExecutions();
+
+    // Use OpenAI SDK directly for image generation
+    const OpenAI = (await import('openai')).default;
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const requestOptions = {
+      model,
+      prompt,
+      size,
+      n,
+    };
+
+    // Add response_format for DALL-E 2/3 (not gpt-image-1)
+    if (!model.startsWith('gpt-image-')) {
+      requestOptions.response_format = response_format;
+    }
+
+    // Add quality and style for dall-e-3 and gpt-image-*
+    if (model === 'dall-e-3' || model.startsWith('gpt-image-')) {
+      if (quality !== 'standard') requestOptions.quality = quality;
+      if (model === 'dall-e-3' && style) requestOptions.style = style;
+    }
+
+    // gpt-image-1 specific parameters
+    if (model.startsWith('gpt-image-')) {
+      if (background !== 'auto') requestOptions.background = background;
+      if (moderation !== 'auto') requestOptions.moderation = moderation;
+      if (output_format !== 'png') requestOptions.output_format = output_format;
+      if (output_compression !== 100) requestOptions.output_compression = output_compression;
+      if (stream) requestOptions.stream = stream;
+      if (partial_images > 0) requestOptions.partial_images = partial_images;
+    }
+
+    const response = await client.images.generate(requestOptions);
+
+    const imageData = response.data[0];
+
+    // For b64_json, prepend data URI prefix for direct use in <img> tags
+    let imageResult = imageData.url || imageData.b64_json;
+    const format = imageData.url ? 'url' : 'base64';
+
+    if (format === 'base64' && !imageResult.startsWith('data:')) {
+      // Determine MIME type from output_format or default to png
+      const mimeType = output_format === 'jpeg' ? 'image/jpeg' :
+                       output_format === 'webp' ? 'image/webp' :
+                       'image/png';
+      imageResult = `data:${mimeType};base64,${imageResult}`;
+    }
+
+    return {
+      success: true,
+      image: imageResult,
+      format,
+      revisedPrompt: imageData.revised_prompt,
+      metadata: {
+        model,
+        size,
+        quality,
+        style,
+        response_format,
+        background,
+        moderation,
+        output_format,
+        output_compression,
+        n,
+        timestamp: Date.now(),
+        executionTime: Date.now() - startTime,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      image: null,
+      error: error.message,
+      metadata: {
+        model,
+        timestamp: Date.now(),
+        executionTime: Date.now() - startTime,
+        errorType: error.constructor.name,
+      },
+    };
+  }
+}
+
+/**
+ * Edit an image using OpenAI DALL-E 2
+ *
+ * @param {Object} params - Edit parameters
+ * @param {string} params.prompt - Description of the desired edits
+ * @param {string} params.image - Base64 data URI or URL of the image to edit
+ * @param {string} [params.mask] - Optional base64 data URI or URL of the mask image
+ * @param {string} [params.model] - Model to use (only dall-e-2 supported)
+ * @param {string} [params.size] - Size of generated image (256x256, 512x512, 1024x1024)
+ * @param {number} [params.n] - Number of images to generate (1-10)
+ * @param {string} [params.response_format] - Response format (url or b64_json)
+ * @param {WorkflowContext} [params.context] - Workflow context
+ * @param {AbortSignal} [params.abortSignal] - Abort signal for cancellation
+ * @returns {Promise<Object>} Edited image data
+ */
+export async function editImageNode({
+  prompt,
+  image,
+  mask,
+  model = 'dall-e-2',
+  size = '1024x1024',
+  n = 1,
+  response_format = 'b64_json',
+  context = new WorkflowContext(),
+  abortSignal,
+}) {
+  const startTime = Date.now();
+
+  try {
+    context.incrementNodeExecutions();
+
+    // Use OpenAI SDK directly
+    const OpenAI = (await import('openai')).default;
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    // Helper function to convert base64 data URI to File object
+    const dataURItoFile = (dataURI, filename) => {
+      // Extract base64 data (remove data:image/xxx;base64, prefix if present)
+      const base64Data = dataURI.includes(',') ? dataURI.split(',')[1] : dataURI;
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      // Determine MIME type from data URI or default to png
+      let mimeType = 'image/png';
+      if (dataURI.startsWith('data:')) {
+        const match = dataURI.match(/data:([^;]+);/);
+        if (match) mimeType = match[1];
+      }
+
+      return new File([buffer], filename, { type: mimeType });
+    };
+
+    // Convert image (required) to File
+    const imageFile = dataURItoFile(image, 'image.png');
+
+    // Prepare request options
+    const requestOptions = {
+      image: imageFile,
+      prompt,
+      model,
+      n,
+      size,
+      response_format,
+    };
+
+    // Add mask if provided
+    if (mask) {
+      const maskFile = dataURItoFile(mask, 'mask.png');
+      requestOptions.mask = maskFile;
+    }
+
+    if (abortSignal) {
+      requestOptions.signal = abortSignal;
+    }
+
+    const response = await client.images.edit(requestOptions);
+
+    const imageData = response.data[0];
+
+    // For b64_json, prepend data URI prefix for direct use in <img> tags
+    let imageResult = imageData.url || imageData.b64_json;
+    const format = imageData.url ? 'url' : 'base64';
+
+    if (format === 'base64' && !imageResult.startsWith('data:')) {
+      imageResult = `data:image/png;base64,${imageResult}`;
+    }
+
+    return {
+      success: true,
+      image: imageResult,
+      format,
+      metadata: {
+        model,
+        size,
+        response_format,
+        n,
+        timestamp: Date.now(),
+        executionTime: Date.now() - startTime,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      image: null,
+      error: error.message,
+      metadata: {
+        model,
+        timestamp: Date.now(),
+        executionTime: Date.now() - startTime,
+        errorType: error.constructor.name,
+      },
+    };
+  }
+}
+
+/**
+ * Create a variation of an image using OpenAI DALL-E 2
+ *
+ * @param {Object} params - Variation parameters
+ * @param {string} params.image - Base64 data URI or URL of the image
+ * @param {string} [params.model] - Model to use (only dall-e-2 supported)
+ * @param {string} [params.size] - Size of generated image (256x256, 512x512, 1024x1024)
+ * @param {number} [params.n] - Number of images to generate (1-10)
+ * @param {string} [params.response_format] - Response format (url or b64_json)
+ * @param {WorkflowContext} [params.context] - Workflow context
+ * @param {AbortSignal} [params.abortSignal] - Abort signal for cancellation
+ * @returns {Promise<Object>} Image variation data
+ */
+export async function createImageVariationNode({
+  image,
+  model = 'dall-e-2',
+  size = '1024x1024',
+  n = 1,
+  response_format = 'b64_json',
+  context = new WorkflowContext(),
+  abortSignal,
+}) {
+  const startTime = Date.now();
+
+  try {
+    context.incrementNodeExecutions();
+
+    // Use OpenAI SDK directly
+    const OpenAI = (await import('openai')).default;
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    // Helper function to convert base64 data URI to File object
+    const dataURItoFile = (dataURI, filename) => {
+      // Extract base64 data (remove data:image/xxx;base64, prefix if present)
+      const base64Data = dataURI.includes(',') ? dataURI.split(',')[1] : dataURI;
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      // Determine MIME type from data URI or default to png
+      let mimeType = 'image/png';
+      if (dataURI.startsWith('data:')) {
+        const match = dataURI.match(/data:([^;]+);/);
+        if (match) mimeType = match[1];
+      }
+
+      return new File([buffer], filename, { type: mimeType });
+    };
+
+    // Convert image to File
+    const imageFile = dataURItoFile(image, 'image.png');
+
+    const requestOptions = {
+      image: imageFile,
+      model,
+      n,
+      size,
+      response_format,
+    };
+
+    if (abortSignal) {
+      requestOptions.signal = abortSignal;
+    }
+
+    const response = await client.images.createVariation(requestOptions);
+
+    const imageData = response.data[0];
+
+    // For b64_json, prepend data URI prefix for direct use in <img> tags
+    let imageResult = imageData.url || imageData.b64_json;
+    const format = imageData.url ? 'url' : 'base64';
+
+    if (format === 'base64' && !imageResult.startsWith('data:')) {
+      imageResult = `data:image/png;base64,${imageResult}`;
+    }
+
+    return {
+      success: true,
+      image: imageResult,
+      format,
+      metadata: {
+        model,
+        size,
+        response_format,
+        n,
+        timestamp: Date.now(),
+        executionTime: Date.now() - startTime,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      image: null,
+      error: error.message,
+      metadata: {
+        model,
+        timestamp: Date.now(),
+        executionTime: Date.now() - startTime,
+        errorType: error.constructor.name,
+      },
+    };
+  }
+}
+
+// ============================================================================
+// Speech Generation Nodes
+// ============================================================================
+
+/**
+ * Generate speech from text using OpenAI TTS models
+ *
+ * @param {Object} params - Generation parameters
+ * @param {string} params.text - The text to convert to speech
+ * @param {string} [params.model] - Model to use (tts-1, tts-1-hd, gpt-4o-mini-tts)
+ * @param {string} [params.voice] - Voice to use (alloy, echo, fable, onyx, nova, shimmer)
+ * @param {number} [params.speed] - Speed of speech (0.25 to 4.0)
+ * @param {string} [params.responseFormat] - Audio format (mp3, opus, aac, flac, wav, pcm)
+ * @param {string} [params.instructions] - Additional voice instructions (not for tts-1/tts-1-hd)
+ * @param {WorkflowContext} [params.context] - Workflow context
+ * @param {AbortSignal} [params.abortSignal] - Abort signal for cancellation
+ * @returns {Promise<Object>} Generated audio data
+ */
+export async function generateSpeechNode({
+  text,
+  model = 'tts-1',
+  voice = 'alloy',
+  speed = 1.0,
+  responseFormat = 'mp3',
+  instructions,
+  context = new WorkflowContext(),
+  abortSignal,
+}) {
+  const startTime = Date.now();
+
+  try {
+    context.incrementNodeExecutions();
+
+    // Use OpenAI SDK directly for speech generation
+    const OpenAI = (await import('openai')).default;
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const requestOptions = {
+      model,
+      input: text,
+      voice,
+      speed,
+      response_format: responseFormat,
+    };
+
+    // Add instructions for newer models
+    if (instructions && !['tts-1', 'tts-1-hd'].includes(model)) {
+      requestOptions.instructions = instructions;
+    }
+
+    const response = await client.audio.speech.create(requestOptions);
+
+    // Convert response to buffer
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const base64Audio = buffer.toString('base64');
+
+    return {
+      success: true,
+      audio: base64Audio,
+      format: responseFormat,
+      metadata: {
+        model,
+        voice,
+        speed,
+        responseFormat,
+        timestamp: Date.now(),
+        executionTime: Date.now() - startTime,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      audio: null,
+      error: error.message,
+      metadata: {
+        model,
+        timestamp: Date.now(),
+        executionTime: Date.now() - startTime,
+        errorType: error.constructor.name,
+      },
+    };
+  }
+}
+
+// ============================================================================
+// Audio Transcription Nodes
+// ============================================================================
+
+/**
+ * Transcribe audio to text using OpenAI Whisper models
+ *
+ * @param {Object} params - Transcription parameters
+ * @param {Buffer|Uint8Array} params.audio - Audio file data
+ * @param {string} [params.model] - Model to use (whisper-1, gpt-4o-mini-transcribe, gpt-4o-transcribe)
+ * @param {string} [params.language] - Input language in ISO-639-1 format (e.g., 'en')
+ * @param {string} [params.prompt] - Optional text to guide the model's style
+ * @param {number} [params.temperature] - Sampling temperature (0-1)
+ * @param {string[]} [params.timestampGranularities] - Timestamp granularities (['word'], ['segment'], or both)
+ * @param {WorkflowContext} [params.context] - Workflow context
+ * @param {AbortSignal} [params.abortSignal] - Abort signal for cancellation
+ * @returns {Promise<Object>} Transcription result
+ */
+export async function transcribeAudioNode({
+  audio,
+  model = 'whisper-1',
+  language,
+  prompt,
+  temperature = 0,
+  timestampGranularities = ['segment'],
+  context = new WorkflowContext(),
+  abortSignal,
+}) {
+  const startTime = Date.now();
+
+  try {
+    context.incrementNodeExecutions();
+
+    // Use OpenAI SDK directly for transcription
+    const OpenAI = (await import('openai')).default;
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    // Create a File object from audio data
+    const audioFile = new File([audio], 'audio.mp3', { type: 'audio/mpeg' });
+
+    const requestOptions = {
+      file: audioFile,
+      model,
+      temperature,
+    };
+
+    // Add optional parameters
+    if (language) requestOptions.language = language;
+    if (prompt) requestOptions.prompt = prompt;
+    if (timestampGranularities.length > 0) {
+      requestOptions.timestamp_granularities = timestampGranularities;
+    }
+
+    const response = await client.audio.transcriptions.create(requestOptions);
+
+    return {
+      success: true,
+      text: response.text,
+      language: response.language,
+      duration: response.duration,
+      segments: response.segments || [],
+      words: response.words || [],
+      metadata: {
+        model,
+        timestamp: Date.now(),
+        executionTime: Date.now() - startTime,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      text: null,
+      error: error.message,
+      metadata: {
+        model,
+        timestamp: Date.now(),
+        executionTime: Date.now() - startTime,
+        errorType: error.constructor.name,
+      },
+    };
+  }
+}
+
+// ============================================================================
 // Export all functionality
 // ============================================================================
 
@@ -995,6 +1510,15 @@ export default {
   generateEmbeddingsBatchNode,
   semanticSearchNode,
   cosineSimilarity,
+
+  // Image Generation
+  generateImageNode,
+
+  // Speech Generation
+  generateSpeechNode,
+
+  // Audio Transcription
+  transcribeAudioNode,
 
   // Pre-built Tools
   searchTool,

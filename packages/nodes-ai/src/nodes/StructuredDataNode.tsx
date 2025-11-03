@@ -180,9 +180,9 @@ export const StructuredDataNode: React.FC<NodeProps> = (props) => {
         )}
       </div>
 
-      <div className="ai-node-field">
+      <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <label className="ai-node-field-label">Schema Fields</label>
+          <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Schema Fields</label>
           <button
             onClick={addSchemaField}
             style={{
@@ -193,9 +193,13 @@ export const StructuredDataNode: React.FC<NodeProps> = (props) => {
               color: '#fff',
               cursor: 'pointer',
               fontSize: '10px',
+              fontWeight: 600,
+              letterSpacing: '0.02em',
+              fontFamily: 'inherit',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
+              gap: '4px',
+              transition: 'all 0.2s ease',
             }}
           >
             <Plus size={12} /> Add Field
@@ -243,7 +247,9 @@ export const StructuredDataNode: React.FC<NodeProps> = (props) => {
                     borderRadius: '4px',
                     color: '#fff',
                     cursor: 'pointer',
-                    fontSize: '10px'
+                    fontSize: '10px',
+                    fontFamily: 'inherit',
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   <X size={12} />
@@ -376,23 +382,27 @@ export const StructuredDataNode: React.FC<NodeProps> = (props) => {
         </div>
       )}
 
-      <div className="ai-node-field" style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+      <div className="ai-node-field" style={{ display: 'flex', gap: '8px', marginTop: '8px', fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
         <button
           onClick={handleTest}
           disabled={isTesting}
           style={{
             flex: 1,
             padding: '8px 12px',
-            background: isTesting ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.3)',
-            border: '1px solid rgba(59, 130, 246, 0.5)',
+            background: isTesting ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.3)',
+            border: '1px solid rgba(34, 197, 94, 0.5)',
             borderRadius: '4px',
             color: '#fff',
             cursor: isTesting ? 'not-allowed' : 'pointer',
             fontSize: '12px',
+            fontWeight: 600,
+            letterSpacing: '0.02em',
+            fontFamily: 'inherit',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '6px'
+            gap: '6px',
+            transition: 'all 0.2s ease',
           }}
         >
           <Play size={14} />
@@ -408,10 +418,14 @@ export const StructuredDataNode: React.FC<NodeProps> = (props) => {
             color: '#fff',
             cursor: 'pointer',
             fontSize: '12px',
+            fontWeight: 600,
+            letterSpacing: '0.02em',
+            fontFamily: 'inherit',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '6px'
+            gap: '6px',
+            transition: 'all 0.2s ease',
           }}
         >
           <Trash2 size={14} />
