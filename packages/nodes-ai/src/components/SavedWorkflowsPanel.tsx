@@ -1,7 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Save, FolderOpen, Trash2, Download, Plus, X, Clock, FileCode } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Save, FolderOpen, Trash2, Download, Plus, X, Clock, FileCode, Search, Tag as TagIcon, Filter } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
 import type { SavedWorkflow } from '../types';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Badge } from './ui/Badge';
+import { Label } from './ui/Label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/Dialog';
 
 interface SavedWorkflowsPanelProps {
   onLoad: (workflow: SavedWorkflow) => void;
@@ -28,29 +40,13 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
   const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflowItem[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // Load saved workflows from localStorage
   useEffect(() => {
     loadSavedWorkflows();
   }, []);
-
-  // Close on ESC key
-  useEffect(() => {
-    if (!isOpen && !saveDialogOpen) return;
-    
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (saveDialogOpen) {
-          setSaveDialogOpen(false);
-        } else if (isOpen) {
-          setIsOpen(false);
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, saveDialogOpen]);
 
   const loadSavedWorkflows = () => {
     try {
@@ -106,8 +102,14 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
       'Load Workflow'
     );
     if (confirmed) {
-      onLoad(item.workflow);
+      // Close dialog immediately to improve perceived performance
       setIsOpen(false);
+
+      // Load the workflow
+      onLoad(item.workflow);
+
+      // Show success notification
+      notifications.showToast(`Loaded workflow "${item.name}"`, 'success');
     }
   };
 
@@ -138,195 +140,617 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
     return new Date(timestamp).toLocaleString();
   };
 
+  // Get all unique tags from saved workflows
+  const allTags = useMemo(() => {
+    const tagsSet = new Set<string>();
+    savedWorkflows.forEach(item => {
+      item.workflow.metadata.tags?.forEach(tag => tagsSet.add(tag));
+    });
+    return Array.from(tagsSet).sort();
+  }, [savedWorkflows]);
+
+  // Filter workflows based on search and tags
+  const filteredWorkflows = useMemo(() => {
+    return savedWorkflows.filter(item => {
+      const matchesSearch = searchQuery.trim() === '' || 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesTags = selectedTags.length === 0 || 
+        selectedTags.every(tag => item.workflow.metadata.tags?.includes(tag));
+      
+      return matchesSearch && matchesTags;
+    });
+  }, [savedWorkflows, searchQuery, selectedTags]);
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
+
   return (
     <>
       {/* Toggle Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-8 px-3 bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80"
+      <Button
+        onClick={() => {
+          if (!isOpen) {
+            // Reset filters when opening
+            setSearchQuery('');
+            setSelectedTags([]);
+          }
+          setIsOpen(!isOpen);
+        }}
+        variant="outline"
+        size="sm"
+        style={{
+          fontFamily: 'var(--font-primary)',
+        }}
         title="Saved workflows"
       >
         <FolderOpen size={14} />
-        <span className="hidden sm:inline">Saved</span>
-        <span className="hidden xs:inline">({savedWorkflows.length})</span>
-      </button>
+        <span>Saved</span>
+        {savedWorkflows.length > 0 && <span>({savedWorkflows.length})</span>}
+      </Button>
 
       {/* Save Dialog */}
-      {saveDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0">
-          <div
-            className="absolute inset-0"
-            onClick={() => setSaveDialogOpen(false)}
-          />
-          <div
-            className="relative bg-card border border-border rounded-lg shadow-lg w-full max-w-md mx-4 animate-in zoom-in-95 fade-in-0 z-10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-foreground">Save Workflow</h3>
-                <button
-                  onClick={() => setSaveDialogOpen(false)}
-                  className="rounded-sm opacity-70 hover:opacity-100 transition-opacity p-1 hover:bg-accent"
-                >
-                  <X size={16} className="text-muted-foreground" />
-                </button>
-              </div>
-
-              <div className="mb-6">
-                <label className="text-sm font-medium text-foreground mb-2 block">
-                  Workflow Name
-                </label>
-                <input
-                  type="text"
-                  value={saveName}
-                  onChange={(e) => setSaveName(e.target.value)}
-                  placeholder="Enter workflow name..."
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') saveWorkflowToLibrary();
-                    if (e.key === 'Escape') setSaveDialogOpen(false);
-                  }}
-                />
-              </div>
-
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => setSaveDialogOpen(false)}
-                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 px-4 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveWorkflowToLibrary}
-                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 px-4 bg-primary text-primary-foreground shadow hover:bg-primary/90"
-                >
-                  <Save size={14} />
-                  Save
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Panel */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in-0"
-          onClick={(e) => {
-            // Close when clicking directly on the backdrop
-            const target = e.target as HTMLElement;
-            if (target.classList.contains('fixed') || target.id === 'backdrop-overlay') {
-              setIsOpen(false);
-            }
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent
+          style={{
+            maxWidth: '500px',
+            fontFamily: 'var(--font-primary)',
           }}
         >
-          <div
-            id="backdrop-overlay"
-            className="absolute inset-0"
-            onClick={() => setIsOpen(false)}
-          />
-          <div
-            className="relative bg-card border border-border rounded-lg shadow-lg w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col animate-in zoom-in-95 fade-in-0 z-10"
-            onClick={(e) => e.stopPropagation()}
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: 'var(--font-primary)' }}>
+              Save Workflow
+            </DialogTitle>
+            <DialogDescription style={{ fontFamily: 'var(--font-mono)' }}>
+              Enter a name for your workflow
+            </DialogDescription>
+          </DialogHeader>
+          <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+            <Label
+              htmlFor="workflow-name"
+              style={{
+                fontSize: '12px',
+                fontWeight: 500,
+                color: 'var(--cyber-neon-purple)',
+                marginBottom: '8px',
+                fontFamily: 'var(--font-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+              }}
+            >
+              Workflow Name
+            </Label>
+            <Input
+              id="workflow-name"
+              type="text"
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              placeholder="Enter workflow name..."
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveWorkflowToLibrary();
+                if (e.key === 'Escape') setSaveDialogOpen(false);
+              }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: '14px',
+                fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => setSaveDialogOpen(false)}
+              variant="outline"
+              size="sm"
+              style={{
+                fontFamily: 'var(--font-primary)',
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={saveWorkflowToLibrary}
+              variant="default"
+              size="sm"
+              style={{
+                fontFamily: 'var(--font-primary)',
+              }}
+            >
+              <Save size={14} />
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Main Panel */}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent
+          style={{
+            maxWidth: '900px',
+            maxHeight: '85vh',
+            display: 'flex',
+            flexDirection: 'column',
+            fontFamily: 'var(--font-primary)',
+            padding: 0,
+          }}
+        >
+          <DialogHeader
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(176, 38, 255, 0.3)',
+            }}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-border">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
               <div>
-                <h3 className="text-xl font-semibold text-foreground">Saved Workflows</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {savedWorkflows.length} saved workflow{savedWorkflows.length !== 1 ? 's' : ''}
-                </p>
+                <DialogTitle
+                  style={{
+                    fontSize: '20px',
+                    fontWeight: 700,
+                    color: 'var(--cyber-neon-cyan)',
+                    fontFamily: 'var(--font-primary)',
+                    letterSpacing: '0.01em',
+                    textShadow: '0 0 5px currentColor',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Saved Workflows
+                </DialogTitle>
+                <DialogDescription
+                  style={{
+                    fontSize: '12px',
+                    color: 'var(--text-muted, #888)',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  {filteredWorkflows.length} of {savedWorkflows.length} workflow{savedWorkflows.length !== 1 ? 's' : ''}
+                </DialogDescription>
               </div>
-              <div className="flex items-center gap-2">
-                <button
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Button
                   onClick={() => {
                     setIsOpen(false);
                     setSaveDialogOpen(true);
                   }}
-                  className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-9 px-3 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                  variant="default"
+                  size="sm"
+                  style={{
+                    fontFamily: 'var(--font-primary)',
+                  }}
                 >
                   <Plus size={14} />
                   Save Current
-                </button>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-sm opacity-70 hover:opacity-100 transition-opacity p-2 hover:bg-accent"
-                >
-                  <X size={16} className="text-muted-foreground" />
-                </button>
+                </Button>
               </div>
+            </div>
+          </DialogHeader>
+
+            {/* Search and Filters */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(176, 38, 255, 0.3)' }}>
+              {/* Search */}
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{ position: 'relative' }}>
+                  <Search
+                    size={16}
+                    style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-muted, #888)',
+                    }}
+                  />
+                  <Input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search workflows..."
+                    style={{
+                      width: '100%',
+                      paddingLeft: '36px',
+                      paddingRight: '12px',
+                      paddingTop: '8px',
+                      paddingBottom: '8px',
+                      fontSize: '13px',
+                      fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+                      background: 'rgba(0, 0, 0, 0.5)',
+                      border: '1px solid var(--cyber-neon-purple)',
+                      borderRadius: '4px',
+                      color: 'var(--cyber-neon-cyan)',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Tag Filters */}
+              {allTags.length > 0 && (
+                <div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    <Filter size={14} style={{ color: 'var(--text-muted, #888)' }} />
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        color: 'var(--cyber-neon-purple)',
+                        fontFamily: 'var(--font-primary)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        fontWeight: 500,
+                      }}
+                    >
+                      Filter by Tags:
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '6px',
+                    }}
+                  >
+                    {allTags.map((tag) => (
+                      <Button
+                        key={tag}
+                        onClick={() => toggleTag(tag)}
+                        variant={selectedTags.includes(tag) ? "default" : "outline"}
+                        size="sm"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          fontFamily: 'var(--font-mono)',
+                          background: selectedTags.includes(tag)
+                            ? 'rgba(0, 240, 255, 0.2)'
+                            : 'rgba(176, 38, 255, 0.1)',
+                          border: selectedTags.includes(tag)
+                            ? '1px solid var(--cyber-neon-cyan)'
+                            : '1px solid rgba(176, 38, 255, 0.3)',
+                          borderRadius: '4px',
+                          color: selectedTags.includes(tag)
+                            ? 'var(--cyber-neon-cyan)'
+                            : 'var(--cyber-neon-purple)',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!selectedTags.includes(tag)) {
+                            e.currentTarget.style.background = 'rgba(176, 38, 255, 0.2)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!selectedTags.includes(tag)) {
+                            e.currentTarget.style.background = 'rgba(176, 38, 255, 0.1)';
+                          }
+                        }}
+                      >
+                        <TagIcon size={10} />
+                        {tag}
+                      </Button>
+                    ))}
+                    {selectedTags.length > 0 && (
+                      <Button
+                        onClick={() => setSelectedTags([])}
+                        variant="outline"
+                        size="sm"
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          fontFamily: 'var(--font-mono)',
+                          background: 'rgba(255, 0, 64, 0.1)',
+                          border: '1px solid rgba(255, 0, 64, 0.3)',
+                          borderRadius: '4px',
+                          color: '#ff0040',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 0, 64, 0.2)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(255, 0, 64, 0.1)';
+                        }}
+                      >
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '20px',
+              }}
+            >
               {savedWorkflows.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <FolderOpen size={48} className="text-muted-foreground mb-4 opacity-50" />
-                  <p className="text-sm font-medium text-foreground mb-1">No saved workflows</p>
-                  <p className="text-xs text-muted-foreground">
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '48px 20px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <FolderOpen
+                    size={48}
+                    style={{
+                      color: 'var(--text-muted, #888)',
+                      marginBottom: '16px',
+                      opacity: 0.5,
+                    }}
+                  />
+                  <p
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: 'var(--cyber-neon-cyan)',
+                      marginBottom: '4px',
+                      fontFamily: 'var(--font-primary)',
+                    }}
+                  >
+                    No saved workflows
+                  </p>
+                  <p
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--text-muted, #888)',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  >
                     Click "Save Current" to save your first workflow
                   </p>
                 </div>
+              ) : filteredWorkflows.length === 0 ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '48px 20px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <Search
+                    size={48}
+                    style={{
+                      color: 'var(--text-muted, #888)',
+                      marginBottom: '16px',
+                      opacity: 0.5,
+                    }}
+                  />
+                  <p
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: 'var(--cyber-neon-cyan)',
+                      marginBottom: '4px',
+                      fontFamily: 'var(--font-primary)',
+                    }}
+                  >
+                    No workflows match your filters
+                  </p>
+                  <p
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--text-muted, #888)',
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  >
+                    Try adjusting your search or tag filters
+                  </p>
+                </div>
               ) : (
-                <div className="space-y-3">
-                  {savedWorkflows.map((item) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {filteredWorkflows.map((item) => (
                     <div
                       key={item.id}
-                      className={`group relative p-4 rounded-lg border transition-all cursor-pointer ${
-                        item.id === currentWorkflowId
-                          ? 'bg-accent border-primary shadow-sm'
-                          : 'bg-card border-border hover:border-primary/50 hover:bg-accent/50'
-                      }`}
                       onClick={() => loadWorkflowFromLibrary(item)}
+                      style={{
+                        position: 'relative',
+                        padding: '16px',
+                        borderRadius: '6px',
+                        border: item.id === currentWorkflowId
+                          ? '1px solid var(--cyber-neon-cyan)'
+                          : '1px solid rgba(176, 38, 255, 0.3)',
+                        background: item.id === currentWorkflowId
+                          ? 'rgba(0, 240, 255, 0.1)'
+                          : 'rgba(0, 0, 0, 0.3)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (item.id !== currentWorkflowId) {
+                          e.currentTarget.style.borderColor = 'rgba(176, 38, 255, 0.6)';
+                          e.currentTarget.style.background = 'rgba(176, 38, 255, 0.1)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (item.id !== currentWorkflowId) {
+                          e.currentTarget.style.borderColor = 'rgba(176, 38, 255, 0.3)';
+                          e.currentTarget.style.background = 'rgba(0, 0, 0, 0.3)';
+                        }
+                      }}
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <FileCode size={16} className="text-muted-foreground flex-shrink-0" />
-                            <h4 className="text-sm font-semibold text-foreground truncate">
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                            <FileCode
+                              size={16}
+                              style={{
+                                color: 'var(--cyber-neon-cyan)',
+                                flexShrink: 0,
+                              }}
+                            />
+                            <h4
+                              style={{
+                                fontSize: '14px',
+                                fontWeight: 600,
+                                color: 'var(--cyber-neon-cyan)',
+                                fontFamily: 'var(--font-primary)',
+                                letterSpacing: '0.01em',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
                               {item.name}
                             </h4>
                             {item.id === currentWorkflowId && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/20 text-primary border border-primary/30">
+                              <Badge
+                                variant="secondary"
+                                style={{
+                                  fontSize: '10px',
+                                  padding: '2px 6px',
+                                  background: 'rgba(0, 240, 255, 0.2)',
+                                  color: 'var(--cyber-neon-cyan)',
+                                  border: '1px solid var(--cyber-neon-cyan)',
+                                }}
+                              >
                                 CURRENT
-                              </span>
+                              </Badge>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground font-mono ml-6 mb-2">
+
+                          {/* Tags */}
+                          {item.workflow.metadata.tags && item.workflow.metadata.tags.length > 0 && (
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '4px',
+                                marginBottom: '8px',
+                                marginLeft: '24px',
+                              }}
+                            >
+                              {item.workflow.metadata.tags.map((tag) => (
+                                <Badge
+                                  key={tag}
+                                  variant="secondary"
+                                  style={{
+                                    fontSize: '10px',
+                                    padding: '2px 6px',
+                                    fontFamily: 'var(--font-mono)',
+                                    background: 'rgba(176, 38, 255, 0.15)',
+                                    color: 'var(--cyber-neon-purple)',
+                                    border: '1px solid rgba(176, 38, 255, 0.3)',
+                                  }}
+                                >
+                                  <TagIcon size={8} />
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              fontSize: '11px',
+                              color: 'var(--text-muted, #888)',
+                              fontFamily: 'var(--font-mono)',
+                              marginLeft: '24px',
+                              marginBottom: '4px',
+                            }}
+                          >
                             <span>{item.workflow.flow.nodes.length} nodes</span>
-                            <span className="text-border">•</span>
+                            <span>•</span>
                             <span>{item.workflow.flow.edges.length} edges</span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground ml-6">
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontSize: '10px',
+                              color: 'var(--text-muted, #888)',
+                              fontFamily: 'var(--font-mono)',
+                              marginLeft: '24px',
+                            }}
+                          >
                             <Clock size={12} />
                             <span>{formatDate(item.updatedAt)}</span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            opacity: 0,
+                            transition: 'opacity 0.2s ease',
+                          }}
+                          className="group-hover:opacity-100"
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.opacity = '1';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.opacity = '0';
+                          }}
+                        >
+                          <Button
                             onClick={(e) => {
                               e.stopPropagation();
                               exportWorkflow(item);
                             }}
-                            className="p-1.5 rounded-md hover:bg-accent transition-colors"
+                            variant="ghost"
+                            size="icon"
+                            style={{
+                              padding: '6px',
+                              color: 'var(--cyber-neon-cyan)',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(176, 38, 255, 0.15)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'transparent';
+                            }}
                             title="Export"
                           >
-                            <Download size={14} className="text-muted-foreground" />
-                          </button>
-                          <button
+                            <Download size={14} />
+                          </Button>
+                          <Button
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteWorkflowFromLibrary(item.id, item.name);
                             }}
-                            className="p-1.5 rounded-md hover:bg-destructive/10 transition-colors"
+                            variant="ghost"
+                            size="icon"
+                            style={{
+                              padding: '6px',
+                              color: '#ff0040',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 0, 64, 0.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'transparent';
+                            }}
                             title="Delete"
                           >
-                            <Trash2 size={14} className="text-destructive" />
-                          </button>
+                            <Trash2 size={14} />
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -334,9 +758,8 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
     </>
   );

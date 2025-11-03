@@ -25,8 +25,8 @@ export const OutputNode: React.FC<NodeProps> = (props) => {
       hasInput={true}
       hasOutput={false}
     >
-      <div className="ai-node-field">
-        <label className="ai-node-field-label">Output Value</label>
+      <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+        <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Output Value</label>
         <div
           className="ai-node-field-value"
           style={{
@@ -36,8 +36,10 @@ export const OutputNode: React.FC<NodeProps> = (props) => {
             background: 'rgba(0, 0, 0, 0.3)',
             borderRadius: '4px',
             border: '1px solid rgba(57, 255, 20, 0.3)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
+            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+            fontSize: '13px',
+            fontWeight: 400,
+            letterSpacing: '0.01em',
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
           }}

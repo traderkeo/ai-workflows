@@ -92,6 +92,7 @@ export const BaseAINode: React.FC<BaseAINodeProps> = ({
                 <input
                   type="text"
                   value={editedName}
+                  className="nodrag"
                   onChange={(e) => setEditedName(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveName();

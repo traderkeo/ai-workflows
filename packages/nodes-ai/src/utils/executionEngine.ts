@@ -179,7 +179,7 @@ async function executeNode(
           }
 
           result = finalText;
-        } else {
+        } else if (mode === 'structured') {
           // Structured data mode
           const buildSchema = () => {
             if (!data.schemaFields || data.schemaFields.length === 0) {
@@ -234,6 +234,194 @@ async function executeNode(
           });
 
           result = response.object;
+        } else if (mode === 'image') {
+          const imageOperation = data.imageOperation || 'generate';
+
+          // Helper to resolve image variables
+          const resolveImageVariable = (source: string | undefined): string | undefined => {
+            if (!source) return undefined;
+            if (source.startsWith('{{')) {
+              const varName = source.replace(/[{}]/g, '').trim();
+              const parts = varName.split('.');
+              const nodeIdOrName = parts[0];
+              const property = parts[1];
+
+              // Try to find the actual node ID by matching name/label/id
+              // context.nodeResults uses actual node IDs as keys
+              let actualNodeId = nodeIdOrName;
+
+              // If not found directly, search for it by name/label
+              if (!context.nodeResults.has(nodeIdOrName)) {
+                const nodeMapEntry = Array.from(context.nodeResults.entries()).find(([id]) => {
+                  const node = nodes.find(n => n.id === id);
+                  return node && (node.data.name === nodeIdOrName || node.data.label === nodeIdOrName);
+                });
+                if (nodeMapEntry) {
+                  actualNodeId = nodeMapEntry[0];
+                }
+              }
+
+              const nodeResult = context.nodeResults.get(actualNodeId);
+              if (!nodeResult) {
+                console.warn(`[Execution] Source node "${nodeIdOrName}" has no result`);
+                return undefined;
+              }
+
+              if (property === 'image') {
+                // Explicitly requesting the image property
+                if (typeof nodeResult === 'object' && nodeResult.image) {
+                  return nodeResult.image;
+                }
+                return nodeResult;
+              } else if (!property || property === 'result') {
+                // No property specified or explicitly requesting result
+                // If result is an image object with image property
+                if (typeof nodeResult === 'object' && nodeResult.image) {
+                  return nodeResult.image;
+                }
+                // If result is the image directly (base64 string)
+                if (typeof nodeResult === 'string') {
+                  return nodeResult;
+                }
+                console.warn(`[Execution] Source node "${nodeIdOrName}" result is not an image:`, nodeResult);
+                return undefined;
+              } else {
+                // Custom property
+                return nodeResult[property];
+              }
+            }
+            return source;
+          };
+
+          let nodeType = 'image-generation';
+          let config: any = {
+            prompt: resolvedPrompt,
+            model: data.model || 'dall-e-3',
+            size: data.imageSize || '1024x1024',
+            quality: data.imageQuality || 'standard',
+            style: data.imageStyle || 'natural',
+            response_format: data.imageResponseFormat || 'b64_json',
+            background: data.imageBackground || 'auto',
+            moderation: data.imageModeration || 'auto',
+            output_format: data.imageOutputFormat || 'png',
+            output_compression: data.imageOutputCompression ?? 100,
+            n: data.imageNumImages ?? 1,
+            stream: data.imageStream ?? false,
+            partial_images: data.imagePartialImages ?? 0,
+          };
+
+          if (imageOperation === 'edit') {
+            nodeType = 'image-edit';
+            const resolvedImage = resolveImageVariable(data.imageSource);
+            if (!resolvedImage) {
+              throw new Error('Image source is required for edit operation');
+            }
+            config = {
+              prompt: resolvedPrompt,
+              image: resolvedImage,
+              mask: resolveImageVariable(data.imageMask),
+              model: data.model || 'dall-e-2',
+              size: data.imageSize || '1024x1024',
+              response_format: data.imageResponseFormat || 'b64_json',
+            };
+          } else if (imageOperation === 'variation') {
+            nodeType = 'image-variation';
+            const resolvedImage = resolveImageVariable(data.imageSource);
+            if (!resolvedImage) {
+              throw new Error('Image source is required for variation operation');
+            }
+            config = {
+              image: resolvedImage,
+              model: data.model || 'dall-e-2',
+              size: data.imageSize || '1024x1024',
+              response_format: data.imageResponseFormat || 'b64_json',
+            };
+          }
+
+          const apiResponse = await fetch('/api/workflows/test-node', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nodeType,
+              config,
+            }),
+            signal: context.abortSignal,
+          });
+
+          if (!apiResponse.ok) {
+            const error = await apiResponse.json();
+            throw new Error(error.error || 'Image operation failed');
+          }
+
+          const response = await apiResponse.json();
+
+          if (!response.success) {
+            throw new Error(response.error || 'Image operation failed');
+          }
+
+          onNodeUpdate(node.id, {
+            result: {
+              type: 'image',
+              image: response.image,
+              format: response.format,
+              revisedPrompt: response.revisedPrompt,
+            },
+          });
+
+          result = {
+            type: 'image',
+            image: response.image,
+            format: response.format,
+            revisedPrompt: response.revisedPrompt,
+          };
+        } else if (mode === 'speech') {
+          // Speech generation mode
+          const apiResponse = await fetch('/api/workflows/test-node', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nodeType: 'speech-generation',
+              config: {
+                text: resolvedPrompt,
+                model: data.model || 'tts-1',
+                voice: data.voice || 'alloy',
+                speed: data.speed ?? 1.0,
+                responseFormat: data.responseFormat || 'mp3',
+                instructions: resolvedInstructions,
+              },
+            }),
+            signal: context.abortSignal,
+          });
+
+          if (!apiResponse.ok) {
+            const error = await apiResponse.json();
+            throw new Error(error.error || 'Speech generation failed');
+          }
+
+          const response = await apiResponse.json();
+
+          if (!response.success) {
+            throw new Error(response.error || 'Speech generation failed');
+          }
+
+          onNodeUpdate(node.id, {
+            result: {
+              type: 'audio',
+              audio: response.audio,
+              format: response.format,
+            },
+          });
+
+          result = {
+            type: 'audio',
+            audio: response.audio,
+            format: response.format,
+          };
+        } else if (mode === 'audio') {
+          // Audio transcription mode
+          throw new Error('Audio transcription requires file upload - not yet implemented in workflow execution');
+        } else {
+          throw new Error(`Unknown AI agent mode: ${mode}`);
         }
         break;
       }

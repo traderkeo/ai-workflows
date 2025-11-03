@@ -88,8 +88,8 @@ export const ConditionNode: React.FC<NodeProps> = (props) => {
       )}
 
       {data.conditionMet !== undefined && (
-        <div className="ai-node-field">
-          <label className="ai-node-field-label">Condition Result</label>
+        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+          <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Condition Result</label>
           <div style={{
             padding: '8px',
             background: data.conditionMet
@@ -100,8 +100,11 @@ export const ConditionNode: React.FC<NodeProps> = (props) => {
               ? '1px solid rgba(57, 255, 20, 0.3)'
               : '1px solid rgba(255, 0, 64, 0.3)',
             color: data.conditionMet ? '#39ff14' : '#ff0040',
-            fontWeight: 'bold',
-            textAlign: 'center'
+            fontWeight: 600,
+            letterSpacing: '0.01em',
+            fontSize: '12px',
+            fontFamily: 'inherit',
+            textAlign: 'center',
           }}>
             {data.conditionMet ? '✓ TRUE' : '✗ FALSE'}
           </div>

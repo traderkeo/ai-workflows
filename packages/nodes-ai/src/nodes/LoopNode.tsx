@@ -61,17 +61,17 @@ export const LoopNode: React.FC<NodeProps> = (props) => {
       )}
 
       {loopType === 'array' && (
-        <div className="ai-node-field">
-          <span className="ai-node-field-label">Array Source</span>
-          <div className="ai-node-field-value" style={{ fontSize: '11px', color: 'var(--cyber-neon-purple)' }}>
+        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+          <span className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Array Source</span>
+          <div className="ai-node-field-value" style={{ fontSize: '11px', fontWeight: 400, letterSpacing: '0.01em', color: 'var(--cyber-neon-purple)' }}>
             {'Use {{input}} or {{nodeId}} to pass an array'}
           </div>
         </div>
       )}
 
       {loopType === 'condition' && (
-        <div className="ai-node-field">
-          <span className="ai-node-field-label">Condition (JavaScript)</span>
+        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+          <span className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Condition (JavaScript)</span>
           <textarea
             className="ai-node-input"
             placeholder="return iteration < 10;"
@@ -79,9 +79,9 @@ export const LoopNode: React.FC<NodeProps> = (props) => {
             onChange={(e) => setConditionCode(e.target.value)}
             onBlur={handleConditionChange}
             rows={3}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}
+            style={{ fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)', fontSize: '13px', fontWeight: 400, letterSpacing: '0.01em' }}
           />
-          <div style={{ fontSize: '10px', color: 'var(--cyber-neon-purple)', marginTop: '4px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 400, letterSpacing: '0.01em', color: 'var(--cyber-neon-purple)', marginTop: '4px' }}>
             Available: iteration, input
           </div>
         </div>

@@ -35,13 +35,15 @@ export const MergeNode: React.FC<NodeProps> = (props) => {
         </select>
       </div>
 
-      <div className="ai-node-field">
+      <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
         <div className="ai-node-field-value" style={{
           padding: '8px',
           background: 'rgba(0, 0, 0, 0.2)',
           borderRadius: '4px',
-          fontSize: '10px',
-          color: '#888'
+          fontSize: '11px',
+          fontWeight: 400,
+          letterSpacing: '0.01em',
+          color: '#888',
         }}>
           {data.mergeStrategy === 'object' && '→ Combines inputs as {input1: value1, input2: value2}'}
           {data.mergeStrategy === 'array' && '→ Combines inputs as [value1, value2, value3]'}
@@ -50,8 +52,8 @@ export const MergeNode: React.FC<NodeProps> = (props) => {
       </div>
 
       {data.result && (
-        <div className="ai-node-field">
-          <label className="ai-node-field-label">Merged Result</label>
+        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+          <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Merged Result</label>
           <div className="ai-node-field-value" style={{
             maxHeight: '150px',
             overflowY: 'auto',
@@ -59,8 +61,10 @@ export const MergeNode: React.FC<NodeProps> = (props) => {
             background: 'rgba(0, 0, 0, 0.3)',
             borderRadius: '4px',
             border: '1px solid rgba(176, 38, 255, 0.3)',
-            fontFamily: 'monospace',
-            fontSize: '10px'
+            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+            fontSize: '13px',
+            fontWeight: 400,
+            letterSpacing: '0.01em',
           }}>
             {typeof data.result === 'string'
               ? data.result

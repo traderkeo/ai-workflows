@@ -24,22 +24,26 @@ export const TransformNode: React.FC<NodeProps> = (props) => {
           placeholder="// Transform input data&#10;// Example:&#10;return input.toUpperCase();"
           rows={8}
           style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
+            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+            fontSize: '13px',
+            fontWeight: 400,
+            letterSpacing: '0.01em',
           }}
         />
         <div style={{
           fontSize: '10px',
-          color: 'rgba(176, 38, 255, 0.7)',
+          color: 'var(--cyber-neon-purple)',
           marginTop: '4px',
+          fontWeight: 400,
+          letterSpacing: '0.01em',
         }}>
           Write JavaScript code. Access input via 'input' variable.
         </div>
       </div>
 
       {data.result !== undefined && (
-        <div className="ai-node-field">
-          <label className="ai-node-field-label">Result</label>
+        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+          <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Result</label>
           <div className="ai-node-field-value" style={{
             maxHeight: '150px',
             overflowY: 'auto',
@@ -47,8 +51,10 @@ export const TransformNode: React.FC<NodeProps> = (props) => {
             background: 'rgba(0, 0, 0, 0.3)',
             borderRadius: '4px',
             border: '1px solid rgba(176, 38, 255, 0.3)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
+            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+            fontSize: '13px',
+            fontWeight: 400,
+            letterSpacing: '0.01em',
             whiteSpace: 'pre-wrap',
           }}>
             {typeof data.result === 'object'

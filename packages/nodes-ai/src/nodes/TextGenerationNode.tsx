@@ -268,8 +268,8 @@ export const TextGenerationNode: React.FC<NodeProps> = (props) => {
       )}
 
       {testResult && (
-        <div className="ai-node-field">
-          <label className="ai-node-field-label">Test Result</label>
+        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+          <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Test Result</label>
           <div className="ai-node-field-value" style={{
             maxHeight: '150px',
             overflowY: 'auto',
@@ -277,32 +277,40 @@ export const TextGenerationNode: React.FC<NodeProps> = (props) => {
             background: 'rgba(0, 0, 0, 0.3)',
             borderRadius: '4px',
             border: isTesting
-              ? '1px solid rgba(59, 130, 246, 0.5)'
+              ? '1px solid rgba(34, 197, 94, 0.5)'
               : '1px solid rgba(34, 197, 94, 0.3)',
-            whiteSpace: 'pre-wrap'
+            whiteSpace: 'pre-wrap',
+            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+            fontSize: '13px',
+            fontWeight: 400,
+            letterSpacing: '0.01em',
           }}>
             {testResult}
           </div>
         </div>
       )}
 
-      <div className="ai-node-field" style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+      <div className="ai-node-field" style={{ display: 'flex', gap: '8px', marginTop: '8px', fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
         <button
           onClick={handleTest}
           disabled={isTesting}
           style={{
             flex: 1,
             padding: '8px 12px',
-            background: isTesting ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.3)',
-            border: '1px solid rgba(59, 130, 246, 0.5)',
+            background: isTesting ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.3)',
+            border: '1px solid rgba(34, 197, 94, 0.5)',
             borderRadius: '4px',
             color: '#fff',
             cursor: isTesting ? 'not-allowed' : 'pointer',
             fontSize: '12px',
+            fontWeight: 600,
+            letterSpacing: '0.02em',
+            fontFamily: 'inherit',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '6px'
+            gap: '6px',
+            transition: 'all 0.2s ease',
           }}
         >
           <Play size={14} />
@@ -318,10 +326,14 @@ export const TextGenerationNode: React.FC<NodeProps> = (props) => {
             color: '#fff',
             cursor: 'pointer',
             fontSize: '12px',
+            fontWeight: 600,
+            letterSpacing: '0.02em',
+            fontFamily: 'inherit',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '6px'
+            gap: '6px',
+            transition: 'all 0.2s ease',
           }}
         >
           <Trash2 size={14} />

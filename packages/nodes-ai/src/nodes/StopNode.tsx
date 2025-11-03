@@ -63,14 +63,36 @@ export const StopNode: React.FC<NodeProps> = (props) => {
       hasInput={true}
       hasOutput={false}
     >
-      <div className="ai-node-field">
+      {/* Status Badge Row */}
+      <div className="ai-node-field flex items-center gap-2" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+        <button
+          disabled
+          className="text-xs px-3 py-1.5 rounded-md transition-colors"
+          style={{
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            fontFamily: 'inherit',
+            textTransform: 'uppercase',
+            background: data.status === 'success' ? 'rgba(34, 197, 94, 0.4)' : 'rgba(176, 38, 255, 0.2)',
+            color: data.status === 'success' ? '#22c55e' : '#b026ff',
+            border: data.status === 'success' ? '1px solid rgba(34, 197, 94, 0.5)' : '1px solid rgba(176, 38, 255, 0.3)',
+          }}
+        >
+          {data.status === 'success' ? 'SUCCESS' : 'ENDPOINT'}
+        </button>
+      </div>
+
+      <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
         <div style={{
           padding: '12px',
           background: 'rgba(0, 0, 0, 0.2)',
           borderRadius: '4px',
           textAlign: 'center',
           color: '#888',
-          fontSize: '11px'
+          fontSize: '11px',
+          fontWeight: 400,
+          letterSpacing: '0.01em',
+          fontFamily: 'inherit',
         }}>
           Workflow endpoint - receives final output
         </div>
@@ -78,8 +100,8 @@ export const StopNode: React.FC<NodeProps> = (props) => {
 
       {/* Total Token Usage */}
       {totalTokens.hasTokens && (
-        <div className="ai-node-field">
-          <label className="ai-node-field-label">Total Token Usage</label>
+        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+          <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Total Token Usage</label>
           <div style={{
             padding: '10px',
             background: 'rgba(176, 38, 255, 0.1)',
@@ -88,10 +110,11 @@ export const StopNode: React.FC<NodeProps> = (props) => {
           }}>
             <div style={{
               fontSize: '18px',
-              fontWeight: 'bold',
+              fontWeight: 600,
               color: 'var(--cyber-neon-purple)',
               marginBottom: '4px',
-              fontFamily: 'var(--font-mono)',
+              fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+              letterSpacing: '0.02em',
             }}>
               {totalTokens.total.toLocaleString()} tokens
             </div>
@@ -100,7 +123,9 @@ export const StopNode: React.FC<NodeProps> = (props) => {
               color: '#888',
               display: 'flex',
               justifyContent: 'space-between',
-              fontFamily: 'var(--font-mono)',
+              fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+              letterSpacing: '0.01em',
+              fontWeight: 400,
             }}>
               <span>{totalTokens.prompt.toLocaleString()} prompt</span>
               <span>+</span>
@@ -111,8 +136,8 @@ export const StopNode: React.FC<NodeProps> = (props) => {
       )}
 
       {data.value !== undefined && (
-        <div className="ai-node-field">
-          <label className="ai-node-field-label">Final Output</label>
+        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+          <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Final Output</label>
           <div className="ai-node-field-value" style={{
             maxHeight: '200px',
             overflowY: 'auto',
@@ -121,8 +146,10 @@ export const StopNode: React.FC<NodeProps> = (props) => {
             borderRadius: '4px',
             border: '1px solid rgba(57, 255, 20, 0.3)',
             whiteSpace: 'pre-wrap',
-            fontFamily: 'monospace',
-            fontSize: '11px'
+            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+            fontSize: '13px',
+            fontWeight: 400,
+            letterSpacing: '0.01em',
           }}>
             {typeof data.value === 'object'
               ? JSON.stringify(data.value, null, 2)

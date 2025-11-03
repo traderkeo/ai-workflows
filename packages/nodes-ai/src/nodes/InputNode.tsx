@@ -43,12 +43,18 @@ export const InputNode: React.FC<NodeProps> = (props) => {
       hasInput={false}
       hasOutput={true}
     >
-      <div className="ai-node-field">
-        <label className="ai-node-field-label">Value Type</label>
+      <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+        <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Value Type</label>
         <select
           className="ai-node-select"
           value={data.valueType}
           onChange={(e) => handleTypeChange(e.target.value as StartNodeData['valueType'])}
+          style={{
+            fontFamily: 'inherit',
+            fontSize: '14px',
+            fontWeight: 400,
+            letterSpacing: '0.01em',
+          }}
         >
           <option value="string">String</option>
           <option value="number">Number</option>
@@ -57,14 +63,20 @@ export const InputNode: React.FC<NodeProps> = (props) => {
         </select>
       </div>
 
-      <div className="ai-node-field">
-        <label className="ai-node-field-label">Value</label>
+      <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+        <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Value</label>
         <textarea
           className="ai-node-input ai-node-textarea"
           value={displayValue}
           onChange={(e) => handleValueChange(e.target.value)}
           placeholder={`Enter ${data.valueType} value...`}
           rows={4}
+          style={{
+            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+            fontSize: '13px',
+            fontWeight: 400,
+            letterSpacing: '0.01em',
+          }}
         />
       </div>
     </BaseAINode>

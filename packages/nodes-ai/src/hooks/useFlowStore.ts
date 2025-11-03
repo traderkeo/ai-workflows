@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import {
   applyNodeChanges,
   applyEdgeChanges,
@@ -15,6 +15,7 @@ import type {
 } from '@xyflow/react';
 import type { AINode, AIEdge, FlowState, WorkflowMetadata, SavedWorkflow, ExecutionContext } from '../types';
 import { autoLayout } from '../utils/autoLayout';
+import { indexedDBStorage } from './indexedDBStorage';
 
 interface HistoryState {
   nodes: AINode[];
@@ -96,6 +97,7 @@ const initialMetadata: WorkflowMetadata = {
   id: crypto.randomUUID(),
   name: 'Untitled Workflow',
   description: '',
+  tags: [],
   createdAt: Date.now(),
   updatedAt: Date.now(),
   version: '1.0.0',
@@ -308,11 +310,14 @@ export const useFlowStore = create<FlowStore>()(
       },
 
       loadWorkflow: (workflow) => {
+        // Batch state updates to prevent multiple re-renders
         set({
           nodes: workflow.flow.nodes,
           edges: workflow.flow.edges,
           viewport: workflow.flow.viewport,
           metadata: workflow.metadata,
+          history: [],
+          historyIndex: -1,
         });
       },
 
@@ -384,12 +389,15 @@ export const useFlowStore = create<FlowStore>()(
     }),
     {
       name: 'ai-workflow-storage',
+      storage: createJSONStorage(() => indexedDBStorage),
       partialize: (state) => ({
         nodes: state.nodes,
         edges: state.edges,
         viewport: state.viewport,
         metadata: state.metadata,
       }),
+      // Skip hydration during SSR
+      skipHydration: typeof window === 'undefined',
     }
   )
 );

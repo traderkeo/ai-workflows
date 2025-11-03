@@ -11,6 +11,7 @@ import {
   FileText,
   Globe,
   RotateCw,
+  Upload,
 } from 'lucide-react';
 import { useFlowStore } from '../hooks/useFlowStore';
 import type { AINode, AINodeType } from '../types';
@@ -145,6 +146,16 @@ export const nodeTemplates: NodeTemplate[] = [
     },
   },
   {
+    type: 'file-upload',
+    label: 'File Upload Test',
+    icon: <Upload size={16} />,
+    defaultData: {
+      label: 'File Upload Test',
+      status: 'idle',
+      files: [],
+    },
+  },
+  {
     type: 'loop',
     label: 'Loop',
     icon: <RotateCw size={16} />,
@@ -192,52 +203,121 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
 
   return (
     <div
-      className="gothic-panel"
       style={{
         position: 'fixed',
         top: position.y,
         left: position.x,
         zIndex: 1000,
-        minWidth: '200px',
-        padding: '8px',
+        minWidth: '240px',
+        maxWidth: '300px',
+        background: 'linear-gradient(135deg, var(--gothic-charcoal) 0%, var(--gothic-slate) 100%)',
+        border: 'var(--border-glow) solid var(--cyber-neon-purple)',
+        borderRadius: '8px',
+        boxShadow: 'var(--node-shadow)',
+        overflow: 'hidden',
+        fontFamily: 'var(--font-primary)',
       }}
       onClick={(e) => e.stopPropagation()}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = '0 0 30px rgba(176, 38, 255, 0.5)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = 'var(--node-shadow)';
+      }}
     >
+      {/* Header - Matching node header style */}
       <div
         style={{
-          fontFamily: 'var(--font-primary)',
-          fontSize: '11px',
-          color: 'var(--cyber-neon-purple)',
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-          marginBottom: '8px',
-          paddingLeft: '8px',
+          background: 'linear-gradient(90deg, var(--gothic-slate) 0%, var(--gothic-gray) 100%)',
+          borderBottom: '1px solid var(--cyber-neon-purple)',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
         }}
       >
-        Add Node
-      </div>
-
-      {nodeTemplates.map((template) => (
-        <button
-          key={template.type}
-          onClick={() => handleAddNode(template)}
-          className="node-toolbar-button"
+        <div
           style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '10px 12px',
-            marginBottom: '4px',
-            textAlign: 'left',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '12px',
+            fontSize: '13px',
+            fontFamily: 'var(--font-primary)',
+            fontWeight: 700,
+            color: 'var(--cyber-neon-cyan)',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            flex: 1,
           }}
         >
-          {template.icon}
-          {template.label}
-        </button>
-      ))}
+          Add Node
+        </div>
+      </div>
+
+      {/* Menu Items - Styled like node content */}
+      <div
+        style={{
+          padding: '8px',
+          maxHeight: '400px',
+          overflowY: 'auto',
+        }}
+      >
+        {nodeTemplates.map((template, index) => (
+          <button
+            key={template.type}
+            onClick={() => handleAddNode(template)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 12px',
+              marginBottom: index < nodeTemplates.length - 1 ? '4px' : '0',
+              textAlign: 'left',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              color: 'var(--cyber-neon-cyan)',
+              fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)',
+              fontSize: '13px',
+              fontWeight: 500,
+              letterSpacing: '0.01em',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(176, 38, 255, 0.15)';
+              e.currentTarget.style.boxShadow = '0 0 10px rgba(176, 38, 255, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '20px',
+                height: '20px',
+                color: 'var(--cyber-neon-cyan)',
+                filter: 'drop-shadow(0 0 3px currentColor)',
+              }}
+            >
+              {template.icon}
+            </div>
+            <span
+              style={{
+                flex: 1,
+                color: 'inherit',
+                fontFamily: 'inherit',
+                fontSize: 'inherit',
+                fontWeight: 'inherit',
+              }}
+            >
+              {template.label}
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
