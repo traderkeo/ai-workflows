@@ -31,6 +31,14 @@ export { TemplateNode } from './nodes/TemplateNode';
 export { HttpRequestNode } from './nodes/HttpRequestNode';
 export { LoopNode } from './nodes/LoopNode';
 export { FileUploadNode } from './nodes/FileUploadNode';
+export { SplitterNode } from './nodes/SplitterNode';
+export { AggregatorNode } from './nodes/AggregatorNode';
+export { CacheNode } from './nodes/CacheNode';
+export { GuardrailNode } from './nodes/GuardrailNode';
+export { WebScrapeNode } from './nodes/WebScrapeNode';
+export { DocumentIngestNode } from './nodes/DocumentIngestNode';
+export { RetrievalQANode } from './nodes/RetrievalQANode';
+export { WebSearchNode } from './nodes/WebSearchNode';
 
 // Hooks
 export { useFlowStore } from './hooks/useFlowStore';

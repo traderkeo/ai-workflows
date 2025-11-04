@@ -31,10 +31,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="ai-dialog-close">
-        <X size={16} />
-        <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden' }}>Close</span>
-      </DialogPrimitive.Close>
+
     </DialogPrimitive.Content>
   </DialogPortal>
 ));

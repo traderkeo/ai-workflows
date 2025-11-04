@@ -239,33 +239,6 @@ export const AIAgentNode: React.FC<NodeProps> = (props) => {
           style: data.imageStyle || 'natural',
         };
 
-        // If Together image model selected, pass Together-specific settings
-        if ((data.model || '').includes('/')) {
-          config = {
-            ...config,
-            steps: data.imageSteps,
-            seed: data.imageSeed,
-            negative_prompt: data.imageNegativePrompt,
-            aspect_ratio: data.imageAspectRatio,
-            image_url: data.imageReferenceUrl,
-            disable_safety_checker: data.imageDisableSafetyChecker,
-            response_format: data.imageResponseFormat || 'url',
-            n: data.imageNumImages ?? 1,
-          };
-
-          // Parse imageLorasJson if provided
-          if (data.imageLorasJson) {
-            try {
-              const parsed = JSON.parse(data.imageLorasJson);
-              if (Array.isArray(parsed)) {
-                (config as any).image_loras = parsed;
-              }
-            } catch (e) {
-              console.warn('Invalid imageLorasJson:', e);
-            }
-          }
-        }
-
         if (imageOperation === 'edit') {
           nodeType = 'image-edit';
           const resolvedImage = resolveImageVariable(data.imageSource);

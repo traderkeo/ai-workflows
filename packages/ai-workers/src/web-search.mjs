@@ -49,6 +49,8 @@ export async function webSearchNode({
   userLocation = null,
   externalWebAccess = true,
   includeSources = false,
+  reasoning = null, // { effort: 'low' | 'medium' | 'high' }
+  toolChoice = 'auto',
   context = null,
   abortSignal = null,
 }) {
@@ -82,9 +84,14 @@ export async function webSearchNode({
     const requestOptions = {
       model,
       tools: [webSearchTool],
-      tool_choice: 'auto',
+      tool_choice: toolChoice || 'auto',
       input: query,
     };
+
+    // Reasoning support for agentic/deep research models
+    if (reasoning && typeof reasoning === 'object') {
+      requestOptions.reasoning = reasoning;
+    }
 
     // Include sources if requested
     if (includeSources) {

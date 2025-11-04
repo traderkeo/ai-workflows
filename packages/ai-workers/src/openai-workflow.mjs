@@ -12,6 +12,7 @@ import { generateText, streamText, generateObject, embed, embedMany, tool } from
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { getProviderModel, SUPPORTED_MODELS, getModelInfo } from './providers.mjs';
+import { togetherChatCompletion, togetherChatCompletionStream, togetherImagesCreate } from './together.mjs';
 
 // ============================================================================
 // Model Configuration
@@ -111,22 +112,34 @@ export async function generateTextNode({
   abortSignal = null,
 }) {
   try {
-    const modelInstance = getProviderModel(model);
-
     const messagesArray = [
       ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
       ...messages,
       { role: 'user', content: prompt },
     ];
-
-    const result = await generateText({
-      model: modelInstance,
-      messages: messagesArray,
-      temperature,
-      maxTokens,
-      maxRetries: DEFAULT_CONFIG.maxRetries,
-      abortSignal,
-    });
+    const isTogether = typeof model === 'string' && model.includes('/');
+    let result;
+    if (isTogether) {
+      const r = await togetherChatCompletion({
+        model,
+        messages: messagesArray,
+        temperature,
+        maxTokens,
+        abortSignal,
+      });
+      result = { text: r.text, usage: r.usage, finishReason: r.finishReason, response: { messages: [] } };
+    } else {
+      const modelInstance = getProviderModel(model);
+      const r = await generateText({
+        model: modelInstance,
+        messages: messagesArray,
+        temperature,
+        maxTokens,
+        maxRetries: DEFAULT_CONFIG.maxRetries,
+        abortSignal,
+      });
+      result = r;
+    }
 
     // Update context if provided
     if (context) {
@@ -190,54 +203,83 @@ export async function streamTextNode({
   abortSignal = null,
 }) {
   try {
-    const modelInstance = getProviderModel(model);
-
     const messagesArray = [
       ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
       ...messages,
       { role: 'user', content: prompt },
     ];
-
-    const result = await streamText({
-      model: modelInstance,
-      messages: messagesArray,
-      temperature,
-      maxTokens,
-      maxRetries: DEFAULT_CONFIG.maxRetries,
-      abortSignal,
-      onFinish: (event) => {
-        if (context) {
-          context.incrementNodeExecutions();
-          context.addTokenUsage(event.usage?.totalTokens || 0);
-        }
-        if (onFinish) {
-          onFinish({
-            text: event.text,
-            usage: event.usage,
-            finishReason: event.finishReason,
-          });
-        }
-      },
-    });
-
-    // Process the stream
-    let fullText = '';
-    for await (const textPart of result.textStream) {
-      fullText += textPart;
-      if (onChunk) {
-        onChunk(textPart, fullText);
-      }
-    }
-
-    return {
-      success: true,
-      text: fullText,
-      stream: result,
-      metadata: {
+    const isTogether = typeof model === 'string' && model.includes('/');
+    if (isTogether) {
+      let fullText = '';
+      await togetherChatCompletionStream({
         model,
-        timestamp: Date.now(),
-      },
-    };
+        messages: messagesArray,
+        temperature,
+        maxTokens,
+        abortSignal,
+        onDelta: (delta, agg) => {
+          fullText = agg;
+          if (onChunk) onChunk(delta, agg);
+        },
+        onFinish: (event) => {
+          if (context) {
+            context.incrementNodeExecutions();
+            context.addTokenUsage(event.usage?.totalTokens || 0);
+          }
+          if (onFinish) {
+            onFinish({ text: event.text, usage: event.usage, finishReason: 'stop' });
+          }
+        },
+      });
+      return {
+        success: true,
+        text: fullText,
+        stream: null,
+        metadata: { model, timestamp: Date.now() },
+      };
+    } else {
+      const modelInstance = getProviderModel(model);
+      const result = await streamText({
+        model: modelInstance,
+        messages: messagesArray,
+        temperature,
+        maxTokens,
+        maxRetries: DEFAULT_CONFIG.maxRetries,
+        abortSignal,
+        onFinish: (event) => {
+          if (context) {
+            context.incrementNodeExecutions();
+            context.addTokenUsage(event.usage?.totalTokens || 0);
+          }
+          if (onFinish) {
+            onFinish({
+              text: event.text,
+              usage: event.usage,
+              finishReason: event.finishReason,
+            });
+          }
+        },
+      });
+
+      // Process the stream
+      let fullText = '';
+      for await (const textPart of result.textStream) {
+        fullText += textPart;
+        if (onChunk) {
+          onChunk(textPart, fullText);
+        }
+      }
+
+      return {
+        success: true,
+        text: fullText,
+        stream: result,
+        metadata: {
+          model,
+          timestamp: Date.now(),
+        },
+      };
+    }
   } catch (error) {
     if (onError) {
       onError(error);
@@ -286,36 +328,125 @@ export async function generateStructuredDataNode({
   abortSignal = null,
 }) {
   try {
-    const modelInstance = getProviderModel(model);
+    const isTogether = typeof model === 'string' && model.includes('/');
+    if (isTogether) {
+      // Build messages and response_format JSON schema for Together
 
-    const result = await generateObject({
-      model: modelInstance,
-      schema,
-      schemaName,
-      schemaDescription,
-      prompt,
-      system: systemPrompt,
-      temperature,
-      maxRetries: DEFAULT_CONFIG.maxRetries,
-      abortSignal,
-    });
+      // Minimal Zod -> JSON Schema converter for common types
+      const toJsonSchema = (zodSchema) => {
+        try {
+          const t = zodSchema?._def?.typeName;
+          if (t === 'ZodObject') {
+            const shape = zodSchema._def.shape();
+            const properties = {};
+            const required = [];
+            for (const key of Object.keys(shape)) {
+              properties[key] = toJsonSchema(shape[key]);
+              // Assume required by default
+              required.push(key);
+            }
+            return { type: 'object', title: schemaName, properties, required };
+          }
+          if (t === 'ZodString') return { type: 'string' };
+          if (t === 'ZodNumber') return { type: 'number' };
+          if (t === 'ZodBoolean') return { type: 'boolean' };
+          if (t === 'ZodArray') return { type: 'array', items: toJsonSchema(zodSchema._def.type) };
+          return { type: 'string' };
+        } catch {
+          return { type: 'string' };
+        }
+      };
+
+      const jsonSchema = toJsonSchema(schema);
+      const responseFormat = { type: 'json_schema', schema: jsonSchema };
+
+      // Per docs, include explicit instruction with schema text in a system message
+      const schemaText = JSON.stringify(jsonSchema);
+      const sysMsg =
+        systemPrompt && systemPrompt.length > 0
+          ? systemPrompt
+          : `Only answer in JSON and follow this schema ${schemaText}.`;
+
+      const messagesArray = [
+        { role: 'system', content: sysMsg },
+        { role: 'user', content: prompt },
+      ];
+
+      let r;
+      try {
+        r = await togetherChatCompletion({
+          model,
+          messages: messagesArray,
+          temperature,
+          // let model decide tokens unless user set via maxTokens-like API; keep default
+          responseFormat,
+          abortSignal,
+        });
+      } catch (err) {
+        // Fallback: retry without response_format, relying on system prompt
+        r = await togetherChatCompletion({
+          model,
+          messages: messagesArray,
+          temperature,
+          abortSignal,
+        });
+      }
+
+      const parsed = (() => {
+        try {
+          return JSON.parse(r.text || '{}');
+        } catch {
+          return null;
+        }
+      })();
+
+      if (context) {
+        context.incrementNodeExecutions();
+        context.addTokenUsage(r.usage?.total_tokens || r.usage?.totalTokens || 0);
+      }
+
+      if (!parsed) {
+        return { success: false, error: 'Invalid JSON in model response', object: null, metadata: { model, schemaName, timestamp: Date.now() } };
+      }
+
+      return {
+        success: true,
+        object: parsed,
+        usage: r.usage,
+        finishReason: r.finishReason,
+        metadata: { model, schemaName, timestamp: Date.now() },
+      };
+    } else {
+      const modelInstance = getProviderModel(model);
+      const result = await generateObject({
+        model: modelInstance,
+        schema,
+        schemaName,
+        schemaDescription,
+        prompt,
+        system: systemPrompt,
+        temperature,
+        maxRetries: DEFAULT_CONFIG.maxRetries,
+        abortSignal,
+      });
 
     if (context) {
       context.incrementNodeExecutions();
       context.addTokenUsage(result.usage?.totalTokens || 0);
     }
 
-    return {
-      success: true,
-      object: result.object,
-      usage: result.usage,
-      finishReason: result.finishReason,
-      metadata: {
-        model,
-        schemaName,
-        timestamp: Date.now(),
-      },
-    };
+      return {
+        success: true,
+        object: result.object,
+        usage: result.usage,
+        finishReason: result.finishReason,
+        metadata: {
+          model,
+          schemaName,
+          timestamp: Date.now(),
+        },
+      };
+    }
   } catch (error) {
     return {
       success: false,
@@ -1003,6 +1134,14 @@ export async function generateImageNode({
   n = 1,
   stream = false,
   partial_images = 0,
+  // Together-specific optional params
+  steps,
+  seed,
+  negative_prompt,
+  image_url,
+  disable_safety_checker,
+  aspect_ratio,
+  image_loras,
   context = new WorkflowContext(),
   abortSignal,
 }) {
@@ -1010,6 +1149,64 @@ export async function generateImageNode({
 
   try {
     context.incrementNodeExecutions();
+
+    // Together image generation path (model IDs usually contain '/')
+    const isTogether = typeof model === 'string' && model.includes('/');
+    if (isTogether) {
+      // Parse size into width/height if provided (e.g., '1024x1024')
+      let width, height;
+      if (size && typeof size === 'string' && size.includes('x')) {
+        const [w, h] = size.split('x').map((v) => parseInt(v, 10));
+        if (!Number.isNaN(w)) width = w;
+        if (!Number.isNaN(h)) height = h;
+      }
+
+      const res = await togetherImagesCreate({
+        model,
+        prompt,
+        width,
+        height,
+        n,
+        steps,
+        seed,
+        response_format,
+        image_url,
+        negative_prompt,
+        disable_safety_checker,
+        aspect_ratio,
+        image_loras,
+        abortSignal,
+      });
+
+      const first = res?.data?.[0] || {};
+      let imageResult = first.url || first.b64_json || '';
+      const format = first.url ? 'url' : 'base64';
+      if (format === 'base64' && imageResult && !imageResult.startsWith('data:')) {
+        const mimeType = output_format === 'jpeg' ? 'image/jpeg' :
+                         output_format === 'webp' ? 'image/webp' : 'image/png';
+        imageResult = `data:${mimeType};base64,${imageResult}`;
+      }
+
+      return {
+        success: true,
+        image: imageResult,
+        format,
+        revisedPrompt: undefined,
+        metadata: {
+          model,
+          size,
+          response_format,
+          n,
+          steps,
+          seed,
+          negative_prompt,
+          image_url,
+          aspect_ratio,
+          timestamp: Date.now(),
+          executionTime: Date.now() - startTime,
+        },
+      };
+    }
 
     // Use OpenAI SDK directly for image generation
     const OpenAI = (await import('openai')).default;

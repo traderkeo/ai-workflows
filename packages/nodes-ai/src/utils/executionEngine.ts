@@ -13,7 +13,7 @@ import type {
 import type { MergeNodeData } from '../nodes/MergeNode';
 import type { ConditionNodeData } from '../nodes/ConditionNode';
 import type { TemplateNodeData } from '../nodes/TemplateNode';
-import type { HttpRequestNodeData, LoopNodeData } from '../types';
+import type { HttpRequestNodeData, LoopNodeData, SplitterNodeData, AggregatorNodeData, CacheNodeData, GuardrailNodeData, WebScrapeNodeData, DocumentIngestNodeData, RetrievalQANodeData } from '../types';
 import { resolveVariables } from './variableResolver';
 
 /**
@@ -648,30 +648,50 @@ async function executeNode(
 
       case 'condition': {
         const data = node.data as ConditionNodeData;
-        let conditionMet = false;
+        const resolvedInput = resolveVariables(data.input ?? '{{input}}', node.id, nodes, edges);
+        let ok = false;
+        const type = data.conditionType || 'length';
 
-        switch (data.conditionType) {
-          case 'length':
-            const minLength = Number(data.conditionValue ?? 100);
-            conditionMet = String(input || '').length > minLength;
-            break;
-          case 'contains':
-            const searchText = String(data.conditionValue || '');
-            conditionMet = String(input || '').includes(searchText);
-            break;
-          case 'custom':
-            try {
-              // eslint-disable-next-line no-new-func
-              const conditionFn = new Function('input', data.conditionCode || 'return true;');
-              conditionMet = Boolean(conditionFn(input));
-            } catch (error: any) {
-              throw new Error(`Condition code error: ${error.message}`);
+        if (type === 'length') {
+          const min = Number(data.minLength ?? 0);
+          const max = data.maxLength === undefined ? undefined : Number(data.maxLength);
+          const len = String(resolvedInput || '').length;
+          ok = len >= min && (max === undefined || len <= max);
+        } else if (type === 'contains') {
+          const needle = String(data.containsText ?? '');
+          const hay = String(resolvedInput || '');
+          ok = data.caseSensitive ? hay.includes(needle) : hay.toLowerCase().includes(needle.toLowerCase());
+        } else if (type === 'regex') {
+          if (!data.regexPattern) throw new Error('Regex pattern is required');
+          const re = new RegExp(data.regexPattern, data.regexFlags);
+          ok = re.test(String(resolvedInput));
+        } else if (type === 'numeric') {
+          const n = Number(resolvedInput);
+          const op = data.numericOperator || '>';
+          const val = Number(data.numericValue ?? 0);
+          if (!Number.isFinite(n)) ok = false; else {
+            switch (op) {
+              case '>': ok = n > val; break;
+              case '>=': ok = n >= val; break;
+              case '<': ok = n < val; break;
+              case '<=': ok = n <= val; break;
+              case '==': ok = n == val; break; // eslint-disable-line eqeqeq
+              case '!=': ok = n != val; break; // eslint-disable-line eqeqeq
+              default: ok = false;
             }
-            break;
+          }
+        } else if (type === 'custom') {
+          try {
+            // eslint-disable-next-line no-new-func
+            const conditionFn = new Function('input', data.conditionCode || 'return true;');
+            ok = Boolean(conditionFn(resolvedInput));
+          } catch (error: any) {
+            throw new Error(`Condition code error: ${error.message}`);
+          }
         }
 
-        onNodeUpdate(node.id, { conditionMet, result: conditionMet });
-        result = { condition: conditionMet, data: input };
+        onNodeUpdate(node.id, { conditionMet: ok, result: ok });
+        result = ok;
         break;
       }
 
@@ -797,6 +817,302 @@ async function executeNode(
 
         onNodeUpdate(node.id, { results, result: results, currentIteration: undefined });
         result = results;
+        break;
+      }
+
+      case 'splitter': {
+        const data = node.data as SplitterNodeData;
+        const template = data.input ?? '{{input}}';
+        const text = resolveVariables(template, node.id, nodes, edges);
+        const strategy = data.strategy || 'length';
+        let chunks: string[] = [];
+
+        if (strategy === 'length') {
+          const size = Math.max(1, data.chunkSize ?? 500);
+          const overlap = Math.max(0, Math.min(size - 1, data.overlap ?? 0));
+          let i = 0;
+          while (i < text.length) {
+            const end = Math.min(text.length, i + size);
+            chunks.push(text.slice(i, end));
+            i += size - overlap;
+          }
+        } else if (strategy === 'lines') {
+          chunks = String(text).split(/\r?\n/).filter((c) => c.length > 0);
+        } else if (strategy === 'sentences') {
+          chunks = String(text).split(/(?<=[.!?])\s+/).filter((c) => c.length > 0);
+        } else if (strategy === 'regex') {
+          if (!data.regexPattern) throw new Error('Regex pattern is required');
+          const re = new RegExp(data.regexPattern, data.regexFlags);
+          chunks = String(text).split(re).filter((c) => c.length > 0);
+        }
+
+        onNodeUpdate(node.id, { result: chunks });
+        result = chunks;
+        break;
+      }
+
+      case 'aggregator': {
+        const data = node.data as AggregatorNodeData;
+        const itemsTemplate = data.items ?? '{{input}}';
+        const resolved = resolveVariables(itemsTemplate, node.id, nodes, edges);
+        const mode = data.mode || 'concat-text';
+
+        const tryParse = (s: string) => { try { return JSON.parse(s); } catch { return undefined; } };
+        let out: any = null;
+
+        if (mode === 'concat-text') {
+          const parsed = tryParse(resolved);
+          const arr = Array.isArray(parsed) ? parsed : [resolved];
+          out = arr.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(data.delimiter ?? '\n');
+        } else if (mode === 'flatten-array') {
+          const parsed = tryParse(resolved);
+          if (!Array.isArray(parsed)) throw new Error('Expected an array for flatten');
+          // @ts-ignore
+          out = parsed.flat ? parsed.flat() : ([] as any[]).concat(...parsed);
+        } else if (mode === 'merge-objects') {
+          const parsed = tryParse(resolved);
+          if (!Array.isArray(parsed)) throw new Error('Expected an array of objects to merge');
+          out = parsed.reduce((acc: any, cur: any) => ({ ...acc, ...cur }), {});
+        }
+
+        onNodeUpdate(node.id, { result: out });
+        result = out;
+        break;
+      }
+
+      case 'cache': {
+        const data = node.data as CacheNodeData;
+        const key = resolveVariables(data.keyTemplate || '{{input}}', node.id, nodes, edges);
+        // Cache lives in localStorage in client; here we simulate a simple in-memory map
+        // Use workflowContext to persist across nodes during this run
+        // @ts-ignore - attach map lazily
+        const cacheStore: Map<string, any> = (workflowContext as any).__cache || new Map();
+        // @ts-ignore
+        (workflowContext as any).__cache = cacheStore;
+
+        let value: any = undefined;
+        let hit = false;
+        if (data.operation === 'set') {
+          const valueResolved = resolveVariables(data.valueTemplate || '', node.id, nodes, edges);
+          cacheStore.set(key, valueResolved);
+          value = valueResolved;
+          hit = true;
+        } else {
+          if (cacheStore.has(key)) {
+            value = cacheStore.get(key);
+            hit = true;
+          } else if (data.writeIfMiss && data.valueTemplate) {
+            const valueResolved = resolveVariables(data.valueTemplate, node.id, nodes, edges);
+            cacheStore.set(key, valueResolved);
+            value = valueResolved;
+            hit = false;
+          }
+        }
+
+        onNodeUpdate(node.id, { hit, value, result: value });
+        result = value;
+        break;
+      }
+
+      case 'guardrail': {
+        const data = node.data as GuardrailNodeData;
+        const text = resolveVariables(data.input ?? '{{input}}', node.id, nodes, edges);
+        const checks = data.checks || {};
+        const violations: Array<{ type: string; detail: string }> = [];
+
+        if (checks.blocklist) {
+          const words = (data.blocklistWords || '').split(',').map((w) => w.trim()).filter(Boolean);
+          for (const w of words) {
+            if (w && String(text).toLowerCase().includes(w.toLowerCase())) violations.push({ type: 'blocklist', detail: w });
+          }
+        }
+        if (checks.regex) {
+          const lines = (data.regexPatterns || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+          for (const pattern of lines) {
+            try {
+              const re = new RegExp(pattern, 'i');
+              if (re.test(String(text))) violations.push({ type: 'regex', detail: pattern });
+            } catch {}
+          }
+        }
+        if (checks.pii) {
+          const emailRe = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+          const phoneRe = /(\+?\d[\d\s\-()]{7,}\d)/;
+          if (emailRe.test(String(text))) violations.push({ type: 'pii', detail: 'email' });
+          if (phoneRe.test(String(text))) violations.push({ type: 'pii', detail: 'phone' });
+        }
+        if (checks.toxicity) {
+          const toks = ['hate', 'kill', 'violence'];
+          const lower = String(text).toLowerCase();
+          for (const w of toks) if (lower.includes(w)) violations.push({ type: 'toxicity', detail: w });
+        }
+
+        const passed = violations.length === 0;
+        onNodeUpdate(node.id, { result: { passed, violations } });
+        result = { passed, violations };
+        break;
+      }
+
+      case 'web-scrape': {
+        const data = node.data as WebScrapeNodeData;
+        const url = resolveVariables(data.url || '', node.id, nodes, edges).trim();
+        if (!url) throw new Error('URL is required for Web Scrape');
+        const res = await fetch(url, { method: 'GET', signal: context.abortSignal });
+        const status = res.status;
+        const html = await res.text();
+
+        let output: any = { status, html };
+        if (data.extractText) {
+          // We cannot use DOMParser in Node; return raw HTML to client nodes.
+          output = { status, html };
+        }
+        onNodeUpdate(node.id, { result: output });
+        result = output;
+        break;
+      }
+
+      case 'document-ingest': {
+        const data = node.data as DocumentIngestNodeData;
+        const mode = data.sourceType || 'text';
+        let documents: string[] = [];
+        if (mode === 'text') {
+          const text = resolveVariables(data.textTemplate ?? '{{input}}', node.id, nodes, edges);
+          if (text && String(text).trim()) documents = [String(text)];
+        } else if (mode === 'url') {
+          const url = resolveVariables(data.url || '', node.id, nodes, edges).trim();
+          if (!url) throw new Error('URL is required for Document Ingest');
+          const res = await fetch(url, { method: 'GET', signal: context.abortSignal });
+          const html = await res.text();
+          // Server-side: no DOMParser, return HTML
+          documents = [html];
+        }
+
+        let chunks: string[] | undefined;
+        let embeddings: number[][] | undefined;
+        if (data.split && documents.length > 0) {
+          const size = Math.max(1, data.chunkSize ?? 1000);
+          const overlap = Math.max(0, Math.min(size - 1, data.overlap ?? 0));
+          chunks = [];
+          for (const d of documents) {
+            let i = 0;
+            while (i < d.length) {
+              const end = Math.min(d.length, i + size);
+              chunks.push(d.slice(i, end));
+              i += size - overlap;
+            }
+          }
+        }
+
+        // Optionally compute embeddings using server API
+        if (data.embed) {
+          const texts = (chunks && chunks.length > 0 ? chunks : documents);
+          if (texts.length > 0) {
+            const api = await fetch('/api/workflows/embeddings', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ texts, model: data.embeddingModel || 'text-embedding-3-small', dimensions: data.embeddingDimensions ?? undefined }),
+              signal: context.abortSignal,
+            });
+            if (api.ok) {
+              const json = await api.json();
+              if (json.success) embeddings = json.embeddings;
+            }
+          }
+        }
+
+        const out = { documents, chunks, embeddings };
+        onNodeUpdate(node.id, { result: out });
+        result = out;
+        break;
+      }
+
+      case 'retrieval-qa': {
+        const data = node.data as RetrievalQANodeData;
+        const query = resolveVariables(data.queryTemplate || '{{input}}', node.id, nodes, edges);
+
+        // Collect corpus from first upstream node with documents/chunks
+        const incoming = edges.filter(e => e.target === node.id).map(e => nodes.find(n => n.id === e.source)).filter(Boolean) as AINode[];
+        const candidate = incoming.find(n => (n.data as any)?.result?.chunks || (n.data as any)?.result?.documents || (n.data as any)?.result);
+        const corpusSrc = (candidate as any)?.data?.result?.chunks || (candidate as any)?.data?.result?.documents || (candidate as any)?.data?.result || '';
+        const embeddings = (candidate as any)?.data?.result?.embeddings as number[][] | undefined;
+
+        const norm = (val: any): string[] => {
+          if (Array.isArray(val)) return val.map((x) => (typeof x === 'string' ? x : (x?.text ?? JSON.stringify(x))));
+          if (typeof val === 'string') { try { const arr = JSON.parse(val); return Array.isArray(arr) ? arr.map((x) => (typeof x === 'string' ? x : (x?.text ?? JSON.stringify(x)))) : [val]; } catch { return [val]; } }
+          return [String(val ?? '')];
+        };
+
+        const corpus = norm(corpusSrc);
+        let ranked: Array<{ idx: number; text: string; score: number }> = [];
+        const cosine = (a: number[], b: number[]) => { let dot=0,na=0,nb=0; const len=Math.min(a.length,b.length); for (let i=0;i<len;i++){dot+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i];} if(na===0||nb===0) return 0; return dot/(Math.sqrt(na)*Math.sqrt(nb)); };
+        if (embeddings && embeddings.length === corpus.length) {
+          const api = await fetch('/api/workflows/embeddings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texts: [String(query)], model: 'text-embedding-3-small' }),
+            signal: context.abortSignal,
+          });
+          if (api.ok) {
+            const json = await api.json();
+            const qvec = json.embeddings?.[0] as number[] | undefined;
+            if (qvec) {
+              ranked = corpus.map((text, idx) => ({ idx, text, score: cosine(qvec, embeddings[idx]) }))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, Math.max(1, data.topK ?? 3));
+            }
+          }
+        }
+        if (ranked.length === 0) {
+          const q = String(query).toLowerCase().split(/\W+/).filter(Boolean);
+          const sc = (t: string) => { const l = t.toLowerCase(); let s = 0; for (const tok of q) if (l.includes(tok)) s++; return s; };
+          ranked = corpus.map((text, idx) => ({ idx, text, score: sc(text) })).sort((a, b) => b.score - a.score).slice(0, Math.max(1, data.topK ?? 3));
+        }
+        const contextStr = ranked.map((r, i) => `[${i + 1}] ${r.text}`).join('\n\n');
+
+        // Ask LLM for an answer using the same endpoint as other nodes
+        const model = data.model || 'gpt-4o-mini';
+        const temperature = data.temperature ?? 0.3;
+        const apiResponse = await fetch('/api/workflows/test-node', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nodeType: 'text-generation',
+            config: {
+              prompt: `You are a helpful assistant. Use the context to answer the question with citations.\n\nContext:\n${contextStr}\n\nQuestion: ${query}\n\nAnswer with citations in the form [n].`,
+              model,
+              temperature,
+            },
+          }),
+          signal: context.abortSignal,
+        });
+        if (!apiResponse.ok) {
+          const error = await apiResponse.json();
+          throw new Error(error.error || 'Retrieval QA failed');
+        }
+        const reader = apiResponse.body?.getReader();
+        const decoder = new TextDecoder();
+        if (!reader) throw new Error('No reader available');
+        let answer = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const d = JSON.parse(line.slice(6));
+                if (d.error) throw new Error(d.error);
+                if (d.fullText !== undefined) answer = d.fullText;
+                if (d.done) answer = d.text || d.fullText || answer;
+              } catch {}
+            }
+          }
+        }
+
+        const citations = ranked.map((r, i) => ({ index: i + 1, snippet: r.text.slice(0, 160) }));
+        onNodeUpdate(node.id, { result: { answer, citations }, answer, citations });
+        result = { answer, citations };
         break;
       }
 

@@ -1,0 +1,32 @@
+{
+  "name": "@repo/together-ai",
+  "version": "0.1.0",
+  "description": "Together.ai provider wrapper for ai-workflows (OpenAI-compatible)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "keywords": [
+    "together",
+    "ai",
+    "ai-sdk",
+    "openai-compatible",
+    "provider"
+  ],
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.40",
+    "ai": "beta",
+    "openai": "^4.76.1"
+  },
+  "peerDependencies": {
+    "ai": "*"
+  }
+}
+
