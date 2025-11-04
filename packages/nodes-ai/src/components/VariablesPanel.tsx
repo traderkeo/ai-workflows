@@ -1,15 +1,18 @@
 import React, { useMemo } from 'react';
-import { Database, Copy, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { AINode } from '../types';
+import { Database, Copy, CheckCircle2, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import type { AINode, AIEdge } from '../types';
+import { useFlowStore } from '../hooks/useFlowStore';
+import { getAvailableVariablesWithInfo, type VariableInfo } from '../utils/variableResolver';
 
 interface VariablesPanelProps {
-  nodes: AINode[];
+  nodes: AINode[]; // kept for backwards compatibility (unused if store is available)
   selectedNodeId?: string;
+  edges?: AIEdge[]; // optional; falls back to store
 }
 
 const PANEL_STORAGE_KEY = 'variables-panel-collapsed';
 
-export const VariablesPanel: React.FC<VariablesPanelProps> = ({ nodes, selectedNodeId }) => {
+export const VariablesPanel: React.FC<VariablesPanelProps> = ({ nodes, selectedNodeId, edges }) => {
   const [copiedVar, setCopiedVar] = React.useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = React.useState(() => {
     if (typeof window !== 'undefined') {
@@ -19,6 +22,12 @@ export const VariablesPanel: React.FC<VariablesPanelProps> = ({ nodes, selectedN
     return false;
   });
 
+  // Prefer Zustand store nodes/edges for consistency across the app
+  const storeNodes = useFlowStore((s) => s.nodes);
+  const storeEdges = useFlowStore((s) => s.edges);
+  const effectiveNodes = storeNodes?.length ? (storeNodes as AINode[]) : nodes;
+  const effectiveEdges = (edges && edges.length ? edges : storeEdges) as AIEdge[];
+
   const toggleCollapse = () => {
     const newState = !isCollapsed;
     setIsCollapsed(newState);
@@ -27,33 +36,35 @@ export const VariablesPanel: React.FC<VariablesPanelProps> = ({ nodes, selectedN
     }
   };
 
-  // Get all nodes - show immediately, not just those with output
-  const availableVariables = useMemo(() => {
-    return nodes
-      .filter(node => {
-        // Exclude start and stop nodes from variable list
-        return node.type !== 'start' && node.type !== 'stop';
-      })
-      .map(node => {
+  // Context-aware variables (upstream of the selected node), mirrors AIAgentSettingsDialog
+  const contextVariables: VariableInfo[] = useMemo(() => {
+    if (!selectedNodeId) return [];
+    try {
+      return getAvailableVariablesWithInfo(selectedNodeId, effectiveNodes as any, effectiveEdges as any);
+    } catch {
+      return [];
+    }
+  }, [selectedNodeId, effectiveNodes, effectiveEdges]);
+
+  // Fallback: global simple list (legacy)
+  const legacyVariables = useMemo(() => {
+    return effectiveNodes
+      .filter((node) => node.type !== 'start' && node.type !== 'stop')
+      .map((node) => {
         const value = node.data.result
           ?? node.data.value
           ?? node.data.streamingText
-          ?? node.data.results // For LoopNode
-          ?? node.data.conditionMet; // For ConditionNode
-
+          ?? node.data.results
+          ?? node.data.conditionMet;
         const hasOutput = value !== undefined;
-
         return {
           nodeId: node.id,
           label: node.data.label || node.type,
-          name: node.data.name, // Custom name
-          type: node.type,
-          value: hasOutput ? value : '(not executed yet)',
-          status: node.data.status,
-          hasOutput,
+          name: node.data.name as string | undefined,
+          value: hasOutput ? value : '(not executed yet)'
         };
       });
-  }, [nodes]);
+  }, [effectiveNodes]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -73,8 +84,29 @@ export const VariablesPanel: React.FC<VariablesPanelProps> = ({ nodes, selectedN
     return String(value);
   };
 
-  const panelWidth = isCollapsed ? 0 : 320;
+  const panelWidth = isCollapsed ? 0 : 340;
   const transitionDuration = 200; // ms
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'image':
+        return '🖼️';
+      case 'audio':
+        return '🔊';
+      case 'text':
+        return '📝';
+      case 'number':
+        return '🔢';
+      case 'boolean':
+        return '✓';
+      case 'array':
+        return '📋';
+      case 'object':
+        return '{}';
+      default:
+        return '📄';
+    }
+  };
 
   return (
     <div className="relative h-full">
@@ -82,7 +114,7 @@ export const VariablesPanel: React.FC<VariablesPanelProps> = ({ nodes, selectedN
       <button
         onClick={toggleCollapse}
         className={`absolute top-1/2 -translate-y-1/2 z-20 h-12 w-6 rounded-r-md bg-card border border-l-0 border-border shadow-md hover:bg-accent transition-all flex items-center justify-center group ${
-          isCollapsed ? 'left-0' : 'left-[320px]'
+          isCollapsed ? 'left-0' : 'left-[340px]'
         }`}
         style={{ transitionDuration: `${transitionDuration}ms`, transitionProperty: 'left' }}
         title={isCollapsed ? 'Show Variables' : 'Hide Variables'}
@@ -109,9 +141,15 @@ export const VariablesPanel: React.FC<VariablesPanelProps> = ({ nodes, selectedN
             <Database size={16} className="text-primary" />
             <div>
               <div className="text-sm font-semibold text-foreground">Variables</div>
-              <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                {availableVariables.length} {availableVariables.length !== 1 ? 'items' : 'item'}
-              </div>
+              {selectedNodeId ? (
+                <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                  {contextVariables.length} available upstream
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                  {legacyVariables.length} nodes
+                </div>
+              )}
             </div>
           </div>
           <button
@@ -129,107 +167,136 @@ export const VariablesPanel: React.FC<VariablesPanelProps> = ({ nodes, selectedN
             Click to copy. Use in templates:
           </div>
           <div className="text-xs text-primary font-mono mt-1.5 space-y-0.5">
-            <div>{'{{node_name.data}}'} - by name</div>
-            <div>{'{{input}}'} - first node</div>
-            <div>{'{{label}}'} - by label</div>
+            <div>{'{{input}}'} - first connected input</div>
+            <div>{'{{nodeName}}'} - by name/label/id</div>
+            <div>{'{{nodeName.prop}}'} - nested property</div>
           </div>
         </div>
 
-        {/* Variables List */}
-        <div className="flex-1 overflow-y-auto p-2">
-          {availableVariables.length === 0 ? (
-            <div className="px-4 py-12 text-center text-xs text-muted-foreground font-mono">
-              No variables yet.
-              <br />
-              <span className="text-[10px]">Execute workflow to see outputs</span>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {availableVariables.map((variable) => (
+        {/* List */}
+        <div className="flex-1 overflow-auto">
+          {selectedNodeId ? (
+            contextVariables.length === 0 ? (
+              <div className="p-4 text-xs text-muted-foreground">
+                No upstream variables. Connect nodes to provide inputs.
+              </div>
+            ) : (
+              <div className="px-3 py-2">
                 <div
-                  key={variable.nodeId}
-                  className={`p-3 rounded-md border transition-all ${
-                    selectedNodeId === variable.nodeId
-                      ? 'bg-accent border-primary shadow-sm'
-                      : 'bg-card border-border hover:border-primary/50'
-                  }`}
+                  style={{
+                    maxHeight: '260px',
+                    overflowY: 'auto',
+                    border: '1px solid var(--border-color, #333)',
+                    borderRadius: '6px',
+                    backgroundColor: 'rgba(0, 0, 0, 0.2)'
+                  }}
                 >
-                  {/* Node Info */}
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <div className="text-xs font-semibold text-foreground">{variable.label}</div>
-                      <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{variable.type}</div>
-                    </div>
-                    {variable.status && (
-                      <div
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase font-mono ${
-                          variable.status === 'success'
-                            ? 'bg-green-500/20 text-green-500'
-                            : variable.status === 'running'
-                            ? 'bg-blue-500/20 text-blue-500'
-                            : variable.status === 'error'
-                            ? 'bg-red-500/20 text-red-500'
-                            : 'bg-muted text-muted-foreground'
-                        }`}
-                      >
-                        {variable.status}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Variable References */}
-                  <div className="space-y-1.5 mb-2">
-                    {/* By Name (if exists) - Primary reference */}
-                    {variable.name && (
-                      <button
-                        onClick={() => copyToClipboard(`{{${variable.name}.data}}`)}
-                        className="w-full flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold font-mono rounded border border-green-500/50 bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:border-green-500 transition-all"
-                      >
-                        {copiedVar === `{{${variable.name}.data}}` ? (
-                          <CheckCircle2 size={12} />
-                        ) : (
-                          <Copy size={12} />
-                        )}
-                        <span>{'{{' + variable.name + '.data}}'} <span className="opacity-60">(recommended)</span></span>
-                      </button>
-                    )}
-
-                    {/* By Label */}
-                    <button
-                      onClick={() => copyToClipboard(`{{${variable.label}}}`)}
-                      className="w-full flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold font-mono rounded border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary transition-all"
+                  {contextVariables.map((v, idx) => (
+                    <div
+                      key={`${v.nodeId}-${v.variable}`}
+                      style={{
+                        padding: '10px 12px',
+                        borderBottom: idx < contextVariables.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                        transition: 'background-color 0.2s',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
-                      {copiedVar === `{{${variable.label}}}` ? (
-                        <CheckCircle2 size={12} />
-                      ) : (
-                        <Copy size={12} />
-                      )}
-                      <span>{'{{' + variable.label + '}}'} <span className="opacity-60">(by label)</span></span>
-                    </button>
-
-                    {/* By ID (if different from label) */}
-                    {variable.nodeId !== variable.label && (
-                      <button
-                        onClick={() => copyToClipboard(`{{${variable.nodeId}}}`)}
-                        className="w-full flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold font-mono rounded border border-purple-500/50 bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 hover:border-purple-500 transition-all"
-                      >
-                        {copiedVar === `{{${variable.nodeId}}}` ? (
-                          <CheckCircle2 size={12} />
-                        ) : (
-                          <Copy size={12} />
-                        )}
-                        <span>{'{{' + variable.nodeId + '}}'} <span className="opacity-60">(by id)</span></span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Value Preview */}
-                  <div className="p-2 bg-muted/50 border border-border rounded text-[10px] font-mono text-muted-foreground whitespace-pre-wrap break-words max-h-24 overflow-y-auto">
-                    {formatValue(variable.value)}
-                  </div>
+                      <div style={{ fontSize: '16px', lineHeight: 1, paddingTop: '2px' }}>{getTypeIcon(v.type)}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <code
+                            style={{
+                              fontSize: '12px',
+                              fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+                              color: 'var(--cyber-neon-cyan, #00f0ff)',
+                              fontWeight: 500,
+                            }}
+                          >
+                            {v.variable}
+                          </code>
+                          <button
+                            onClick={() => copyToClipboard(v.variable)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: copiedVar === v.variable ? 'var(--cyber-neon-green, #39ff14)' : 'var(--text-muted, #888)',
+                              padding: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              transition: 'color 0.2s',
+                            }}
+                            title="Copy variable"
+                          >
+                            {copiedVar === v.variable ? <Check size={14} /> : <Copy size={14} />}
+                          </button>
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted, #888)', marginBottom: '2px', fontWeight: 400 }}>from: {v.nodeLabel}</div>
+                        <div
+                          style={{
+                            fontSize: '12px',
+                            color: 'var(--text-secondary, #aaa)',
+                            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {v.preview}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted, #666)', marginTop: '6px', fontStyle: 'italic' }}>
+                  Use these variables in node inputs by typing or copying them
+                </div>
+              </div>
+            )
+          ) : (
+            legacyVariables.length === 0 ? (
+              <div className="p-4 text-xs text-muted-foreground">
+                No variables yet. Add nodes to the canvas.
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {legacyVariables.map((v) => {
+                  const token = v.name ? `{{${v.name}}}` : `{{${v.nodeId}}}`;
+                  return (
+                    <li key={v.nodeId} className="px-3 py-2 hover:bg-muted/20">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold text-foreground truncate">
+                            {v.name || v.label}
+                          </div>
+                          <div className="text-[11px] font-mono text-primary truncate mt-0.5">
+                            {token}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                            {formatValue(v.value)}
+                          </div>
+                        </div>
+                        <button
+                          className="shrink-0 p-1 rounded hover:bg-accent"
+                          onClick={() => copyToClipboard(token)}
+                          title="Copy variable"
+                        >
+                          {copiedVar === token ? (
+                            <CheckCircle2 size={14} className="text-green-500" />
+                          ) : (
+                            <Copy size={14} className="text-muted-foreground" />
+                          )}
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )
           )}
         </div>
       </div>

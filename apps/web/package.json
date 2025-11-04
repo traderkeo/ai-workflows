@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@ai-sdk/openai": "beta",
@@ -54,6 +55,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "vitest": "^2.1.4",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.6",

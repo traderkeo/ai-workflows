@@ -29,6 +29,7 @@
     "@ai-sdk/anthropic": "^2.0.40",
     "@ai-sdk/google": "^2.0.26",
     "@ai-sdk/openai": "beta",
+    "together-ai": "*",
     "ai": "beta",
     "openai": "^4.76.1",
     "zod": "^4.1.12"

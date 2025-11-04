@@ -8,11 +8,11 @@ import {
   Code2,
   GitMerge,
   GitBranch,
-  FileText,
   Globe,
   RotateCw,
   Upload,
 } from 'lucide-react';
+import { Scissors, Layers, HardDrive, ShieldCheck, FileText, Search } from 'lucide-react';
 import { useFlowStore } from '../hooks/useFlowStore';
 import type { AINode, AINodeType } from '../types';
 
@@ -119,7 +119,8 @@ export const nodeTemplates: NodeTemplate[] = [
     defaultData: {
       label: 'Condition',
       conditionType: 'length',
-      conditionValue: 100,
+      input: '{{input}}',
+      minLength: 100,
       status: 'idle',
     },
   },
@@ -146,6 +147,33 @@ export const nodeTemplates: NodeTemplate[] = [
     },
   },
   {
+    type: 'web-scrape',
+    label: 'Web Scrape',
+    icon: <Globe size={16} />,
+    defaultData: {
+      label: 'Web Scrape',
+      url: '',
+      extractText: true,
+      status: 'idle',
+    },
+  },
+  {
+    type: 'web-search',
+    label: 'Web Search (OpenAI)',
+    icon: <Search size={16} />,
+    defaultData: {
+      label: 'Web Search',
+      query: '{{input}}',
+      model: 'gpt-4o-mini',
+      allowedDomains: '',
+      includeSources: true,
+      externalWebAccess: true,
+      mode: 'nonreasoning',
+      reasoningEffort: 'low',
+      status: 'idle',
+    },
+  },
+  {
     type: 'file-upload',
     label: 'File Upload Test',
     icon: <Upload size={16} />,
@@ -163,6 +191,77 @@ export const nodeTemplates: NodeTemplate[] = [
       label: 'Loop',
       loopType: 'count',
       count: 5,
+      status: 'idle',
+    },
+  },
+  {
+    type: 'splitter',
+    label: 'Splitter',
+    icon: <Scissors size={16} />,
+    defaultData: {
+      label: 'Splitter',
+      strategy: 'length',
+      chunkSize: 500,
+      overlap: 0,
+      status: 'idle',
+    },
+  },
+  {
+    type: 'document-ingest',
+    label: 'Document Ingest',
+    icon: <FileText size={16} />,
+    defaultData: {
+      label: 'Document Ingest',
+      sourceType: 'text',
+      split: true,
+      chunkSize: 1000,
+      overlap: 0,
+      status: 'idle',
+    },
+  },
+  {
+    type: 'retrieval-qa',
+    label: 'Retrieval QA',
+    icon: <Search size={16} />,
+    defaultData: {
+      label: 'Retrieval QA',
+      queryTemplate: '{{input}}',
+      topK: 3,
+      model: 'gpt-4o-mini',
+      temperature: 0.3,
+      status: 'idle',
+    },
+  },
+  {
+    type: 'aggregator',
+    label: 'Aggregator',
+    icon: <Layers size={16} />,
+    defaultData: {
+      label: 'Aggregator',
+      mode: 'concat-text',
+      delimiter: '\n',
+      status: 'idle',
+    },
+  },
+  {
+    type: 'cache',
+    label: 'Cache',
+    icon: <HardDrive size={16} />,
+    defaultData: {
+      label: 'Cache',
+      keyTemplate: '{{input}}',
+      operation: 'get',
+      writeIfMiss: false,
+      status: 'idle',
+    },
+  },
+  {
+    type: 'guardrail',
+    label: 'Guardrail',
+    icon: <ShieldCheck size={16} />,
+    defaultData: {
+      label: 'Guardrail',
+      checks: { blocklist: true, pii: false, toxicity: false, regex: false },
       status: 'idle',
     },
   },

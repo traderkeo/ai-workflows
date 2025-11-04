@@ -46,6 +46,7 @@ export const AIAgentSettingsDialog: React.FC<AIAgentSettingsDialogProps> = ({
     data.schemaFields || [{ name: '', type: 'string', description: '' }]
   );
   const [copiedVariable, setCopiedVariable] = useState<string | null>(null);
+  const [showCustomModelId, setShowCustomModelId] = useState<boolean>(false);
 
   const mode = data.mode || 'text';
   const selectedModel = data.model || 'gpt-4o-mini';
@@ -255,28 +256,90 @@ export const AIAgentSettingsDialog: React.FC<AIAgentSettingsDialogProps> = ({
                       <SelectItem value="gemini-1.5-flash" style={{ fontFamily: 'inherit', fontSize: '14px' }}>Gemini 1.5 Flash</SelectItem>
                       <SelectItem value="gemini-1.5-flash-8b" style={{ fontFamily: 'inherit', fontSize: '14px' }}>Gemini 1.5 Flash 8B</SelectItem>
                     </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel style={{ fontFamily: 'inherit', fontSize: '11px', fontWeight: 600 }}>Together</SelectLabel>
+                      <SelectItem value="black-forest-labs/FLUX.1-schnell" style={{ fontFamily: 'inherit', fontSize: '14px' }}>FLUX.1 Schnell</SelectItem>
+                      <SelectItem value="black-forest-labs/FLUX.1-kontext-pro" style={{ fontFamily: 'inherit', fontSize: '14px' }}>FLUX.1 Kontext Pro</SelectItem>
+                      <SelectItem value="black-forest-labs/FLUX.1-depth" style={{ fontFamily: 'inherit', fontSize: '14px' }}>FLUX.1 Depth</SelectItem>
+                      <SelectItem value="black-forest-labs/FLUX.1-dev-lora" style={{ fontFamily: 'inherit', fontSize: '14px' }}>FLUX.1 Dev LoRA</SelectItem>
+                    </SelectGroup>
+                    {/* Together models (dynamic) */}
+                    <SelectGroup>
+                      <SelectLabel style={{ fontFamily: 'inherit', fontSize: '11px', fontWeight: 600 }}>Together</SelectLabel>
+                      {Object.values(MODEL_CONFIGS)
+                        .filter((m) => m.provider === 'together' && m.supportedModes.includes(mode as any))
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((m) => (
+                          <SelectItem key={m.id} value={m.id} disabled={!!m.disabled} style={{ fontFamily: 'inherit', fontSize: '14px' }}>
+                            {m.name}{m.disabled ? ' (Not configured)' : ''}
+                          </SelectItem>
+                        ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
 
-                {/* Model Capabilities Display */}
+                <div style={{ marginTop: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomModelId((v) => !v)}
+                    style={{ background: 'none', border: 'none', color: '#8ab4ff', fontSize: '12px', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                  >
+                    {showCustomModelId ? 'Hide advanced model ID' : 'Advanced: custom model ID'}
+                  </button>
+                  {showCustomModelId && (
+                    <div style={{ marginTop: '8px' }}>
+                      <Label style={{ fontSize: '12px', fontWeight: 500, fontFamily: 'inherit' }}>Custom Model ID</Label>
+                      <input
+                        type="text"
+                        value={(data.model || '').includes('/') ? (data.model as string) : ''}
+                        onChange={(e) => onUpdate('model', e.target.value)}
+                        placeholder="e.g., meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
+                        className="ai-node-input"
+                        style={{ marginTop: '6px' }}
+                      />
+                      <div style={{ marginTop: '4px', color: '#888', fontSize: '10px' }}>
+                        Enter a Together model ID (contains “/”) for dynamic routing.
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Model Details */}
                 {modelConfig && (
                   <div style={{
                     marginTop: '12px',
                     padding: '12px',
                     background: 'rgba(0, 0, 0, 0.3)',
                     borderRadius: '6px',
-                    border: '1px solid rgba(176, 38, 255, 0.2)',
+                    border: '1px solid rgba(176, 38, 255, 0.2)'
                   }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#ddd' }}>{modelConfig.name}</div>
+                      <div style={{ fontSize: '11px', color: '#999' }}>{modelConfig.provider}</div>
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary, #aaa)', fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)' }}>
+                      {modelConfig.id}
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '6px' }}>
+                      {(modelConfig as any).contextLength && (
+                        <div style={{ fontSize: '11px', color: '#bbb' }}>Context: {(modelConfig as any).contextLength}</div>
+                      )}
+                      {(modelConfig as any).quantization && (
+                        <div style={{ fontSize: '11px', color: '#bbb' }}>Quant: {(modelConfig as any).quantization}</div>
+                      )}
+                      {modelConfig.notes && (
+                        <div style={{ fontSize: '11px', color: '#bbb' }}>{modelConfig.notes}</div>
+                      )}
+                    </div>
                     <div style={{
                       fontSize: '11px',
                       fontWeight: 600,
                       color: 'var(--text-muted, #888)',
-                      marginBottom: '8px',
-                      fontFamily: 'inherit',
                       letterSpacing: '0.02em',
                       textTransform: 'uppercase',
+                      marginTop: '8px'
                     }}>
-                      Model Capabilities
+                      Capabilities
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       {modelConfig.capabilities.map((capability) => {
@@ -404,6 +467,78 @@ export const AIAgentSettingsDialog: React.FC<AIAgentSettingsDialogProps> = ({
                       )}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+
+              {/* Together-specific image settings (for image generate) */}
+              {mode === 'image' && (data.imageOperation || 'generate') === 'generate' && (data.model || '').includes('/') && (
+                <div style={{ marginBottom: '16px', padding: '12px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#aaa', marginBottom: '8px' }}>Together Image Settings</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Steps (1-50)">
+                      <input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={data.imageSteps ?? ''}
+                        onChange={(e) => onUpdate('imageSteps', e.target.value ? parseInt(e.target.value) : undefined)}
+                        className="ai-node-input"
+                      />
+                    </Field>
+                    <Field label="Seed">
+                      <input
+                        type="number"
+                        value={data.imageSeed ?? ''}
+                        onChange={(e) => onUpdate('imageSeed', e.target.value ? parseInt(e.target.value) : undefined)}
+                        className="ai-node-input"
+                      />
+                    </Field>
+                    <Field label="Aspect Ratio">
+                      <input
+                        type="text"
+                        placeholder="e.g., 1:1, 16:9"
+                        value={data.imageAspectRatio || ''}
+                        onChange={(e) => onUpdate('imageAspectRatio', e.target.value || undefined)}
+                        className="ai-node-input"
+                      />
+                    </Field>
+                    <Field label="Reference Image URL">
+                      <input
+                        type="text"
+                        placeholder="https://..."
+                        value={data.imageReferenceUrl || ''}
+                        onChange={(e) => onUpdate('imageReferenceUrl', e.target.value || undefined)}
+                        className="ai-node-input"
+                      />
+                    </Field>
+                    <Field label="Negative Prompt" >
+                      <input
+                        type="text"
+                        value={data.imageNegativePrompt || ''}
+                        onChange={(e) => onUpdate('imageNegativePrompt', e.target.value || undefined)}
+                        className="ai-node-input"
+                      />
+                    </Field>
+                    <Field label="Disable Safety Checker">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={!!data.imageDisableSafetyChecker}
+                          onChange={(e) => onUpdate('imageDisableSafetyChecker', e.target.checked)}
+                        />
+                        <span className="text-xs text-muted-foreground">Use with caution</span>
+                      </div>
+                    </Field>
+                    <Field label="LoRAs (JSON)">
+                      <textarea
+                        className="ai-node-input ai-node-textarea"
+                        rows={3}
+                        placeholder='[{"path":"https://...","scale":0.8}]'
+                        value={data.imageLorasJson || ''}
+                        onChange={(e) => onUpdate('imageLorasJson', e.target.value)}
+                      />
+                    </Field>
+                  </div>
                 </div>
               )}
 

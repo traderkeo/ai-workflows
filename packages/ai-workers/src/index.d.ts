@@ -492,6 +492,8 @@ export interface WebSearchParams {
   userLocation?: UserLocation;
   externalWebAccess?: boolean;
   includeSources?: boolean;
+  reasoning?: { effort: 'low' | 'medium' | 'high' } | null;
+  toolChoice?: 'auto' | 'required' | 'none';
   context?: WorkflowContext;
   abortSignal?: AbortSignal;
 }

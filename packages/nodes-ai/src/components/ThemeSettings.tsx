@@ -1,6 +1,13 @@
 import React from 'react';
 import { Palette } from 'lucide-react';
 import { useTheme, type Theme } from '../context/ThemeContext';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/Select';
 
 export const ThemeSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
@@ -19,32 +26,29 @@ export const ThemeSettings: React.FC = () => {
   ];
 
   return (
-    <div className="relative">
-     
-      <button
-        className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring h-8 px-3 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
-        title={themes.find((t) => t.value === theme)?.description}
+    <Select value={theme} onValueChange={(value) => setTheme(value as Theme)}>
+      <SelectTrigger
+        className="h-9 px-4 gap-2 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
+        style={{
+          fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+          fontSize: '14px',
+          fontWeight: 500,
+          letterSpacing: '-0.01em',
+        }}
       >
-        <Palette size={14} />
-        <select
-          value={theme}
-          onChange={(e) => setTheme(e.target.value as Theme)}
-          className="bg-transparent border-none outline-none cursor-pointer text-xs font-medium appearance-none pr-6"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-            backgroundPosition: 'right 0.25rem center',
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: '1rem',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {themes.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-      </button>
-    </div>
+        <Palette size={16} strokeWidth={2} />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {themes.map((t) => (
+          <SelectItem key={t.value} value={t.value}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span style={{ fontWeight: 500 }}>{t.label}</span>
+              <span style={{ fontSize: '11px', opacity: 0.6 }}>{t.description}</span>
+            </div>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 };

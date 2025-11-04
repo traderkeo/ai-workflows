@@ -189,6 +189,20 @@ export const TextGenerationNode: React.FC<NodeProps> = (props) => {
       </div>
 
       <div className="ai-node-field">
+        <label className="ai-node-field-label">Custom Model (Together/OpenAI-compatible)</label>
+        <input
+          type="text"
+          className="ai-node-input"
+          placeholder="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo"
+          value={data.model?.includes('/') ? data.model : ''}
+          onChange={(e) => handleChange('model', e.target.value)}
+        />
+        <div style={{ marginTop: '4px', color: '#888', fontSize: '10px' }}>
+          Enter a Together model ID (contains “/”).
+        </div>
+      </div>
+
+      <div className="ai-node-field">
         <label className="ai-node-field-label">Temperature</label>
         <input
           type="number"

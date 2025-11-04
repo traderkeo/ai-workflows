@@ -490,18 +490,20 @@
 }
 
 /* ============================================================================
-   Radix Select Component Styles
+   Radix Select Component Styles - Geist Design
    ============================================================================ */
 
 .ai-select-content {
-  background: var(--gothic-slate);
-  border: 1px solid var(--cyber-neon-purple);
-  border-radius: 6px;
-  padding: 4px;
-  box-shadow: 0 0 20px rgba(176, 38, 255, 0.5);
+  background: linear-gradient(135deg, var(--gothic-charcoal) 0%, var(--gothic-slate) 100%);
+  border: 1px solid rgba(176, 38, 255, 0.4);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(176, 38, 255, 0.3);
   z-index: 1000;
-  max-height: 200px;
+  max-height: 300px;
   overflow-y: auto;
+  font-family: var(--font-geist-sans, "Geist", "Inter", sans-serif);
+  min-width: 200px;
 }
 
 .ai-select-viewport {
@@ -509,56 +511,65 @@
 }
 
 .ai-select-label {
-  padding: 6px 8px;
-  font-size: 10px;
+  padding: 8px 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--cyber-neon-cyan);
+  color: var(--cyber-neon-purple);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+  font-family: var(--font-geist-sans, "Geist", "Inter", sans-serif);
 }
 
 .ai-select-item {
   position: relative;
   display: flex;
   align-items: center;
-  padding: 8px 8px 8px 28px;
-  font-size: 11px;
-  color: var(--text-primary);
+  padding: 10px 12px 10px 32px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cyber-neon-cyan);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
   outline: none;
   user-select: none;
   transition: all 0.15s ease;
+  letter-spacing: -0.01em;
+  min-height: 36px;
 }
 
 .ai-select-item:hover,
 .ai-select-item[data-highlighted] {
-  background: rgba(176, 38, 255, 0.2);
+  background: rgba(176, 38, 255, 0.15);
   color: var(--cyber-neon-cyan);
+}
+
+.ai-select-item[data-state="checked"] {
+  background: rgba(0, 240, 255, 0.1);
+  color: var(--cyber-neon-cyan);
+  font-weight: 600;
 }
 
 .ai-select-item[data-disabled] {
   color: var(--gothic-gray);
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .ai-select-item-indicator {
   position: absolute;
-  left: 6px;
+  left: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   color: var(--cyber-neon-cyan);
 }
 
 .ai-select-separator {
   height: 1px;
-  background: var(--gothic-gray);
-  margin: 4px 0;
+  background: rgba(176, 38, 255, 0.3);
+  margin: 6px 0;
 }
 
 /* ============================================================================
@@ -609,22 +620,24 @@
 
 .ai-dialog-close {
   position: absolute;
-  right: 16px;
-  top: 16px;
-  padding: 6px;
+  right: 20px;
+  top: 20px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   background: transparent;
-  border: 1px solid var(--gothic-gray);
-  border-radius: 4px;
-  color: var(--text-secondary);
+  border: 1px solid rgba(176, 38, 255, 0.25);
+  border-radius: 8px;
+  color: rgba(136, 136, 136, 0.8);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .ai-dialog-close:hover {
-  background: rgba(176, 38, 255, 0.2);
+  background: rgba(176, 38, 255, 0.15);
   border-color: var(--cyber-neon-purple);
   color: var(--cyber-neon-cyan);
 }
@@ -847,6 +860,31 @@
 
 /* ============================================================================
    Responsive
+   ============================================================================ */
+
+/* ============================================================================
+   Toolbar Styles - Geist Design System
+   ============================================================================ */
+
+.toolbar-actions button {
+  font-family: var(--font-geist-sans, "Geist", "Inter", sans-serif) !important;
+  letter-spacing: -0.01em;
+}
+
+/* Ensure all buttons have consistent height */
+.toolbar-actions button {
+  height: 36px !important;
+}
+
+/* SVG icons consistent size */
+.toolbar-actions button svg {
+  width: 16px !important;
+  height: 16px !important;
+  stroke-width: 2;
+}
+
+/* ============================================================================
+   Responsive Styles
    ============================================================================ */
 
 @media (max-width: 768px) {

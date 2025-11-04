@@ -29,7 +29,15 @@ export type AINodeType =
   | 'retry'
   | 'http-request'
   | 'loop'
-  | 'file-upload';
+  | 'file-upload'
+  | 'splitter'
+  | 'aggregator'
+  | 'cache'
+  | 'guardrail'
+  | 'web-scrape'
+  | 'web-search'
+  | 'document-ingest'
+  | 'retrieval-qa';
 
 // ============================================================================
 // Base Node Data
@@ -129,6 +137,14 @@ export interface AIAgentNodeData extends BaseNodeData {
   imageNumImages?: number; // 1-10 (dall-e-3 only supports 1)
   imageStream?: boolean; // gpt-image-1 only
   imagePartialImages?: number; // 0-3, gpt-image-1 only
+  // Together image generation fields
+  imageSteps?: number; // steps 1-50
+  imageSeed?: number; // seed
+  imageNegativePrompt?: string; // negative_prompt
+  imageAspectRatio?: string; // e.g., '16:9', model dependent
+  imageReferenceUrl?: string; // image_url for Kontext/Depth, etc.
+  imageDisableSafetyChecker?: boolean; // disable_safety_checker
+  imageLorasJson?: string; // JSON array for image_loras
   // Image edit fields (for /v1/images/edits)
   imageEditFidelity?: 'high' | 'low'; // gpt-image-1 only
   // Speech generation fields
@@ -229,6 +245,99 @@ export interface LoopNodeData extends BaseNodeData {
   results?: any[];
 }
 
+// ----------------------------------------------------------------------------
+// Phase 1 utility nodes
+// ----------------------------------------------------------------------------
+
+export interface SplitterNodeData extends BaseNodeData {
+  input?: string; // templated
+  strategy: 'length' | 'lines' | 'sentences' | 'regex';
+  chunkSize?: number; // for length strategy (characters)
+  overlap?: number; // for length strategy
+  regexPattern?: string; // for regex strategy
+  regexFlags?: string;
+  result?: string[];
+}
+
+export interface AggregatorNodeData extends BaseNodeData {
+  items?: string; // templated; expects array JSON or delimited
+  mode: 'concat-text' | 'merge-objects' | 'flatten-array';
+  delimiter?: string; // for concat
+  result?: any;
+}
+
+export interface CacheNodeData extends BaseNodeData {
+  keyTemplate: string; // templated
+  valueTemplate?: string; // templated (optional when reading)
+  operation: 'get' | 'set';
+  writeIfMiss?: boolean; // when get misses, set from valueTemplate
+  hit?: boolean;
+  value?: any;
+}
+
+export interface GuardrailNodeData extends BaseNodeData {
+  input?: string; // templated text or JSON string
+  checks: {
+    blocklist?: boolean;
+    pii?: boolean;
+    toxicity?: boolean; // placeholder; simple heuristic only
+    regex?: boolean;
+  };
+  blocklistWords?: string; // comma-separated
+  regexPatterns?: string; // one per line
+  result?: {
+    passed: boolean;
+    violations: Array<{ type: string; detail: string }>;
+  };
+}
+
+export interface WebScrapeNodeData extends BaseNodeData {
+  url?: string; // templated
+  extractText?: boolean;
+  result?: {
+    status: number;
+    title?: string;
+    content?: string;
+    html?: string;
+    error?: string;
+  };
+}
+
+// ----------------------------------------------------------------------------
+// Phase 2 RAG nodes
+// ----------------------------------------------------------------------------
+
+export interface DocumentIngestNodeData extends BaseNodeData {
+  sourceType: 'text' | 'url';
+  textTemplate?: string; // templated text
+  url?: string; // templated URL
+  extractText?: boolean; // for URL mode (client can parse)
+  split?: boolean;
+  chunkSize?: number;
+  overlap?: number;
+  embed?: boolean;
+  embeddingModel?: string; // e.g., text-embedding-3-small
+  embeddingDimensions?: number | null;
+  result?: {
+    documents: string[];
+    chunks?: string[];
+    embeddings?: number[][]; // parallel to chunks or documents
+  };
+}
+
+export interface RetrievalQANodeData extends BaseNodeData {
+  queryTemplate: string; // templated
+  topK?: number;
+  model?: string;
+  temperature?: number;
+  answer?: string;
+  citations?: Array<{ index: number; snippet: string }>;
+  result?: {
+    answer: string;
+    citations: Array<{ index: number; snippet: string }>;
+  };
+}
+
 // ============================================================================
 // Node Data Union Type
 // ============================================================================
@@ -247,7 +356,14 @@ export type AINodeData =
   | ParallelNodeData
   | RetryNodeData
   | HttpRequestNodeData
-  | LoopNodeData;
+  | LoopNodeData
+  | SplitterNodeData
+  | AggregatorNodeData
+  | CacheNodeData
+  | GuardrailNodeData
+  | WebScrapeNodeData
+  | DocumentIngestNodeData
+  | RetrievalQANodeData;
 
 // ============================================================================
 // Typed Nodes & Edges

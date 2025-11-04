@@ -7,9 +7,12 @@
  * - Google (Gemini)
  */
 
-import { openai } from '@ai-sdk/openai';
+import { openai, createOpenAI } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { google } from '@ai-sdk/google';
+
+// Detect Together.ai model IDs (OpenAI-compatible API) - they typically contain a slash
+const isTogetherModelId = (id) => typeof id === 'string' && id.includes('/');
 
 // ============================================================================
 // Model Capabilities
@@ -282,6 +285,76 @@ export const OPENAI_AUDIO_MODELS = {
     name: 'Whisper',
     description: 'Speech recognition and transcription',
     capabilities: [ModelCapabilities.TRANSCRIPTION],
+  },
+};
+
+// ============================================================================
+// Together.ai Models (curated)
+// ============================================================================
+
+// Note: Together accepts many model IDs dynamically. We include popular image models with
+// documented parameter nuances to aid UI and validation. Dynamic IDs are also supported
+// via isTogetherModelId() + getModelInfo fallback below.
+export const TOGETHER_MODELS = {
+  // FLUX.1 Schnell — fast image generation
+  'black-forest-labs/FLUX.1-schnell': {
+    id: 'black-forest-labs/FLUX.1-schnell',
+    provider: 'together',
+    name: 'FLUX.1 Schnell',
+    description: 'Fast image generation (steps 1–50). Supports variations (n), seed, negative_prompt.',
+    capabilities: [ModelCapabilities.IMAGE_GENERATION],
+    parameters: {
+      widthHeight: true,
+      aspectRatio: true, // models may accept aspect_ratio instead of width/height
+      steps: [1, 50],
+      supportsImageURL: false,
+      responseFormat: ['url', 'base64'],
+    },
+  },
+
+  // FLUX.1 Kontext Pro — in-context image generation with reference image
+  'black-forest-labs/FLUX.1-kontext-pro': {
+    id: 'black-forest-labs/FLUX.1-kontext-pro',
+    provider: 'together',
+    name: 'FLUX.1 Kontext Pro',
+    description: 'In-context generation; accepts image_url reference guiding output.',
+    capabilities: [ModelCapabilities.IMAGE_GENERATION],
+    parameters: {
+      widthHeight: true,
+      aspectRatio: true,
+      supportsImageURL: true,
+      responseFormat: ['url', 'base64'],
+    },
+  },
+
+  // FLUX.1 Depth — tool model for depth-based guidance / editing
+  'black-forest-labs/FLUX.1-depth': {
+    id: 'black-forest-labs/FLUX.1-depth',
+    provider: 'together',
+    name: 'FLUX.1 Depth',
+    description: 'Depth-guided transformation; accepts image_url reference.',
+    capabilities: [ModelCapabilities.IMAGE_GENERATION],
+    parameters: {
+      widthHeight: true,
+      steps: [1, 50],
+      supportsImageURL: true,
+      responseFormat: ['url', 'base64'],
+    },
+  },
+
+  // FLUX.1 Dev LoRA — LoRA-enabled image generation
+  'black-forest-labs/FLUX.1-dev-lora': {
+    id: 'black-forest-labs/FLUX.1-dev-lora',
+    provider: 'together',
+    name: 'FLUX.1 Dev LoRA',
+    description: 'High-speed endpoint with LoRA support (image_loras).',
+    capabilities: [ModelCapabilities.IMAGE_GENERATION],
+    parameters: {
+      widthHeight: true,
+      steps: [1, 50],
+      supportsImageLoras: true,
+      responseFormat: ['url', 'base64'],
+    },
   },
 };
 
@@ -634,6 +707,7 @@ export const SUPPORTED_MODELS = {
   ...OPENAI_MODELS,
   ...ANTHROPIC_MODELS,
   ...GOOGLE_MODELS,
+  ...TOGETHER_MODELS,
 };
 
 /**
@@ -659,6 +733,22 @@ export function modelSupports(modelId, capability) {
  * @returns {Object} Model information
  */
 export function getModelInfo(modelId) {
+  // Dynamic Together.ai model descriptor if the id looks like a Together model
+  if (isTogetherModelId(modelId)) {
+    return {
+      id: modelId,
+      provider: 'together',
+      name: modelId,
+      description: 'Together.ai (OpenAI-compatible)',
+      maxTokens: 8192,
+      capabilities: [
+        ModelCapabilities.TEXT_GENERATION,
+        ModelCapabilities.OBJECT_GENERATION,
+        ModelCapabilities.TOOL_USAGE,
+        ModelCapabilities.STREAMING,
+      ],
+    };
+  }
   return SUPPORTED_MODELS[modelId] || SUPPORTED_MODELS['gpt-4o-mini'];
 }
 
@@ -668,6 +758,15 @@ export function getModelInfo(modelId) {
  * @returns {Object} Provider instance with model
  */
 export function getProviderModel(modelId) {
+  // Route Together model IDs through OpenAI-compatible adapter
+  if (isTogetherModelId(modelId)) {
+    const together = createOpenAI({
+      apiKey: process.env.TOGETHER_API_KEY,
+      baseURL: process.env.TOGETHER_BASE_URL || 'https://api.together.xyz/v1',
+    });
+    return together(modelId);
+  }
+
   const modelInfo = getModelInfo(modelId);
 
   switch (modelInfo.provider) {
@@ -695,6 +794,7 @@ export function getModelsByProvider() {
     openai: Object.values(OPENAI_MODELS),
     anthropic: Object.values(ANTHROPIC_MODELS),
     google: Object.values(GOOGLE_MODELS),
+    together: Object.values(TOGETHER_MODELS),
   };
 }
 
@@ -726,5 +826,5 @@ export function getAllModelIds() {
  * @returns {boolean} True if model is supported
  */
 export function isValidModel(modelId) {
-  return modelId in SUPPORTED_MODELS;
+  return (modelId in SUPPORTED_MODELS) || isTogetherModelId(modelId);
 }
