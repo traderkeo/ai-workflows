@@ -1,0 +1,306 @@
+import React, { useMemo, useState } from 'react';
+import { NodeProps } from '@xyflow/react';
+import { Bot, Play, Trash2, Loader2, Wrench, MessageSquare, Settings, Sliders, History, Code } from 'lucide-react';
+import { BaseAINode } from '../components/BaseAINode';
+import { useFlowStore } from '../hooks/useFlowStore';
+import { resolveVariables, getAvailableVariables } from '../utils/variableResolver';
+import type { AIAgentNodeData } from '../types';
+import { ModelSelector } from '../components/ModelSelector';
+import type { GenerationMode } from '../config/modelCapabilities';
+import { StatusBadge } from '../components/ui/StatusBadge';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { CollapsibleSection } from '../components/ui/CollapsibleSection';
+
+type BuiltInToolKey = 'calculator' | 'search' | 'dateTime';
+
+export const AIAgentNodeV6: React.FC<NodeProps> = (props) => {
+  const data = props.data as AIAgentNodeData;
+  const updateNode = useFlowStore((state) => state.updateNode);
+  const deleteNode = useFlowStore((state) => state.deleteNode);
+  const nodes = useFlowStore((state) => state.nodes);
+  const edges = useFlowStore((state) => state.edges);
+
+  const [isRunning, setIsRunning] = useState(false);
+  const [streamingText, setStreamingText] = useState<string>('');
+  const [error, setError] = useState<string>('');
+  const [useStreaming, setUseStreaming] = useState<boolean>(false);
+  const [newUserMessage, setNewUserMessage] = useState<string>('');
+  const [useReasoning, setUseReasoning] = useState<boolean>(false);
+  const [reasoningText, setReasoningText] = useState<string>('');
+
+  const handleChange = (field: keyof AIAgentNodeData, value: any) => {
+    updateNode(props.id, { [field]: value });
+  };
+
+  const handleDelete = () => {
+    if (confirm('Delete this node?')) deleteNode(props.id);
+  };
+
+  const availableVariables = useMemo(() => getAvailableVariables(props.id, nodes, edges), [props.id, nodes, edges]);
+
+  const handleRun = async () => {
+    setError('');
+    setStreamingText('');
+    const prompt = resolveVariables(data.prompt || '', props.id, nodes, edges);
+    const systemPrompt = data.instructions ? resolveVariables(data.instructions, props.id, nodes, edges) : '';
+    if (!prompt.trim()) {
+      alert('Please enter a prompt first');
+      return;
+    }
+    setIsRunning(true);
+    updateNode(props.id, { status: 'running' });
+    try {
+      const endpoint = useStreaming ? '/api/workflows/agent/stream' : '/api/workflows/agent';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          model: data.model || 'gpt-4o-mini',
+          temperature: data.temperature ?? 0.7,
+          systemPrompt,
+          messages: data.messages || [],
+          tools: {
+            calculator: !!data.tools?.calculator,
+            search: !!data.tools?.search,
+            dateTime: !!data.tools?.dateTime,
+          },
+          customTools: data.customTools || [],
+          reasoning: useReasoning,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || 'Agent request failed');
+      }
+      if (useStreaming && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let full = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const dataLine = line.slice(6).trim();
+            if (!dataLine || dataLine === '[DONE]') continue;
+            try {
+              const evt = JSON.parse(dataLine);
+              if (evt.error) throw new Error(evt.error);
+              if (evt.delta) {
+                full += evt.delta;
+                setStreamingText(full);
+              }
+              if (evt.reasoningDelta) {
+                setReasoningText((prev) => prev + evt.reasoningDelta);
+              }
+              if (evt.step && evt.toolCalls) {
+                updateNode(props.id, { toolCalls: evt.toolCalls });
+              }
+              if (evt.done) {
+                setStreamingText(evt.text || full);
+                updateNode(props.id, { result: evt.text || full, usage: evt.usage, status: 'success' });
+                if ((data.appendAssistantToHistory ?? true) && (evt.text || full)) {
+                  const msgs = [...(data.messages || []), { role: 'assistant' as const, content: (evt.text || full) }];
+                  updateNode(props.id, { messages: msgs });
+                }
+              }
+            } catch {}
+          }
+        }
+      } else {
+        const j = await res.json();
+        setStreamingText(j.text || '');
+        updateNode(props.id, { result: j.text, usage: j.usage, toolCalls: j.toolCalls, status: 'success' });
+        if ((data.appendAssistantToHistory ?? true) && j.text) {
+          const msgs = [...(data.messages || []), { role: 'assistant' as const, content: j.text }];
+          updateNode(props.id, { messages: msgs });
+        }
+      }
+    } catch (e: any) {
+      setError(e.message);
+      updateNode(props.id, { status: 'error', error: e.message });
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const status = (data.status || 'idle') as any;
+
+  // Footer with status + usage
+  const customFooter = (data.executionTime !== undefined || data.usage) && (
+    <div className="ai-node-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <StatusBadge status={status} />
+        {data.executionTime !== undefined && (
+          <span style={{ fontSize: 10, color: '#888' }}>Execution Time: {data.executionTime}ms</span>
+        )}
+      </div>
+      {data.usage && (
+        <div style={{ fontSize: 11, color: 'var(--cyber-neon-purple)' }}>
+          {(data.usage.totalTokens ?? 0).toLocaleString()} tokens
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <BaseAINode {...props} data={data} icon={<Bot size={20} />} footerContent={customFooter}>
+      {/* Prompt & Instructions Section */}
+      <CollapsibleSection title="Prompt & Instructions" icon={<MessageSquare size={14} />} defaultOpen={true}>
+        <div className="ai-node-field">
+          <label className="ai-node-field-label">System Instructions</label>
+          <textarea className="ai-node-input ai-node-textarea nodrag" rows={2} value={data.instructions || ''} onChange={(e) => handleChange('instructions', e.target.value)} placeholder="You are a helpful agent..." />
+        </div>
+        <div className="ai-node-field">
+          <label className="ai-node-field-label">Prompt</label>
+          <textarea className="ai-node-input ai-node-textarea nodrag" rows={3} value={data.prompt || ''} onChange={(e) => handleChange('prompt', e.target.value)} placeholder="Ask the agent... Use variables like {{input}}" />
+          {availableVariables.length > 0 && (
+            <div style={{ marginTop: 4, color: '#888', fontSize: 10 }}>Available variables: {availableVariables.join(', ')}</div>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      {/* Model Section */}
+      <CollapsibleSection title="Model Settings" icon={<Settings size={14} />} defaultOpen={true}>
+        <div className="ai-node-field">
+          <label className="ai-node-field-label">Model</label>
+          <ModelSelector value={data.model || 'gpt-4o-mini'} mode={'text' as GenerationMode} onChange={(id) => handleChange('model', id)} allowCustomId />
+        </div>
+      </CollapsibleSection>
+
+      {/* Parameters Section */}
+      <CollapsibleSection title="Parameters" icon={<Sliders size={14} />} defaultOpen={false}>
+        <div className="ai-node-field" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div>
+            <label className="ai-node-field-label">Temperature</label>
+            <Input type="number" min={0} max={2} step={0.1} value={data.temperature ?? 0.7} onChange={(e) => handleChange('temperature', parseFloat((e.target as HTMLInputElement).value))} />
+          </div>
+          <div>
+            <label className="ai-node-field-label">Max Tokens</label>
+            <Input type="number" min={1} max={4000} value={data.maxTokens ?? 1000} onChange={(e) => handleChange('maxTokens', parseInt((e.target as HTMLInputElement).value))} />
+          </div>
+        </div>
+        <div className="ai-node-field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label className="ai-node-field-label" style={{ margin: 0 }}>Streaming</label>
+          <input type="checkbox" checked={useStreaming} onChange={(e) => setUseStreaming(e.target.checked)} />
+          <label className="ai-node-field-label" style={{ margin: 0 }}>Show Reasoning</label>
+          <input type="checkbox" checked={useReasoning} onChange={(e) => setUseReasoning(e.target.checked)} />
+          <label className="ai-node-field-label" style={{ margin: 0 }}>Append Reply</label>
+          <input type="checkbox" checked={data.appendAssistantToHistory ?? true} onChange={(e) => handleChange('appendAssistantToHistory', e.target.checked)} />
+        </div>
+        {useReasoning && (
+          <div className="ai-node-field">
+            <label className="ai-node-field-label">Reasoning Traces</label>
+            <div className="ai-node-field-value" style={{ maxHeight: 140, overflowY: 'auto', padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 6, border: '1px solid rgba(176,38,255,0.2)', fontFamily: 'var(--font-geist-mono, monospace)', fontSize: 12 }}>
+              {reasoningText || <span style={{ color: '#888' }}>No reasoning events received.</span>}
+            </div>
+          </div>
+        )}
+      </CollapsibleSection>
+
+      {/* Tools Section */}
+      <CollapsibleSection title="Tools" icon={<Wrench size={14} />} defaultOpen={false}>
+        <div className="ai-node-field">
+          <label className="ai-node-field-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>Built-in Tools</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {(['calculator','search','dateTime'] as BuiltInToolKey[]).map((k) => (
+              <label key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid rgba(176,38,255,0.4)', padding: '6px 10px', borderRadius: 6 }}>
+                <input type="checkbox" checked={!!data.tools?.[k]} onChange={(e) => handleChange('tools', { ...(data.tools || {}), [k]: e.target.checked })} />
+                <span style={{ textTransform: 'capitalize' }}>{k}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Results Section - Only show when there's content */}
+      {(streamingText || error || data.toolCalls?.length) && (
+        <CollapsibleSection title="Result" icon={<MessageSquare size={14} />} defaultOpen={true}>
+          <div className="ai-node-field">
+            <div className="ai-node-field-value" style={{ maxHeight: 180, overflowY: 'auto', padding: 8, background: 'rgba(0,0,0,0.3)', borderRadius: 4, border: '1px solid rgba(176,38,255,0.3)' }}>
+              {isRunning && (
+                <div style={{ color: '#9cf', display: 'flex', alignItems: 'center', gap: 6 }}><Loader2 size={14} className="animate-spin" /> Running…</div>
+              )}
+              {error && <div style={{ color: '#ff6b6b' }}>Error: {error}</div>}
+              {streamingText && <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{streamingText}</pre>}
+              {!!data.toolCalls?.length && (
+                <div style={{ marginTop: 8, fontSize: 12 }}>
+                  <div style={{ color: '#bbb', marginBottom: 4 }}>Tool calls:</div>
+                  {data.toolCalls.map((t: any, i: number) => (
+                    <div key={i} style={{ padding: '6px', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, marginBottom: 6 }}>
+                      <div style={{ color: '#0ff' }}>{t.toolName || t.name}</div>
+                      {t.args && <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(t.args, null, 2)}</pre>}
+                      {t.result && <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(t.result, null, 2)}</pre>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </CollapsibleSection>
+      )}
+
+      {/* Custom Tools Section */}
+      <CollapsibleSection title="Custom Tools" icon={<Code size={14} />} defaultOpen={false}>
+        <div className="ai-node-field">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {(data.customTools || []).map((t, i) => (
+              <div key={i} style={{ border: '1px solid rgba(176,38,255,0.3)', borderRadius: 6, padding: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+                  <input className="ai-node-input" value={t.name} onChange={(e) => {
+                    const arr = [...(data.customTools || [])];
+                    arr[i] = { ...arr[i], name: e.target.value };
+                    updateNode(props.id, { customTools: arr });
+                  }} placeholder="tool name" />
+                  <button onClick={() => { const arr = [...(data.customTools || [])]; arr.splice(i,1); updateNode(props.id, { customTools: arr }); }} style={{ padding: '6px 10px', background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.5)', borderRadius: 6, color: '#fff', fontSize: 12, fontWeight: 600 }}>Remove</button>
+                </div>
+                <input className="ai-node-input" style={{ marginTop: 6 }} value={t.description || ''} onChange={(e) => { const arr = [...(data.customTools || [])]; arr[i] = { ...arr[i], description: e.target.value }; updateNode(props.id, { customTools: arr }); }} placeholder="description" />
+                <textarea className="ai-node-input ai-node-textarea nodrag" rows={2} style={{ marginTop: 6 }} value={t.parametersJson || ''} onChange={(e) => { const arr = [...(data.customTools || [])]; arr[i] = { ...arr[i], parametersJson: e.target.value }; updateNode(props.id, { customTools: arr }); }} placeholder='parameters JSON (e.g. {"type":"object","properties":{...}})' />
+                <input className="ai-node-input" style={{ marginTop: 6 }} value={t.endpointUrl || ''} onChange={(e) => { const arr = [...(data.customTools || [])]; arr[i] = { ...arr[i], endpointUrl: e.target.value }; updateNode(props.id, { customTools: arr }); }} placeholder='Webhook URL (optional; allowlisted)' />
+                <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Server will POST {`{ args, tool }`} to this URL if provided.</div>
+              </div>
+            ))}
+            <button onClick={() => updateNode(props.id, { customTools: [...(data.customTools || []), { name: 'myTool', description: '', parametersJson: '' }] })} style={{ padding: '8px 12px', background: 'rgba(176,38,255,0.25)', border: '1px solid rgba(176,38,255,0.5)', borderRadius: 6, color: '#fff', fontSize: 12, fontWeight: 600 }}>+ Add Tool</button>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Chat History Section */}
+      <CollapsibleSection title="Chat History" icon={<History size={14} />} defaultOpen={false}>
+        <div className="ai-node-field">
+          <div className="ai-node-field-value" style={{ maxHeight: 140, overflowY: 'auto', padding: 8, background: 'rgba(0,0,0,0.2)', borderRadius: 6, border: '1px solid rgba(176,38,255,0.2)' }}>
+            {(data.messages || []).length === 0 ? (
+              <div style={{ color: '#888', fontSize: 12 }}>No messages yet.</div>
+            ) : (
+              (data.messages || []).map((m, i) => (
+                <div key={i} style={{ marginBottom: 6 }}>
+                  <span style={{ color: '#0ff', fontSize: 11, textTransform: 'uppercase' }}>{m.role}</span>
+                  <div style={{ fontSize: 12, whiteSpace: 'pre-wrap' }}>{m.content}</div>
+                </div>
+              ))
+            )}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, marginTop: 6 }}>
+            <textarea className="ai-node-input ai-node-textarea nodrag" rows={2} value={newUserMessage} onChange={(e) => setNewUserMessage(e.target.value)} placeholder="Add user message..." />
+            <button onClick={() => { if (!newUserMessage.trim()) return; const msgs = [...(data.messages || []), { role: 'user', content: newUserMessage.trim() }]; setNewUserMessage(''); updateNode(props.id, { messages: msgs }); }} style={{ padding: '8px 12px', background: 'rgba(34,197,94,0.25)', border: '1px solid rgba(34,197,94,0.5)', borderRadius: 6, color: '#fff', fontSize: 12, fontWeight: 600 }}>Add</button>
+            <button onClick={() => updateNode(props.id, { messages: [] })} style={{ padding: '8px 12px', background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.5)', borderRadius: 6, color: '#fff', fontSize: 12, fontWeight: 600 }}>Clear</button>
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Actions */}
+      <div className="ai-node-field" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <Button onClick={handleRun} disabled={isRunning} variant="success" className="flex-1">
+          <Play size={14} /> {isRunning ? 'Running…' : 'Run'}
+        </Button>
+        <Button onClick={handleDelete} variant="outline">
+          <Trash2 size={14} />
+        </Button>
+      </div>
+    </BaseAINode>
+  );
+};

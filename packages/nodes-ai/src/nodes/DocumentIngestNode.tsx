@@ -6,6 +6,10 @@ import { useFlowStore } from '../hooks/useFlowStore';
 import { resolveVariables } from '../utils/variableResolver';
 import type { DocumentIngestNodeData } from '../types';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/Select';
+import { Switch } from '../components/ui/Switch';
+import { StatusBadge } from '../components/ui/StatusBadge';
 
 export const DocumentIngestNode: React.FC<NodeProps> = (props) => {
   const data = props.data as DocumentIngestNodeData;
@@ -102,19 +106,19 @@ export const DocumentIngestNode: React.FC<NodeProps> = (props) => {
       <div className="ai-node-field grid grid-cols-2 gap-2">
         <div>
           <label className="ai-node-field-label">Source</label>
-          <select
-            className="ai-node-select"
-            value={data.sourceType || 'text'}
-            onChange={(e) => handleChange('sourceType', e.target.value as DocumentIngestNodeData['sourceType'])}
-          >
-            <option value="text">Text</option>
-            <option value="url">URL</option>
-          </select>
+          <Select value={data.sourceType || 'text'} onValueChange={(v) => handleChange('sourceType', v as DocumentIngestNodeData['sourceType'])}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Select source" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="text">Text</SelectItem>
+              <SelectItem value="url">URL</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         {data.sourceType === 'url' && (
-          <label className="flex items-center gap-2 text-xs" style={{ marginTop: 22 }}>
-            <input type="checkbox" checked={Boolean(data.extractText)} onChange={(e) => handleChange('extractText', e.target.checked)} /> Extract text
-          </label>
+          <div className="flex items-center gap-2 text-xs" style={{ marginTop: 22 }}>
+            <Switch checked={Boolean(data.extractText)} onCheckedChange={(v) => handleChange('extractText', v)} />
+            <span>Extract text</span>
+          </div>
         )}
       </div>
 
@@ -132,11 +136,9 @@ export const DocumentIngestNode: React.FC<NodeProps> = (props) => {
       ) : (
         <div className="ai-node-field">
           <label className="ai-node-field-label">URL</label>
-          <input
-            type="text"
-            className="ai-node-input"
+          <Input
             value={data.url ?? ''}
-            onChange={(e) => handleChange('url', e.target.value)}
+            onChange={(e) => handleChange('url', (e.target as HTMLInputElement).value)}
             placeholder="https://example.com or {{node}}"
           />
         </div>
@@ -145,16 +147,17 @@ export const DocumentIngestNode: React.FC<NodeProps> = (props) => {
       <div className="ai-node-field">
         <label className="ai-node-field-label">Split</label>
         <div className="grid grid-cols-3 gap-2 items-center">
-          <label className="flex items-center gap-2 col-span-1">
-            <input type="checkbox" checked={Boolean(data.split)} onChange={(e) => handleChange('split', e.target.checked)} /> Enable
-          </label>
+          <div className="flex items-center gap-2 col-span-1">
+            <Switch checked={Boolean(data.split)} onCheckedChange={(v) => handleChange('split', v)} />
+            <span className="text-xs">Enable</span>
+          </div>
           <div className="col-span-1">
             <label className="ai-node-field-label">Chunk</label>
-            <input type="number" className="ai-node-input" value={data.chunkSize ?? 1000} min={100} onChange={(e) => handleChange('chunkSize', parseInt(e.target.value || '0', 10))} />
+            <Input type="number" value={data.chunkSize ?? 1000} min={100} onChange={(e) => handleChange('chunkSize', parseInt((e.target as HTMLInputElement).value || '0', 10))} />
           </div>
           <div className="col-span-1">
             <label className="ai-node-field-label">Overlap</label>
-            <input type="number" className="ai-node-input" value={data.overlap ?? 0} min={0} onChange={(e) => handleChange('overlap', parseInt(e.target.value || '0', 10))} />
+            <Input type="number" value={data.overlap ?? 0} min={0} onChange={(e) => handleChange('overlap', parseInt((e.target as HTMLInputElement).value || '0', 10))} />
           </div>
         </div>
       </div>
@@ -163,16 +166,17 @@ export const DocumentIngestNode: React.FC<NodeProps> = (props) => {
       <div className="ai-node-field">
         <label className="ai-node-field-label">Embeddings</label>
         <div className="grid grid-cols-3 gap-2 items-center">
-          <label className="flex items-center gap-2 col-span-1">
-            <input type="checkbox" checked={Boolean(data.embed)} onChange={(e) => handleChange('embed', e.target.checked)} /> Compute
-          </label>
+          <div className="flex items-center gap-2 col-span-1">
+            <Switch checked={Boolean(data.embed)} onCheckedChange={(v) => handleChange('embed', v)} />
+            <span className="text-xs">Compute</span>
+          </div>
           <div className="col-span-1">
             <label className="ai-node-field-label">Model</label>
-            <input type="text" className="ai-node-input" value={data.embeddingModel ?? 'text-embedding-3-small'} onChange={(e) => handleChange('embeddingModel', e.target.value)} />
+            <Input value={data.embeddingModel ?? 'text-embedding-3-small'} onChange={(e) => handleChange('embeddingModel', (e.target as HTMLInputElement).value)} />
           </div>
           <div className="col-span-1">
             <label className="ai-node-field-label">Dims (opt)</label>
-            <input type="number" className="ai-node-input" value={data.embeddingDimensions ?? ''} onChange={(e) => handleChange('embeddingDimensions', e.target.value === '' ? null : parseInt(e.target.value || '0', 10))} />
+            <Input type="number" value={data.embeddingDimensions ?? ''} onChange={(e) => handleChange('embeddingDimensions', (e.target as HTMLInputElement).value === '' ? null : parseInt((e.target as HTMLInputElement).value || '0', 10))} />
           </div>
         </div>
         {data.result?.embeddings && (
@@ -210,6 +214,15 @@ export const DocumentIngestNode: React.FC<NodeProps> = (props) => {
           <Play size={14} /> {isRunning ? 'Ingesting…' : 'Ingest'}
         </Button>
       </div>
+
+      {typeof (props.data as any).executionTime === 'number' && (
+        <div className="ai-node-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <StatusBadge status={((props.data as any).status || 'idle') as any} />
+            <span style={{ fontSize: 10, color: '#888' }}>Execution Time: {(props.data as any).executionTime}ms</span>
+          </div>
+        </div>
+      )}
     </BaseAINode>
   );
 };

@@ -30,7 +30,7 @@ To contribute safely and consistently, follow this checklist **in order** whenev
 
 7. **Add or update tests**
 - Before committing any long-term or automated tests, run an ad-hoc Playwright pass against your existing dev server: `PLAYWRIGHT_SKIP_WEB_SERVER=1 bunx playwright test` (use `--headed` if you want to watch the run). This smoke check should catch console errors or obvious regressions while you iterate.
-- Ensure new behavior is covered by automated tests. Run `bun run verify` again after adding tests.
+**This project uses PNPM
 
 8. **Review documentation**
 - Re-read `README.md`. If the change affects setup, usage, or workflows, update the documentation accordingly.

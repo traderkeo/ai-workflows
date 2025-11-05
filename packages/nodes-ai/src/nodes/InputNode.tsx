@@ -4,6 +4,7 @@ import { PlayCircle } from 'lucide-react';
 import { BaseAINode } from '../components/BaseAINode';
 import { useFlowStore } from '../hooks/useFlowStore';
 import type { StartNodeData } from '../types';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectLabel } from '../components/ui/Select';
 
 export const InputNode: React.FC<NodeProps> = (props) => {
   const data = props.data as StartNodeData;
@@ -45,22 +46,18 @@ export const InputNode: React.FC<NodeProps> = (props) => {
     >
       <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
         <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Value Type</label>
-        <select
-          className="ai-node-select"
-          value={data.valueType}
-          onChange={(e) => handleTypeChange(e.target.value as StartNodeData['valueType'])}
-          style={{
-            fontFamily: 'inherit',
-            fontSize: '14px',
-            fontWeight: 400,
-            letterSpacing: '0.01em',
-          }}
-        >
-          <option value="string">String</option>
-          <option value="number">Number</option>
-          <option value="object">Object</option>
-          <option value="array">Array</option>
-        </select>
+        <Select value={data.valueType} onValueChange={(v) => handleTypeChange(v as StartNodeData['valueType'])}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Select type" /></SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Types</SelectLabel>
+              <SelectItem value="string">String</SelectItem>
+              <SelectItem value="number">Number</SelectItem>
+              <SelectItem value="object">Object</SelectItem>
+              <SelectItem value="array">Array</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>

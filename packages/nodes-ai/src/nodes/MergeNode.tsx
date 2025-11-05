@@ -3,6 +3,7 @@ import { NodeProps } from '@xyflow/react';
 import { GitMerge } from 'lucide-react';
 import { BaseAINode } from '../components/BaseAINode';
 import { useFlowStore } from '../hooks/useFlowStore';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/Select';
 
 export interface MergeNodeData {
   label: string;
@@ -24,15 +25,14 @@ export const MergeNode: React.FC<NodeProps> = (props) => {
     <BaseAINode {...props} data={data} icon={<GitMerge size={20} />}>
       <div className="ai-node-field">
         <label className="ai-node-field-label">Merge Strategy</label>
-        <select
-          className="ai-node-select"
-          value={data.mergeStrategy || 'object'}
-          onChange={(e) => handleChange('mergeStrategy', e.target.value)}
-        >
-          <option value="object">Object (Key-Value Pairs)</option>
-          <option value="array">Array (List)</option>
-          <option value="concat">Concat (Join Text)</option>
-        </select>
+        <Select value={data.mergeStrategy || 'object'} onValueChange={(v) => handleChange('mergeStrategy', v)}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Select strategy" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="object">Object (Key-Value Pairs)</SelectItem>
+            <SelectItem value="array">Array (List)</SelectItem>
+            <SelectItem value="concat">Concat (Join Text)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>

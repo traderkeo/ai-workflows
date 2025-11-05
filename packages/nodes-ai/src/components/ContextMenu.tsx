@@ -11,6 +11,10 @@ import {
   Globe,
   RotateCw,
   Upload,
+  Image as ImageIcon,
+  Volume2,
+  Film,
+  ListFilter,
 } from 'lucide-react';
 import { Scissors, Layers, HardDrive, ShieldCheck, FileText, Search } from 'lucide-react';
 import { useFlowStore } from '../hooks/useFlowStore';
@@ -67,28 +71,16 @@ export const nodeTemplates: NodeTemplate[] = [
     },
   },
   {
-    type: 'text-generation',
-    label: 'Text Generation',
+    type: 'generate',
+    label: 'Generate',
     icon: <MessageSquare size={16} />,
     defaultData: {
-      label: 'Text Generation',
+      label: 'Generate',
+      mode: 'text',
       prompt: '',
       model: 'gpt-4o-mini',
       temperature: 0.7,
       maxTokens: 1000,
-      status: 'idle',
-    },
-  },
-  {
-    type: 'structured-data',
-    label: 'Structured Data',
-    icon: <Database size={16} />,
-    defaultData: {
-      label: 'Structured Data',
-      prompt: '',
-      model: 'gpt-4o-mini',
-      temperature: 0.7,
-      schemaName: '',
       status: 'idle',
     },
   },
@@ -134,6 +126,61 @@ export const nodeTemplates: NodeTemplate[] = [
       status: 'idle',
     },
   },
+  
+  // Image generation
+  {
+    type: 'image-generation',
+    label: 'Image Generation',
+    icon: <ImageIcon size={16} />,
+    defaultData: {
+      label: 'Image Generation',
+      operation: 'generate',
+      prompt: '',
+      model: 'dall-e-3',
+      size: '1024x1024',
+      status: 'idle',
+    },
+  },
+  // Audio TTS
+  {
+    type: 'audio-tts',
+    label: 'Audio TTS',
+    icon: <Volume2 size={16} />,
+    defaultData: {
+      label: 'Audio TTS',
+      text: '',
+      model: 'tts-1',
+      voice: 'alloy',
+      speed: 1.0,
+      status: 'idle',
+    },
+  },
+  // Video (scaffold)
+  {
+    type: 'video-generation',
+    label: 'Video Generation',
+    icon: <Film size={16} />,
+    defaultData: {
+      label: 'Video Generation',
+      prompt: '',
+      model: '',
+      status: 'idle',
+    },
+  },
+  // Rerank (scaffold)
+  {
+    type: 'rerank',
+    label: 'Rerank',
+    icon: <ListFilter size={16} />,
+    defaultData: {
+      label: 'Rerank',
+      query: '',
+      candidates: '',
+      topK: 5,
+      model: '',
+      status: 'idle',
+    },
+  },
   {
     type: 'http-request',
     label: 'HTTP Request',
@@ -159,7 +206,7 @@ export const nodeTemplates: NodeTemplate[] = [
   },
   {
     type: 'web-search',
-    label: 'Web Search (OpenAI)',
+    label: 'Web Search',
     icon: <Search size={16} />,
     defaultData: {
       label: 'Web Search',

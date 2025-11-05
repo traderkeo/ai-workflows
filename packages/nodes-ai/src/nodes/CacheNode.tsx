@@ -6,6 +6,10 @@ import { useFlowStore } from '../hooks/useFlowStore';
 import { resolveVariables } from '../utils/variableResolver';
 import type { CacheNodeData } from '../types';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/Select';
+import { Switch } from '../components/ui/Switch';
+import { StatusBadge } from '../components/ui/StatusBadge';
 
 const LS_KEY = 'aiwf-cache';
 
@@ -82,35 +86,28 @@ export const CacheNode: React.FC<NodeProps> = (props) => {
     <BaseAINode {...props} data={data} icon={<HardDrive size={18} />}> 
       <div className="ai-node-field">
         <label className="ai-node-field-label">Key</label>
-        <input
-          type="text"
-          className="ai-node-input"
+        <Input
           value={data.keyTemplate ?? '{{input}}'}
-          onChange={(e) => handleChange('keyTemplate', e.target.value)}
+          onChange={(e) => handleChange('keyTemplate', (e.target as HTMLInputElement).value)}
           placeholder="e.g., {{nodeName}}:prompt"
         />
       </div>
       <div className="ai-node-field grid grid-cols-2 gap-2">
         <div>
           <label className="ai-node-field-label">Operation</label>
-          <select
-            className="ai-node-select"
-            value={data.operation || 'get'}
-            onChange={(e) => handleChange('operation', e.target.value as CacheNodeData['operation'])}
-          >
-            <option value="get">Get</option>
-            <option value="set">Set</option>
-          </select>
+          <Select value={data.operation || 'get'} onValueChange={(v) => handleChange('operation', v as CacheNodeData['operation'])}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Select operation" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="get">Get</SelectItem>
+              <SelectItem value="set">Set</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         {data.operation === 'get' && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 20 }}>
-            <input
-              type="checkbox"
-              checked={Boolean(data.writeIfMiss)}
-              onChange={(e) => handleChange('writeIfMiss', e.target.checked)}
-            />
-            Write if miss
-          </label>
+          <div className="flex items-center gap-2 mt-5">
+            <Switch checked={Boolean(data.writeIfMiss)} onCheckedChange={(v) => handleChange('writeIfMiss', v)} />
+            <span className="text-xs">Write if miss</span>
+          </div>
         )}
       </div>
 
@@ -141,6 +138,20 @@ export const CacheNode: React.FC<NodeProps> = (props) => {
           <Play size={14} /> {isRunning ? 'Running…' : 'Run'}
         </Button>
       </div>
+
+      {typeof (props.data as any).executionTime === 'number' && (
+        <div className="ai-node-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <StatusBadge status={((props.data as any).status || 'idle') as any} />
+            <span style={{ fontSize: 10, color: '#888' }}>Execution Time: {(props.data as any).executionTime}ms</span>
+          </div>
+          {typeof (props.data as any).hit === 'boolean' && (
+            <span className="text-[11px]" style={{ color: (props.data as any).hit ? '#39ff14' : '#ff0040' }}>
+              {(props.data as any).hit ? 'HIT' : 'MISS'}
+            </span>
+          )}
+        </div>
+      )}
     </BaseAINode>
   );
 };

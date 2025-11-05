@@ -2,14 +2,7 @@ import {
   WorkflowContext,
 } from '@repo/ai-workers';
 import type { AINode, AIEdge, ExecutionContext } from '../types';
-import type {
-  AIAgentNodeData,
-  TextGenerationNodeData,
-  StructuredDataNodeData,
-  TransformNodeData,
-  StartNodeData,
-  StopNodeData,
-} from '../types';
+import type { AIAgentNodeData, TransformNodeData, StartNodeData, StopNodeData } from '../types';
 import type { MergeNodeData } from '../nodes/MergeNode';
 import type { ConditionNodeData } from '../nodes/ConditionNode';
 import type { TemplateNodeData } from '../nodes/TemplateNode';
@@ -427,7 +420,7 @@ async function executeNode(
       }
 
       case 'text-generation': {
-        const data = node.data as TextGenerationNodeData;
+        const data = node.data as any;
 
         // Use input as prompt if prompt is empty
         let resolvedPrompt = data.prompt || '';
@@ -528,7 +521,7 @@ async function executeNode(
       }
 
       case 'structured-data': {
-        const data = node.data as StructuredDataNodeData;
+        const data = node.data as any;
 
         // Build schema from schemaFields
         const buildSchema = () => {
@@ -536,7 +529,7 @@ async function executeNode(
             return null;
           }
           const schemaObj: Record<string, any> = {};
-          data.schemaFields.filter(f => f.name.trim()).forEach(field => {
+          data.schemaFields.filter((f: any) => f.name.trim()).forEach((field: any) => {
             schemaObj[field.name] = {
               type: field.type,
               description: field.description || undefined

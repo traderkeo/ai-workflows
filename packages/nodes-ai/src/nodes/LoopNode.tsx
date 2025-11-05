@@ -4,6 +4,8 @@ import { RotateCw } from 'lucide-react';
 import { BaseAINode } from '../components/BaseAINode';
 import type { LoopNodeData } from '../types';
 import { useFlowStore } from '../hooks/useFlowStore';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectLabel } from '../components/ui/Select';
+import { Input } from '../components/ui/Input';
 
 export const LoopNode: React.FC<NodeProps> = (props) => {
   const { data } = props;
@@ -34,27 +36,28 @@ export const LoopNode: React.FC<NodeProps> = (props) => {
     <BaseAINode {...props} data={nodeData} icon={<RotateCw size={16} />}>
       <div className="ai-node-field">
         <span className="ai-node-field-label">Loop Type</span>
-        <select
-          className="ai-node-input"
-          value={loopType}
-          onChange={(e) => handleLoopTypeChange(e.target.value as LoopNodeData['loopType'])}
-        >
-          <option value="count">Fixed Count</option>
-          <option value="array">Iterate Array</option>
-          <option value="condition">Conditional</option>
-        </select>
+        <Select value={loopType} onValueChange={(v) => handleLoopTypeChange(v as LoopNodeData['loopType'])}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="Select type" /></SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Types</SelectLabel>
+              <SelectItem value="count">Fixed Count</SelectItem>
+              <SelectItem value="array">Iterate Array</SelectItem>
+              <SelectItem value="condition">Conditional</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
 
       {loopType === 'count' && (
         <div className="ai-node-field">
           <span className="ai-node-field-label">Iterations</span>
-          <input
+          <Input
             type="number"
-            className="ai-node-input"
             placeholder="5"
             value={count}
-            min="1"
-            onChange={(e) => setCount(e.target.value)}
+            min={1}
+            onChange={(e) => setCount((e.target as HTMLInputElement).value)}
             onBlur={handleCountChange}
           />
         </div>
@@ -73,7 +76,7 @@ export const LoopNode: React.FC<NodeProps> = (props) => {
         <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
           <span className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Condition (JavaScript)</span>
           <textarea
-            className="ai-node-input"
+            className="ai-node-input nodrag"
             placeholder="return iteration < 10;"
             value={conditionCode}
             onChange={(e) => setConditionCode(e.target.value)}

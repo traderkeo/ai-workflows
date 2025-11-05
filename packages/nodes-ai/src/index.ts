@@ -21,9 +21,12 @@ export { NotificationProvider, useNotifications } from './context/NotificationCo
 // Node components
 export { StartNode } from './nodes/StartNode';
 export { StopNode } from './nodes/StopNode';
-export { AIAgentNode } from './nodes/AIAgentNode';
-export { TextGenerationNode } from './nodes/TextGenerationNode';
-export { StructuredDataNode } from './nodes/StructuredDataNode';
+export { AIAgentNodeV6 as AIAgentNode } from './nodes/AIAgentNodeV6';
+export { GenerateNode } from './nodes/GenerateNode';
+export { ImageGenerationNode } from './nodes/ImageGenerationNode';
+export { AudioTTSNode } from './nodes/AudioTTSNode';
+export { VideoGenerationNode } from './nodes/VideoGenerationNode';
+export { RerankNode } from './nodes/RerankNode';
 export { TransformNode } from './nodes/TransformNode';
 export { MergeNode } from './nodes/MergeNode';
 export { ConditionNode } from './nodes/ConditionNode';
@@ -56,9 +59,12 @@ export type {
   BaseNodeData,
   StartNodeData,
   StopNodeData,
+  GenerateNodeData,
   AIAgentNodeData,
-  TextGenerationNodeData,
-  StructuredDataNodeData,
+  ImageGenerationNodeData,
+  AudioTTSNodeData,
+  VideoGenerationNodeData,
+  RerankNodeData,
   ToolCallingNodeData,
   EmbeddingNodeData,
   SemanticSearchNodeData,

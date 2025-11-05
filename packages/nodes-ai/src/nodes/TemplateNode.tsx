@@ -25,7 +25,7 @@ export const TemplateNode: React.FC<NodeProps> = (props) => {
       <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
         <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Template</label>
         <textarea
-          className="ai-node-input ai-node-textarea"
+          className="ai-node-input ai-node-textarea nodrag"
           value={data.template || ''}
           onChange={(e) => handleChange('template', e.target.value)}
           placeholder="Use {{input}} or {{variable}} for placeholders..."

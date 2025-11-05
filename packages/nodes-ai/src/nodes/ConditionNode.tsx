@@ -1,10 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { NodeProps } from '@xyflow/react';
-import { GitBranch, Loader2, Play } from 'lucide-react';
+import { GitBranch, Loader2, Play, Code, Settings, FileText } from 'lucide-react';
 import { BaseAINode } from '../components/BaseAINode';
 import { useFlowStore } from '../hooks/useFlowStore';
 import { resolveVariables, getAvailableVariablesWithInfo } from '../utils/variableResolver';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectGroup, SelectLabel, SelectItem } from '../components/ui/Select';
+import { Switch } from '../components/ui/Switch';
+import { CollapsibleSection } from '../components/ui/CollapsibleSection';
 
 export interface ConditionNodeData {
   label: string;
@@ -196,47 +200,56 @@ export const ConditionNode: React.FC<NodeProps> = (props) => {
 
   return (
     <BaseAINode {...props} data={data} icon={<GitBranch size={20} />} footerContent={customFooter}>
-      {/* Input (variable-enabled) */}
-      <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
-        <label className="ai-node-field-label">Input</label>
-        <textarea
-          className="ai-node-input ai-node-textarea"
-          rows={3}
-          value={data.input ?? '{{input}}'}
-          onChange={(e) => handleChange('input', e.target.value)}
-          placeholder="Use variables like {{input}}, {{nodeName}}, or {{nodeName.prop}}"
-          style={{
-            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
-            fontSize: '13px',
-          }}
-        />
-        {data.lastResolvedInput !== undefined && (
-          <div style={{ fontSize: '10px', color: 'var(--text-muted, #888)', marginTop: '4px' }}>
-            Resolved: <span className="whitespace-pre-wrap break-words">{data.lastResolvedInput}</span>
-          </div>
-        )}
-        {availableVariables.length > 0 && (
-          <div style={{ fontSize: '10px', color: 'var(--cyber-neon-purple)', marginTop: '6px' }}>
-            Variables: {availableVariables.slice(0, 5).map(v => v.variable).join('  ')}{availableVariables.length > 5 ? ' …' : ''}
-          </div>
-        )}
-      </div>
+      {/* Input Section */}
+      <CollapsibleSection title="Input" icon={<Code size={14} />} defaultOpen={true}>
+        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+          <label className="ai-node-field-label">Input</label>
+          <textarea
+            className="ai-node-input ai-node-textarea nodrag"
+            rows={3}
+            value={data.input ?? '{{input}}'}
+            onChange={(e) => handleChange('input', e.target.value)}
+            placeholder="Use variables like {{input}}, {{nodeName}}, or {{nodeName.prop}}"
+            style={{
+              fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
+              fontSize: '13px',
+            }}
+          />
+          {data.lastResolvedInput !== undefined && (
+            <div style={{ fontSize: '10px', color: 'var(--text-muted, #888)', marginTop: '4px' }}>
+              Resolved: <span className="whitespace-pre-wrap break-words">{data.lastResolvedInput}</span>
+            </div>
+          )}
+          {availableVariables.length > 0 && (
+            <div style={{ fontSize: '10px', color: 'var(--cyber-neon-purple)', marginTop: '6px' }}>
+              Variables: {availableVariables.slice(0, 5).map(v => v.variable).join('  ')}{availableVariables.length > 5 ? ' …' : ''}
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
 
-      {/* Condition Type */}
-      <div className="ai-node-field">
-        <label className="ai-node-field-label">Condition Type</label>
-        <select
-          className="ai-node-select"
-          value={data.conditionType || 'length'}
-          onChange={(e) => handleChange('conditionType', e.target.value as ConditionNodeData['conditionType'])}
-        >
-          <option value="length">Text Length</option>
-          <option value="contains">Contains Text</option>
-          <option value="regex">Regex Match</option>
-          <option value="numeric">Numeric Compare</option>
-          <option value="custom">Custom JS</option>
-        </select>
-      </div>
+      {/* Condition Type Section */}
+      <CollapsibleSection title="Condition Type" icon={<Settings size={14} />} defaultOpen={true}>
+        <div className="ai-node-field">
+          <label className="ai-node-field-label">Condition Type</label>
+          <Select value={data.conditionType || 'length'} onValueChange={(v) => handleChange('conditionType', v as ConditionNodeData['conditionType'])}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Select type" /></SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Types</SelectLabel>
+                <SelectItem value="length">Text Length</SelectItem>
+                <SelectItem value="contains">Contains Text</SelectItem>
+                <SelectItem value="regex">Regex Match</SelectItem>
+                <SelectItem value="numeric">Numeric Compare</SelectItem>
+                <SelectItem value="custom">Custom JS</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+      </CollapsibleSection>
+
+      {/* Condition Settings Section */}
+      <CollapsibleSection title="Condition Settings" icon={<Code size={14} />} defaultOpen={false}>
 
       {/* Length options */}
       {data.conditionType === 'length' && (
@@ -244,26 +257,24 @@ export const ConditionNode: React.FC<NodeProps> = (props) => {
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="ai-node-field-label">Min Length</label>
-              <input
+              <Input
                 type="number"
-                className="ai-node-input"
                 value={data.minLength ?? 0}
-                onChange={(e) => handleChange('minLength', parseInt(e.target.value || '0', 10))}
-                min="0"
+                onChange={(e) => handleChange('minLength', parseInt((e.target as HTMLInputElement).value || '0', 10))}
+                min={0}
               />
             </div>
             <div>
               <label className="ai-node-field-label">Max Length (optional)</label>
-              <input
+              <Input
                 type="number"
-                className="ai-node-input"
                 value={data.maxLength ?? ''}
-                onChange={(e) => handleChange('maxLength', e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
-                min="0"
+                onChange={(e) => handleChange('maxLength', (e.target as HTMLInputElement).value === '' ? undefined : parseInt((e.target as HTMLInputElement).value, 10))}
+                min={0}
               />
             </div>
           </div>
-          <div style={{ fontSize: '10px', color: '#888', marginTop: '4px' }}>
+          <div style={{ fontSize: '10px', color: '#888', marginTop: '4px', fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)' }}>
             TRUE when length ≥ min and ≤ max (if set)
           </div>
         </div>
@@ -273,17 +284,15 @@ export const ConditionNode: React.FC<NodeProps> = (props) => {
       {data.conditionType === 'contains' && (
         <div className="ai-node-field">
           <label className="ai-node-field-label">Search Text</label>
-          <input
-            type="text"
-            className="ai-node-input"
+          <Input
             value={data.containsText ?? ''}
-            onChange={(e) => handleChange('containsText', e.target.value)}
+            onChange={(e) => handleChange('containsText', (e.target as HTMLInputElement).value)}
             placeholder="e.g., keyword"
           />
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '12px' }}>
-            <input type="checkbox" checked={Boolean(data.caseSensitive)} onChange={(e) => handleChange('caseSensitive', e.target.checked)} />
-            Case sensitive
-          </label>
+          <div className="flex items-center gap-2 mt-2 text-xs">
+            <Switch checked={Boolean(data.caseSensitive)} onCheckedChange={(v) => handleChange('caseSensitive', v)} />
+            <span>Case sensitive</span>
+          </div>
         </div>
       )}
 
@@ -291,19 +300,15 @@ export const ConditionNode: React.FC<NodeProps> = (props) => {
       {data.conditionType === 'regex' && (
         <div className="ai-node-field">
           <label className="ai-node-field-label">Pattern</label>
-          <input
-            type="text"
-            className="ai-node-input"
+          <Input
             value={data.regexPattern ?? ''}
-            onChange={(e) => handleChange('regexPattern', e.target.value)}
+            onChange={(e) => handleChange('regexPattern', (e.target as HTMLInputElement).value)}
             placeholder="e.g., ^hello|world$"
           />
           <label className="ai-node-field-label" style={{ marginTop: '8px' }}>Flags</label>
-          <input
-            type="text"
-            className="ai-node-input"
+          <Input
             value={data.regexFlags ?? ''}
-            onChange={(e) => handleChange('regexFlags', e.target.value)}
+            onChange={(e) => handleChange('regexFlags', (e.target as HTMLInputElement).value)}
             placeholder="e.g., i, g, m"
           />
         </div>
@@ -315,25 +320,22 @@ export const ConditionNode: React.FC<NodeProps> = (props) => {
           <label className="ai-node-field-label">Compare</label>
           <div className="flex items-center gap-2">
             <span className="text-xs text-zinc-400">input</span>
-            <select
-              className="ai-node-select"
-              value={data.numericOperator || '>'}
-              onChange={(e) => handleChange('numericOperator', e.target.value as ConditionNodeData['numericOperator'])}
-              style={{ width: '110px' }}
-            >
-              <option value=">">&gt;</option>
-              <option value=">=">&gt;=</option>
-              <option value="<">&lt;</option>
-              <option value="<=">&lt;=</option>
-              <option value="==">==</option>
-              <option value="!=">!=</option>
-            </select>
-            <input
+            <Select value={data.numericOperator || '>'} onValueChange={(v) => handleChange('numericOperator', v as ConditionNodeData['numericOperator'])}>
+              <SelectTrigger className="w-[110px]"><SelectValue placeholder=">" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value=">">&gt;</SelectItem>
+                <SelectItem value=">=">&gt;=</SelectItem>
+                <SelectItem value="<">&lt;</SelectItem>
+                <SelectItem value="<=">&lt;=</SelectItem>
+                <SelectItem value="==">==</SelectItem>
+                <SelectItem value="!=">!=</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
               type="number"
-              className="ai-node-input"
               value={data.numericValue ?? 0}
-              onChange={(e) => handleChange('numericValue', parseFloat(e.target.value || '0'))}
-              style={{ width: '120px' }}
+              onChange={(e) => handleChange('numericValue', parseFloat((e.target as HTMLInputElement).value || '0'))}
+              className="w-[120px]"
             />
           </div>
           <div style={{ fontSize: '10px', color: '#888', marginTop: '4px' }}>
@@ -347,7 +349,7 @@ export const ConditionNode: React.FC<NodeProps> = (props) => {
         <div className="ai-node-field">
           <label className="ai-node-field-label">Condition Code</label>
           <textarea
-            className="ai-node-input ai-node-textarea"
+            className="ai-node-input ai-node-textarea nodrag"
             value={data.conditionCode || 'return input.length > 100;'}
             onChange={(e) => handleChange('conditionCode', e.target.value)}
             placeholder="// Return true/false\nreturn input.length > 100;"
@@ -362,34 +364,36 @@ export const ConditionNode: React.FC<NodeProps> = (props) => {
           </div>
         </div>
       )}
+      </CollapsibleSection>
 
-      {/* Live Result */}
+      {/* Results Section */}
       {data.conditionMet !== undefined && (
-        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
-          <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Condition Result</label>
-          <div style={{
-            padding: '8px',
-            background: data.conditionMet
-              ? 'rgba(57, 255, 20, 0.1)'
-              : 'rgba(255, 0, 64, 0.1)',
-            borderRadius: '4px',
-            border: data.conditionMet
-              ? '1px solid rgba(57, 255, 20, 0.3)'
-              : '1px solid rgba(255, 0, 64, 0.3)',
-            color: data.conditionMet ? '#39ff14' : '#ff0040',
-            fontWeight: 600,
-            letterSpacing: '0.01em',
-            fontSize: '12px',
-            fontFamily: 'inherit',
-            textAlign: 'center',
-          }}>
-            {data.conditionMet ? '✓ TRUE' : '✗ FALSE'}
+        <CollapsibleSection title="Result" icon={<FileText size={14} />} defaultOpen={true}>
+          <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
+            <div style={{
+              padding: '8px',
+              background: data.conditionMet
+                ? 'rgba(57, 255, 20, 0.1)'
+                : 'rgba(255, 0, 64, 0.1)',
+              borderRadius: '4px',
+              border: data.conditionMet
+                ? '1px solid rgba(57, 255, 20, 0.3)'
+                : '1px solid rgba(255, 0, 64, 0.3)',
+              color: data.conditionMet ? '#39ff14' : '#ff0040',
+              fontWeight: 600,
+              letterSpacing: '0.01em',
+              fontSize: '12px',
+              fontFamily: 'inherit',
+              textAlign: 'center',
+            }}>
+              {data.conditionMet ? '✓ TRUE' : '✗ FALSE'}
+            </div>
           </div>
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Actions */}
-      <div className="ai-node-field flex items-center gap-2">
+      <div className="ai-node-field flex items-center gap-2" style={{ marginTop: 8 }}>
         <Button
           onClick={handleEvaluate}
           disabled={isEvaluating}

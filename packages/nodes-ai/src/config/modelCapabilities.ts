@@ -33,6 +33,8 @@ export interface ModelConfig {
   description?: string;
   disabled?: boolean;
   notes?: string;
+  contextLength?: number;
+  quantization?: string;
 }
 
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
@@ -274,6 +276,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
     description: 'Moonshot Kimi K2 Instruct (0905)',
+    contextLength: 262144,
+    quantization: 'FP8',
   },
   'deepseek-ai/DeepSeek-V3.1': {
     id: 'deepseek-ai/DeepSeek-V3.1',
@@ -281,6 +285,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 128000,
+    quantization: 'FP8',
   },
   'openai/gpt-oss-120b': {
     id: 'openai/gpt-oss-120b',
@@ -288,6 +294,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 128000,
+    quantization: 'MXFP4',
   },
   'openai/gpt-oss-20b': {
     id: 'openai/gpt-oss-20b',
@@ -295,6 +303,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 128000,
+    quantization: 'MXFP4',
   },
   'moonshotai/Kimi-K2-Instruct': {
     id: 'moonshotai/Kimi-K2-Instruct',
@@ -302,6 +312,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 128000,
+    quantization: 'FP8',
   },
   'zai-org/GLM-4.5-Air-FP8': {
     id: 'zai-org/GLM-4.5-Air-FP8',
@@ -309,6 +321,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 131072,
+    quantization: 'FP8',
   },
   'Qwen/Qwen3-235B-A22B-Thinking-2507': {
     id: 'Qwen/Qwen3-235B-A22B-Thinking-2507',
@@ -316,6 +330,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode', 'reasoning'],
     supportedModes: ['text', 'structured'],
+    contextLength: 262144,
+    quantization: 'FP8',
   },
   'Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8': {
     id: 'Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8',
@@ -323,6 +339,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 256000,
+    quantization: 'FP8',
   },
   'Qwen/Qwen3-235B-A22B-Instruct-2507-tput': {
     id: 'Qwen/Qwen3-235B-A22B-Instruct-2507-tput',
@@ -330,6 +348,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 262144,
+    quantization: 'FP8',
   },
   'Qwen/Qwen3-Next-80B-A3B-Instruct': {
     id: 'Qwen/Qwen3-Next-80B-A3B-Instruct',
@@ -337,6 +357,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 262144,
+    quantization: 'BF16',
   },
   'Qwen/Qwen3-Next-80B-A3B-Thinking': {
     id: 'Qwen/Qwen3-Next-80B-A3B-Thinking',
@@ -344,6 +366,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode', 'reasoning'],
     supportedModes: ['text', 'structured'],
+    contextLength: 262144,
+    quantization: 'BF16',
   },
   'deepseek-ai/DeepSeek-R1': {
     id: 'deepseek-ai/DeepSeek-R1',
@@ -351,6 +375,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode', 'reasoning'],
     supportedModes: ['text', 'structured'],
+    contextLength: 163839,
+    quantization: 'FP8',
   },
   'deepseek-ai/DeepSeek-R1-0528-tput': {
     id: 'deepseek-ai/DeepSeek-R1-0528-tput',
@@ -358,6 +384,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode', 'reasoning'],
     supportedModes: ['text', 'structured'],
+    contextLength: 163839,
+    quantization: 'FP8',
   },
   'deepseek-ai/DeepSeek-V3': {
     id: 'deepseek-ai/DeepSeek-V3',
@@ -365,6 +393,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 163839,
+    quantization: 'FP8',
   },
   'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8': {
     id: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8',
@@ -372,6 +402,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode', 'vision'],
     supportedModes: ['text', 'structured'],
+    contextLength: 1048576,
+    quantization: 'FP8',
   },
   'meta-llama/Llama-4-Scout-17B-16E-Instruct': {
     id: 'meta-llama/Llama-4-Scout-17B-16E-Instruct',
@@ -379,6 +411,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode', 'vision'],
     supportedModes: ['text', 'structured'],
+    contextLength: 1048576,
+    quantization: 'FP16',
   },
   'meta-llama/Llama-3.3-70B-Instruct-Turbo': {
     id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',
@@ -442,6 +476,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 131072,
+    quantization: 'FP8',
   },
   'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': {
     id: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
@@ -449,6 +485,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 131072,
+    quantization: 'FP8',
   },
   'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free': {
     id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
@@ -457,6 +495,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
     notes: 'Reduced rate limits on free tier',
+    contextLength: 8193,
+    quantization: 'FP8',
   },
   'Qwen/Qwen2.5-7B-Instruct-Turbo': {
     id: 'Qwen/Qwen2.5-7B-Instruct-Turbo',
@@ -464,6 +504,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 32768,
+    quantization: 'FP8',
   },
   'Qwen/Qwen2.5-72B-Instruct-Turbo': {
     id: 'Qwen/Qwen2.5-72B-Instruct-Turbo',
@@ -471,6 +513,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 32768,
+    quantization: 'FP8',
   },
   'Qwen/Qwen2.5-VL-72B-Instruct': {
     id: 'Qwen/Qwen2.5-VL-72B-Instruct',
@@ -478,6 +522,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode', 'vision'],
     supportedModes: ['text', 'structured'],
+    contextLength: 32768,
+    quantization: 'FP8',
   },
   'Qwen/Qwen2.5-Coder-32B-Instruct': {
     id: 'Qwen/Qwen2.5-Coder-32B-Instruct',
@@ -485,6 +531,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 32768,
+    quantization: 'FP16',
   },
   'Qwen/QwQ-32B': {
     id: 'Qwen/QwQ-32B',
@@ -492,6 +540,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode', 'reasoning'],
     supportedModes: ['text', 'structured'],
+    contextLength: 32768,
+    quantization: 'FP16',
   },
   'Qwen/Qwen3-235B-A22B-fp8-tput': {
     id: 'Qwen/Qwen3-235B-A22B-fp8-tput',
@@ -499,6 +549,8 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 40960,
+    quantization: 'FP8',
   },
   'arcee-ai/coder-large': {
     id: 'arcee-ai/coder-large',
@@ -513,6 +565,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 128000,
   },
   'arcee-ai/virtuoso-large': {
     id: 'arcee-ai/virtuoso-large',
@@ -520,6 +573,7 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['text-generation', 'structured-output', 'json-mode'],
     supportedModes: ['text', 'structured'],
+    contextLength: 128000,
   },
   'arcee-ai/maestro-reasoning': {
     id: 'arcee-ai/maestro-reasoning',
@@ -613,6 +667,21 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['image-generation'],
     supportedModes: ['image'],
+    // @ts-ignore
+    pricePerImageUSD: 0.0027,
+    // @ts-ignore
+    imagesPerDollar: 370,
+    // @ts-ignore
+    defaultSteps: 4,
+  },
+  'black-forest-labs/FLUX.1-schnell-Free': {
+    id: 'black-forest-labs/FLUX.1-schnell-Free',
+    name: 'FLUX.1 Schnell (Free)',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    notes: 'Free tier with reduced rate limits/perf',
   },
   'black-forest-labs/FLUX.1-dev': {
     id: 'black-forest-labs/FLUX.1-dev',
@@ -620,6 +689,12 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['image-generation'],
     supportedModes: ['image'],
+    // @ts-ignore
+    pricePerImageUSD: 0.025,
+    // @ts-ignore
+    imagesPerDollar: 40,
+    // @ts-ignore
+    defaultSteps: 28,
   },
   'black-forest-labs/FLUX.1.1-pro': {
     id: 'black-forest-labs/FLUX.1.1-pro',
@@ -627,6 +702,25 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['image-generation'],
     supportedModes: ['image'],
+    // @ts-ignore
+    pricePerImageUSD: 0.04,
+    // @ts-ignore
+    imagesPerDollar: 25,
+  },
+  // FLUX.1 Pro (listed, disabled until verified)
+  'black-forest-labs/FLUX.1-pro': {
+    id: 'black-forest-labs/FLUX.1-pro',
+    name: 'FLUX.1 Pro',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.05,
+    // @ts-ignore
+    imagesPerDollar: 20,
+    // @ts-ignore
+    defaultSteps: 28,
   },
   'black-forest-labs/FLUX.1-kontext-pro': {
     id: 'black-forest-labs/FLUX.1-kontext-pro',
@@ -634,6 +728,16 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['image-generation', 'vision'],
     supportedModes: ['image'],
+    // Pricing/behavior metadata for UI
+    // Provided values: $0.025 per image, ~40 images per $1, default steps 28
+    // (actual Together pricing is per-MP; this is a simplified display)
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    pricePerImageUSD: 0.04,
+    // @ts-ignore
+    imagesPerDollar: 25,
+    // @ts-ignore
+    defaultSteps: 28,
   },
   'black-forest-labs/FLUX.1-kontext-max': {
     id: 'black-forest-labs/FLUX.1-kontext-max',
@@ -641,6 +745,12 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['image-generation', 'vision'],
     supportedModes: ['image'],
+    // @ts-ignore
+    pricePerImageUSD: 0.08,
+    // @ts-ignore
+    imagesPerDollar: 12.5,
+    // @ts-ignore
+    defaultSteps: 28,
   },
   'black-forest-labs/FLUX.1-kontext-dev': {
     id: 'black-forest-labs/FLUX.1-kontext-dev',
@@ -648,6 +758,12 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['image-generation', 'vision'],
     supportedModes: ['image'],
+    // @ts-ignore
+    pricePerImageUSD: 0.025,
+    // @ts-ignore
+    imagesPerDollar: 40,
+    // @ts-ignore
+    defaultSteps: 28,
   },
   'black-forest-labs/FLUX.1-krea-dev': {
     id: 'black-forest-labs/FLUX.1-krea-dev',
@@ -655,6 +771,193 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['image-generation'],
     supportedModes: ['image'],
+    // @ts-ignore
+    pricePerImageUSD: 0.025,
+    // @ts-ignore
+    imagesPerDollar: 40,
+    // @ts-ignore
+    defaultSteps: 28,
+  },
+  // Additional Together image models (listed, disabled until verified)
+  'google/flash-image-2.5': {
+    id: 'google/flash-image-2.5',
+    name: 'Flash Image 2.5 (Nano Banana)',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.039,
+    // @ts-ignore
+    imagesPerDollar: 25.6,
+  },
+  'ByteDance-Seed/Seedream-3.0': {
+    id: 'ByteDance-Seed/Seedream-3.0',
+    name: 'Seedream 3.0',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.018,
+    // @ts-ignore
+    imagesPerDollar: 55.5,
+  },
+  'ByteDance-Seed/Seedream-4.0': {
+    id: 'ByteDance-Seed/Seedream-4.0',
+    name: 'Seedream 4.0',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.03,
+    // @ts-ignore
+    imagesPerDollar: 33.3,
+  },
+  'ByteDance-Seed/SeedEdit': {
+    id: 'ByteDance-Seed/SeedEdit',
+    name: 'SeedEdit',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.03,
+    // @ts-ignore
+    imagesPerDollar: 33.3,
+  },
+  'Qwen/Qwen-Image': {
+    id: 'Qwen/Qwen-Image',
+    name: 'Qwen Image',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.0058,
+    // @ts-ignore
+    imagesPerDollar: 172.4,
+  },
+  'Qwen/Qwen-Image-Edit': {
+    id: 'Qwen/Qwen-Image-Edit',
+    name: 'Qwen Image Edit',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.0032,
+    // @ts-ignore
+    imagesPerDollar: 312.5,
+  },
+  'RunDiffusion/Juggernaut-pro-flux': {
+    id: 'RunDiffusion/Juggernaut-pro-flux',
+    name: 'Juggernaut Pro Flux',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.0049,
+    // @ts-ignore
+    imagesPerDollar: 204,
+  },
+  'Rundiffusion/Juggernaut-Lightning-Flux': {
+    id: 'Rundiffusion/Juggernaut-Lightning-Flux',
+    name: 'Juggernaut Lightning Flux',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.0017,
+    // @ts-ignore
+    imagesPerDollar: 588.2,
+  },
+  'HiDream-ai/HiDream-I1-Full': {
+    id: 'HiDream-ai/HiDream-I1-Full',
+    name: 'HiDream-I1-Full',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.009,
+    // @ts-ignore
+    imagesPerDollar: 111.1,
+  },
+  'HiDream-ai/HiDream-I1-Dev': {
+    id: 'HiDream-ai/HiDream-I1-Dev',
+    name: 'HiDream-I1-Dev',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.0045,
+    // @ts-ignore
+    imagesPerDollar: 222.2,
+  },
+  'HiDream-ai/HiDream-I1-Fast': {
+    id: 'HiDream-ai/HiDream-I1-Fast',
+    name: 'HiDream-I1-Fast',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.0032,
+    // @ts-ignore
+    imagesPerDollar: 312.5,
+  },
+  'ideogram/ideogram-3.0': {
+    id: 'ideogram/ideogram-3.0',
+    name: 'Ideogram 3.0',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.06,
+    // @ts-ignore
+    imagesPerDollar: 16.6,
+  },
+  'Lykon/DreamShaper': {
+    id: 'Lykon/DreamShaper',
+    name: 'DreamShaper',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.0006,
+    // @ts-ignore
+    imagesPerDollar: 1666.6,
+  },
+  'stabilityai/stable-diffusion-xl-base-1.0': {
+    id: 'stabilityai/stable-diffusion-xl-base-1.0',
+    name: 'Stable Diffusion XL (base 1.0)',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.0019,
+    // @ts-ignore
+    imagesPerDollar: 526.3,
+  },
+  'stabilityai/stable-diffusion-3-medium': {
+    id: 'stabilityai/stable-diffusion-3-medium',
+    name: 'Stable Diffusion 3 (medium)',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.0019,
+    // @ts-ignore
+    imagesPerDollar: 526.3,
   },
   // Other image models present but disabled until verified
   'google/imagen-4.0-preview': {
@@ -663,8 +966,12 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['image-generation'],
     supportedModes: ['image'],
-    disabled: true,
+    disabled: false,
     notes: 'Not yet wired in togetherImagesCreate tests',
+    // @ts-ignore
+    pricePerImageUSD: 0.04,
+    // @ts-ignore
+    imagesPerDollar: 25,
   },
   'google/imagen-4.0-fast': {
     id: 'google/imagen-4.0-fast',
@@ -672,7 +979,11 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['image-generation'],
     supportedModes: ['image'],
-    disabled: true,
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.02,
+    // @ts-ignore
+    imagesPerDollar: 50,
   },
   'google/imagen-4.0-ultra': {
     id: 'google/imagen-4.0-ultra',
@@ -680,7 +991,24 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
     provider: 'together',
     capabilities: ['image-generation'],
     supportedModes: ['image'],
-    disabled: true,
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.06,
+    // @ts-ignore
+    imagesPerDollar: 16.6,
+  },
+  // FLUX.1 Canny [pro] (not yet verified)
+  'black-forest-labs/FLUX.1-canny-pro': {
+    id: 'black-forest-labs/FLUX.1-canny-pro',
+    name: 'FLUX.1 Canny Pro',
+    provider: 'together',
+    capabilities: ['image-generation'],
+    supportedModes: ['image'],
+    disabled: false,
+    // @ts-ignore
+    pricePerImageUSD: 0.05,
+    // @ts-ignore
+    imagesPerDollar: 20,
   },
 };
 

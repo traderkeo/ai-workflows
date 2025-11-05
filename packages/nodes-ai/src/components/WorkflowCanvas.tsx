@@ -14,9 +14,12 @@ import { useFlowStore } from '../hooks/useFlowStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { StartNode } from '../nodes/StartNode';
 import { StopNode } from '../nodes/StopNode';
-import { AIAgentNode } from '../nodes/AIAgentNode';
-import { TextGenerationNode } from '../nodes/TextGenerationNode';
-import { StructuredDataNode } from '../nodes/StructuredDataNode';
+import { AIAgentNodeV6 as AIAgentNode } from '../nodes/AIAgentNodeV6';
+import { GenerateNode } from '../nodes/GenerateNode';
+import { ImageGenerationNode } from '../nodes/ImageGenerationNode';
+import { AudioTTSNode } from '../nodes/AudioTTSNode';
+import { VideoGenerationNode } from '../nodes/VideoGenerationNode';
+import { RerankNode } from '../nodes/RerankNode';
 import { TransformNode } from '../nodes/TransformNode';
 import { MergeNode } from '../nodes/MergeNode';
 import { ConditionNode } from '../nodes/ConditionNode';
@@ -44,8 +47,11 @@ const nodeTypes = {
   start: StartNode,
   stop: StopNode,
   'ai-agent': AIAgentNode,
-  'text-generation': TextGenerationNode,
-  'structured-data': StructuredDataNode,
+  'generate': GenerateNode,
+  'image-generation': ImageGenerationNode,
+  'audio-tts': AudioTTSNode,
+  'video-generation': VideoGenerationNode,
+  'rerank': RerankNode,
   transform: TransformNode,
   merge: MergeNode,
   condition: ConditionNode,
