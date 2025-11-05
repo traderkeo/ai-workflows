@@ -15,8 +15,11 @@ export type AINodeType =
   | 'start'
   | 'stop'
   | 'ai-agent'
-  | 'text-generation'
-  | 'structured-data'
+  | 'generate'
+  | 'image-generation'
+  | 'audio-tts'
+  | 'video-generation'
+  | 'rerank'
   | 'tool-calling'
   | 'embedding'
   | 'semantic-search'
@@ -67,23 +70,16 @@ export interface StopNodeData extends BaseNodeData {
   value: any;
 }
 
-export interface TextGenerationNodeData extends BaseNodeData {
+// (Removed) TextGenerationNodeData and StructuredDataNodeData in favor of GenerateNodeData
+
+export interface GenerateNodeData extends BaseNodeData {
+  mode: 'text' | 'structured';
   prompt: string;
   model?: string;
   temperature?: number;
   maxTokens?: number;
   systemPrompt?: string;
-  result?: string;
-  usage?: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens: number;
-  };
-}
-
-export interface StructuredDataNodeData extends BaseNodeData {
-  prompt: string;
-  schema?: z.ZodType;
+  // Structured
   schemaFields?: Array<{
     name: string;
     type: 'string' | 'number' | 'boolean' | 'object' | 'array';
@@ -91,8 +87,6 @@ export interface StructuredDataNodeData extends BaseNodeData {
   }>;
   schemaName?: string;
   schemaDescription?: string;
-  model?: string;
-  temperature?: number;
   result?: any;
   usage?: {
     promptTokens: number;
@@ -108,6 +102,17 @@ export interface AIAgentNodeData extends BaseNodeData {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  // Agent v6 additions
+  messages?: Array<{ role: 'system' | 'user' | 'assistant' | 'tool'; content: string }>;
+  tools?: { calculator?: boolean; search?: boolean; dateTime?: boolean };
+  customTools?: Array<{
+    name: string;
+    description?: string;
+    parametersJson?: string; // JSON Schema-like definition string
+    endpointUrl?: string; // optional webhook endpoint for server-side execution
+    method?: 'GET' | 'POST';
+  }>;
+  appendAssistantToHistory?: boolean;
   // Text generation fields
   streamingText?: string;
   isStreaming?: boolean;
@@ -165,6 +170,54 @@ export interface AIAgentNodeData extends BaseNodeData {
     completionTokens: number;
     totalTokens: number;
   };
+}
+
+export interface ImageGenerationNodeData extends BaseNodeData {
+  operation: 'generate' | 'edit' | 'variation';
+  prompt?: string;
+  model?: string; // includes Together model ids
+  // Common
+  size?: string;
+  n?: number;
+  // OpenAI extras
+  quality?: 'standard' | 'hd';
+  style?: 'natural' | 'vivid';
+  responseFormat?: 'b64_json' | 'url';
+  // Together extras
+  steps?: number;
+  seed?: number;
+  negativePrompt?: string;
+  aspectRatio?: string;
+  referenceUrl?: string;
+  disableSafetyChecker?: boolean;
+  imageLorasJson?: string;
+  // Edit/variation sources
+  sourceImage?: string;
+  maskImage?: string;
+  result?: { type: 'image'; image?: string; format?: string; revisedPrompt?: string; loading?: boolean };
+}
+
+export interface AudioTTSNodeData extends BaseNodeData {
+  text: string;
+  model?: string; // tts-1 default
+  voice?: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+  speed?: number;
+  instructions?: string;
+  result?: { type: 'audio'; audio?: string; format?: string; loading?: boolean };
+}
+
+export interface VideoGenerationNodeData extends BaseNodeData {
+  prompt?: string;
+  model?: string;
+  note?: string;
+}
+
+export interface RerankNodeData extends BaseNodeData {
+  query: string;
+  candidates: string; // newline separated
+  topK?: number;
+  model?: string;
+  result?: any;
 }
 
 export interface ToolCallingNodeData extends BaseNodeData {
@@ -345,9 +398,12 @@ export interface RetrievalQANodeData extends BaseNodeData {
 export type AINodeData =
   | StartNodeData
   | StopNodeData
+  | GenerateNodeData
   | AIAgentNodeData
-  | TextGenerationNodeData
-  | StructuredDataNodeData
+  | ImageGenerationNodeData
+  | AudioTTSNodeData
+  | VideoGenerationNodeData
+  | RerankNodeData
   | ToolCallingNodeData
   | EmbeddingNodeData
   | SemanticSearchNodeData

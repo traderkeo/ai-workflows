@@ -12,7 +12,8 @@ const SelectTrigger = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
-    className={`ai-node-select ${className || ''}`}
+    className={`ai-node-select nodrag ${className || ''}`}
+    onMouseDown={(e) => { e.stopPropagation(); (props as any)?.onMouseDown?.(e); }}
     style={{
       display: 'flex',
       alignItems: 'center',

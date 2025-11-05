@@ -163,16 +163,18 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
       
       console.log('Saving workflow:', { id: savedWorkflowId, name: saveName, nodes: workflow.flow.nodes.length, edges: workflow.flow.edges.length });
       
+      const now = Date.now();
       const item: SavedWorkflowItem = {
         id: savedWorkflowId,
         name: saveName.trim(),
-        updatedAt: Date.now(),
+        updatedAt: now,
         workflow: {
           ...workflow,
           metadata: {
             ...workflow.metadata,
+            id: savedWorkflowId, // ensure store id matches library id
             name: saveName.trim(),
-            updatedAt: Date.now(),
+            updatedAt: now,
           },
         },
       };
@@ -186,16 +188,19 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
       
       setSaveDialogOpen(false);
       setSaveName('');
-      
+
+      // Immediately load the saved workflow so the current workflowId matches the library item id
+      onLoad(item.workflow);
+
       // Enable autosave for newly saved workflows
       setAutosaveEnabled(true);
-      
+
       // Initialize the saved state reference
       lastSavedStateRef.current = JSON.stringify({
-        nodeCount: workflow.flow.nodes.length,
-        edgeCount: workflow.flow.edges.length,
-        nodes: workflow.flow.nodes.map(n => ({ id: n.id, x: n.position?.x, y: n.position?.y, type: n.type })),
-        edges: workflow.flow.edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
+        nodeCount: item.workflow.flow.nodes.length,
+        edgeCount: item.workflow.flow.edges.length,
+        nodes: item.workflow.flow.nodes.map(n => ({ id: n.id, x: n.position?.x, y: n.position?.y, type: n.type })),
+        edges: item.workflow.flow.edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
       });
       
       notifications.showToast('Workflow saved successfully! Autosave enabled.', 'success');

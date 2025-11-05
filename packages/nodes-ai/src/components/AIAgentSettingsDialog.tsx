@@ -47,6 +47,8 @@ export const AIAgentSettingsDialog: React.FC<AIAgentSettingsDialogProps> = ({
   );
   const [copiedVariable, setCopiedVariable] = useState<string | null>(null);
   const [showCustomModelId, setShowCustomModelId] = useState<boolean>(false);
+  const [modelSearchQuery, setModelSearchQuery] = useState<string>('');
+  const [capabilityFilters, setCapabilityFilters] = useState<string[]>([]);
 
   const mode = data.mode || 'text';
   const selectedModel = data.model || 'gpt-4o-mini';
@@ -200,6 +202,36 @@ export const AIAgentSettingsDialog: React.FC<AIAgentSettingsDialogProps> = ({
                 }}>
                   Model
                 </Label>
+
+                {/* Search and capability filters */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                  <input
+                    type="text"
+                    value={modelSearchQuery}
+                    onChange={(e) => setModelSearchQuery(e.target.value)}
+                    placeholder="Search models by name or ID..."
+                    className="ai-node-input"
+                    style={{ flex: 1 }}
+                  />
+                  {/* Quick capability chips */}
+                  {['json-mode', 'vision', 'reasoning', 'image-generation'].map((cap) => (
+                    <button
+                      key={cap}
+                      type="button"
+                      onClick={() => setCapabilityFilters((prev) => prev.includes(cap) ? prev.filter(c => c !== cap) : [...prev, cap])}
+                      style={{
+                        padding: '6px 8px',
+                        fontSize: '11px',
+                        borderRadius: '12px',
+                        border: capabilityFilters.includes(cap) ? '1px solid #8ab4ff' : '1px solid rgba(255,255,255,0.15)',
+                        background: capabilityFilters.includes(cap) ? 'rgba(138,180,255,0.15)' : 'transparent',
+                        color: capabilityFilters.includes(cap) ? '#8ab4ff' : '#bbb',
+                      }}
+                    >
+                      {cap}
+                    </button>
+                  ))}
+                </div>
                 <Select
                   value={data.model || 'gpt-4o-mini'}
                   onValueChange={(value) => onUpdate('model', value)}
@@ -208,6 +240,26 @@ export const AIAgentSettingsDialog: React.FC<AIAgentSettingsDialogProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* All (filtered) */}
+                    {(modelSearchQuery.trim().length > 0 || capabilityFilters.length > 0) && (
+                      <SelectGroup>
+                        <SelectLabel style={{ fontFamily: 'inherit', fontSize: '11px', fontWeight: 600 }}>Search Results</SelectLabel>
+                        {Object.values(MODEL_CONFIGS)
+                          .filter(m => m.supportedModes.includes(mode as any))
+                          .filter(m => {
+                            const q = modelSearchQuery.toLowerCase();
+                            const okQ = q.length === 0 || m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q);
+                            const okCaps = capabilityFilters.every(cf => m.capabilities.includes(cf as any));
+                            return okQ && okCaps;
+                          })
+                          .sort((a,b) => a.name.localeCompare(b.name))
+                          .map(m => (
+                            <SelectItem key={m.id} value={m.id} disabled={!!m.disabled} style={{ fontFamily: 'inherit', fontSize: '14px' }}>
+                              {m.name} — {m.provider}{m.disabled ? ' (Not configured)' : ''}
+                            </SelectItem>
+                          ))}
+                      </SelectGroup>
+                    )}
                     <SelectGroup>
                       <SelectLabel style={{ fontFamily: 'inherit', fontSize: '11px', fontWeight: 600 }}>OpenAI - GPT-5</SelectLabel>
                       <SelectItem value="gpt-5-pro" style={{ fontFamily: 'inherit', fontSize: '14px' }}>GPT-5 Pro</SelectItem>
@@ -326,6 +378,15 @@ export const AIAgentSettingsDialog: React.FC<AIAgentSettingsDialogProps> = ({
                       )}
                       {(modelConfig as any).quantization && (
                         <div style={{ fontSize: '11px', color: '#bbb' }}>Quant: {(modelConfig as any).quantization}</div>
+                      )}
+                      {(modelConfig as any).defaultSteps && (
+                        <div style={{ fontSize: '11px', color: '#bbb' }}>Default Steps: {(modelConfig as any).defaultSteps}</div>
+                      )}
+                      {(modelConfig as any).pricePerImageUSD && (
+                        <div style={{ fontSize: '11px', color: '#bbb' }}>Est. $/image: ${(modelConfig as any).pricePerImageUSD}</div>
+                      )}
+                      {(modelConfig as any).imagesPerDollar && (
+                        <div style={{ fontSize: '11px', color: '#bbb' }}>Images/$1: {(modelConfig as any).imagesPerDollar}</div>
                       )}
                       {modelConfig.notes && (
                         <div style={{ fontSize: '11px', color: '#bbb' }}>{modelConfig.notes}</div>

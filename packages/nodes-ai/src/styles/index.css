@@ -199,6 +199,16 @@
    MiniMap
    ============================================================================ */
 
+/* Typography (Geist-inspired) */
+:root {
+  --font-primary: var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif);
+  --font-mono: var(--font-geist-mono, "Geist Mono", "JetBrains Mono", ui-monospace, monospace);
+}
+.ai-node { font-family: var(--font-primary); }
+.ai-node h1, .ai-node h2, .ai-node h3, .ai-node h4 { font-weight: 700; letter-spacing: 0.01em; }
+.ai-node p, .ai-node label, .ai-node .ai-node-field-label { letter-spacing: 0.01em; }
+.ai-node code, .ai-node pre { font-family: var(--font-mono); }
+
 .react-flow__minimap {
   background: var(--gothic-charcoal);
   border: 1px solid var(--cyber-neon-purple);
@@ -352,12 +362,13 @@
 }
 
 .ai-node-field-label {
-  color: var(--cyber-neon-purple);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
+  color: #888;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin-bottom: 6px;
   display: block;
+  font-family: var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif);
 }
 
 .ai-node-field-value {
@@ -367,19 +378,21 @@
 
 .ai-node-input {
   width: 100%;
-  background: var(--gothic-black);
-  border: 1px solid var(--cyber-neon-purple);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 242, 255, 0.2);
   border-radius: 4px;
-  padding: 8px;
-  color: var(--cyber-neon-cyan);
-  font-family: var(--font-mono);
-  font-size: 12px;
+  padding: 8px 12px;
+  color: var(--text-primary, #e5e5e5);
+  font-family: var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
   outline: none;
   transition: all 0.2s ease;
 }
 
 .ai-node-input:focus {
-  border-color: var(--cyber-neon-cyan);
+  border-color: rgba(0, 242, 255, 0.5);
   box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
 }
 
@@ -390,14 +403,15 @@
 
 .ai-node-select {
   width: 100%;
-  background: var(--gothic-black);
-  border: 1px solid var(--cyber-neon-purple);
-  border-radius: 6px;
-  padding: 10px 12px;
-  color: var(--cyber-neon-cyan);
-  font-family: var(--font-geist-sans, "Geist", "Inter", sans-serif);
-  font-size: 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(176, 38, 255, 0.2);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: var(--text-primary, #e5e5e5);
+  font-family: var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif);
+  font-size: 13px;
   font-weight: 400;
+  letter-spacing: 0.01em;
   outline: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -416,12 +430,70 @@
 }
 
 .ai-node-select:hover {
-  border-color: var(--cyber-neon-cyan);
+  border-color: rgba(176, 38, 255, 0.4);
 }
 
 .ai-node-select:focus {
-  border-color: var(--cyber-neon-cyan);
-  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+  border-color: rgba(176, 38, 255, 0.5);
+  box-shadow: 0 0 10px rgba(176, 38, 255, 0.3);
+}
+
+/* Native select elements within nodes */
+.ai-node select,
+.ai-node select.nodrag {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(176, 38, 255, 0.2);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: var(--text-primary, #e5e5e5);
+  font-family: var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-node select:focus,
+.ai-node select.nodrag:focus {
+  border-color: rgba(176, 38, 255, 0.5);
+  box-shadow: 0 0 10px rgba(176, 38, 255, 0.3);
+}
+
+/* Checkboxes within nodes */
+.ai-node input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(176, 38, 255, 0.4);
+  border-radius: 3px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.ai-node input[type="checkbox"]:hover {
+  border-color: rgba(176, 38, 255, 0.6);
+}
+
+.ai-node input[type="checkbox"]:checked {
+  background: rgba(176, 38, 255, 0.3);
+  border-color: rgba(176, 38, 255, 0.6);
+}
+
+.ai-node input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
 }
 
 .ai-node-button {
@@ -447,6 +519,41 @@
 
 .ai-node-button:active {
   transform: translateY(0);
+}
+
+/* Collapsible Sections */
+.ai-node-collapsible-section {
+  margin-bottom: 12px;
+}
+
+.ai-node-section-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(176, 38, 255, 0.2);
+  border-radius: 4px;
+  color: var(--text-primary, #e5e5e5);
+  font-family: var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.ai-node-section-trigger:hover {
+  border-color: rgba(176, 38, 255, 0.4);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.ai-node-section-content {
+  padding-top: 8px;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
 .ai-node-footer {
@@ -527,25 +634,26 @@
   padding: 10px 12px 10px 32px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--cyber-neon-cyan);
+  color: var(--text-primary, #e5e5e5);
   cursor: pointer;
   border-radius: 6px;
   outline: none;
   user-select: none;
   transition: all 0.15s ease;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.01em;
   min-height: 36px;
+  font-family: var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif);
 }
 
 .ai-select-item:hover,
 .ai-select-item[data-highlighted] {
   background: rgba(176, 38, 255, 0.15);
-  color: var(--cyber-neon-cyan);
+  color: var(--text-primary, #e5e5e5);
 }
 
 .ai-select-item[data-state="checked"] {
   background: rgba(0, 240, 255, 0.1);
-  color: var(--cyber-neon-cyan);
+  color: var(--text-primary, #e5e5e5);
   font-weight: 600;
 }
 

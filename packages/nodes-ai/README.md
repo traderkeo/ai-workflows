@@ -1,15 +1,17 @@
 # @repo/nodes-ai
 
-Visual node-based AI workflow builder with a cyberpunk-gothic aesthetic, powered by React Flow.
+Visual node-based AI workflow builder with a cyberpunk‑gothic aesthetic, powered by React Flow.
 
 ## Features
 
 - 🎨 **Cyberpunk-Gothic Theme** - Neon accents, dark backgrounds, and glowing effects
 - 🔗 **Visual Workflow Editor** - Drag-and-drop node-based interface
-- 🤖 **AI-Powered Nodes** - Text generation, structured data, embeddings, and more
+- 🤖 **AI-Powered Nodes** - Generate (text + structured), Image, Audio TTS, Agent v6, and more
 - 💾 **Persistent State** - Auto-save, export/import workflows
 - ⚡ **Real-time Execution** - Watch your workflow execute with live status updates
 - 🔄 **State Management** - Built with Zustand for efficient state handling
+- 🧭 **Model Selector** - Searchable models with rich capability badges; supports Together model IDs
+- 🔌 **Custom Tools** - Agent node can call built-ins (search/calculator/datetime) and your webhooks
 
 ## Installation
 
@@ -32,7 +34,7 @@ function App() {
 }
 ```
 
-## Node Types
+## Node Types (Core)
 
 ### Input Node
 Entry point for your workflow. Supports various data types:
@@ -41,19 +43,38 @@ Entry point for your workflow. Supports various data types:
 - Object
 - Array
 
-### Text Generation Node
-Generate text using OpenAI models with configurable:
-- Prompt
-- Model selection (GPT-4o, GPT-4o Mini, GPT-4 Turbo, GPT-3.5 Turbo)
-- Temperature
-- Max tokens
-- System prompt
+### Generate (Text + Structured)
+Unified node for text generation and structured output.
+- Prompt, System prompt, Temperature, Max tokens
+- Mode: `text` or `structured`
+- Visual schema builder for structured output
+- Uses the searchable Model Selector (OpenAI, Anthropic, Google, and Together IDs)
 
-### Structured Data Node
-Generate structured data with schema validation:
-- Define schemas using Zod
-- Control output format
-- Type-safe results
+### Image Generation
+Create, edit, or vary images.
+- OpenAI models (DALL·E 3, DALL·E 2, GPT‑Image‑1) and Together image models (enter model ID)
+- Size, count, quality, style
+- Together extras: steps, seed, negative_prompt, aspect_ratio, image_url, loras, safety toggle
+- Supports variable‑based source/sidecar images in edit/variation modes
+
+### Audio TTS
+Text‑to‑speech with OpenAI TTS models.
+- Model, voice, speed
+- Streams or returns audio; renderable inline
+
+### AI Agent (v6)
+Build agents with tool calling and optional reasoning traces.
+- Model Selector, System Instructions, Prompt, Temperature/Max tokens
+- Built‑in tools: calculator, search, dateTime
+- Custom tools: name/description/parameters JSON + optional webhook URL
+- Streaming output + per‑step tool events; optional Reasoning Traces panel
+- Multi‑turn: add user messages; optional auto‑append assistant replies
+
+### Video Generation (scaffold)
+UI scaffold for future workers‑ai video generation integration.
+
+### Rerank (scaffold)
+UI scaffold to preview inputs for future rerank integration.
 
 ### Transform Node
 Transform data using custom JavaScript code:
@@ -88,6 +109,39 @@ The execution engine:
 - Handles parallel execution where possible
 - Updates node status in real-time
 - Captures errors and displays them on nodes
+
+## Model Selector
+
+The Model Selector appears in the Generate, Image Generation, Audio TTS, and Agent nodes.
+- Search by id/name/provider/description
+- Shows provider badge + capability chips (text/structured/vision/json/tool‑calling/reasoning)
+- Displays context length, max tokens, and image pricing hints (when available)
+- To use Together, paste a model ID (contains `/`) like `meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo`
+
+## Agent v6: Streaming and Tools
+
+Server endpoints (Next.js app):
+- `POST /api/workflows/agent`
+  - Body: `{ prompt, model?, temperature?, systemPrompt?, messages?, tools?, customTools? }`
+  - Returns: `{ success, text, toolCalls, usage }`
+- `POST /api/workflows/agent/stream`
+  - Body: same as above plus `reasoning?: boolean`
+  - SSE events:
+    - `{ delta }` incremental text
+    - `{ step, toolCalls }` after a tool step
+    - `{ reasoningDelta }` when enabled and available
+    - `{ done, text, usage }` when complete
+
+Built‑in tools come from `@repo/ai-workers` (search, calculator, dateTime). Custom tools can be added in the node and are executed server‑side:
+- If a custom tool has a `endpointUrl` and it is allowlisted, the server will POST `{"tool":"name","args":{...}}` to the webhook and return the JSON response to the agent.
+- Otherwise, the server returns an echo payload for development.
+
+Environment:
+- `TOOL_WEBHOOK_ALLOWLIST`: comma‑separated origins or hostnames allowed for webhooks.
+  - Example: `TOOL_WEBHOOK_ALLOWLIST=https://api.example.com,example.org`
+
+Reasoning traces:
+- Turn on “Streaming” and “Show Reasoning” in the Agent node to display `{reasoningDelta}` events when the underlying provider/SDK surfaces them (e.g., certain reasoning‑capable models). This is strictly opt‑in.
 
 ## Advanced Features
 
@@ -148,6 +202,18 @@ The package includes a comprehensive cyberpunk-gothic theme with:
 - Status-based node coloring
 - Dark mode optimized
 
+### UI Components
+
+- Buttons, Inputs, Selects, Tabs are shadcn-inspired primitives under `src/components/ui/*`.
+- Switch and StatusBadge components are available for boolean toggles and execution status footers.
+- Use `StatusBadge` + `executionTime` in node footers for consistent telemetry.
+
+### Typography
+
+- Typeface: Geist Sans and Geist Mono (with sensible fallbacks).
+- Defaults are applied via CSS variables; components avoid inline styles where possible.
+- For code blocks and templating, prefer the mono ramp at 13px.
+
 ### CSS Variables
 
 Customize the theme by overriding these CSS variables:
@@ -173,6 +239,10 @@ All AI operations are powered by `@repo/ai-workers`:
 import { generateTextNode, WorkflowContext } from '@repo/ai-workers';
 ```
 
+Together.ai support:
+- The workers library integrates Together chat and image APIs.
+- Set `TOGETHER_API_KEY` (and optional `TOGETHER_BASE_URL`) in the environment hosting your API routes.
+
 ### With workflows-ai
 
 For durable workflows, combine with `@repo/workflows-ai`:
@@ -185,10 +255,11 @@ import { textGenerationStep } from '@repo/workflows-ai';
 
 ### Components
 
-- `WorkflowBuilder` - Main component with ReactFlowProvider
-- `WorkflowCanvas` - Canvas with controls and panels
-- `ContextMenu` - Right-click menu for adding nodes
-- `BaseAINode` - Base component for creating custom nodes
+- `WorkflowBuilder` – Main component with ReactFlowProvider
+- `WorkflowCanvas` – Canvas with controls and panels
+- `ContextMenu` – Right‑click menu for adding nodes
+- `BaseAINode` – Base component for creating custom nodes
+- Nodes included: `Start`, `Stop`, `Generate`, `ImageGeneration`, `AudioTTS`, `AIAgent (v6)`, `VideoGeneration (scaffold)`, `Rerank (scaffold)`, `Template`, `Transform`, `Condition`, `Merge`, `Loop`, `Cache`, `Guardrail`, `WebScrape`, `DocumentIngest`, `RetrievalQA`, `WebSearch`
 
 ### Hooks
 
@@ -222,5 +293,5 @@ Built with:
 - [React Flow](https://reactflow.dev/) - Node-based UI library
 - [Zustand](https://zustand-demo.pmnd.rs/) - State management
 - [Lucide React](https://lucide.dev/) - Icons
-- [@repo/ai-workers](../ai-workers) - AI operations
+- [@repo/ai-workers](../ai-workers) - AI operations + Together integration
 - [@repo/workflows-ai](../workflows-ai) - Durable workflows

@@ -44,7 +44,7 @@ export const BaseAINode: React.FC<BaseAINodeProps> = ({
   headerActions,
   footerContent,
 }) => {
-  const status = data.status || 'idle';
+  const status = (data.status || 'idle') as NodeStatus;
   const statusColor = statusColors[status];
   const { updateNode } = useFlowStore();
 

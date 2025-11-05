@@ -6,6 +6,9 @@ import { useFlowStore } from '../hooks/useFlowStore';
 import { resolveVariables } from '../utils/variableResolver';
 import type { WebScrapeNodeData } from '../types';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Switch } from '../components/ui/Switch';
+import { StatusBadge } from '../components/ui/StatusBadge';
 
 function extractTextFromHTML(html: string): { title?: string; text: string } {
   try {
@@ -64,21 +67,15 @@ export const WebScrapeNode: React.FC<NodeProps> = (props) => {
     <BaseAINode {...props} data={data} icon={<Globe size={18} />}> 
       <div className="ai-node-field">
         <label className="ai-node-field-label">URL</label>
-        <input
-          type="text"
-          className="ai-node-input"
+        <Input
           value={data.url ?? ''}
-          onChange={(e) => handleChange('url', e.target.value)}
+          onChange={(e) => handleChange('url', (e.target as HTMLInputElement).value)}
           placeholder="https://example.com or {{node}}"
         />
-        <label className="flex items-center gap-2 text-xs mt-2">
-          <input
-            type="checkbox"
-            checked={Boolean(data.extractText)}
-            onChange={(e) => handleChange('extractText', e.target.checked)}
-          />
-          Extract readable text
-        </label>
+        <div className="flex items-center gap-2 text-xs mt-2">
+          <Switch checked={Boolean(data.extractText)} onCheckedChange={(v) => handleChange('extractText', v)} />
+          <span>Extract readable text</span>
+        </div>
       </div>
 
       {preview && (
@@ -95,6 +92,14 @@ export const WebScrapeNode: React.FC<NodeProps> = (props) => {
           <Play size={14} /> {isRunning ? 'Fetching…' : 'Fetch'}
         </Button>
       </div>
+      {typeof (props.data as any).executionTime === 'number' && (
+        <div className="ai-node-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <StatusBadge status={((props.data as any).status || 'idle') as any} />
+            <span style={{ fontSize: 10, color: '#888' }}>Execution Time: {(props.data as any).executionTime}ms</span>
+          </div>
+        </div>
+      )}
     </BaseAINode>
   );
 };
