@@ -38,6 +38,7 @@ import { WebSearchNode } from '../nodes/WebSearchNode';
 import { executeWorkflow, validateWorkflow } from '../utils/executionEngine';
 import { useNotifications } from '../context/NotificationContext';
 import { WorkflowToolbar, BottomInstructionsPanel } from './_components';
+import type { SavedWorkflowsPanelHandle } from './SavedWorkflowsPanel';
 
 const NODE_TYPES = {
   start: StartNode,
@@ -87,12 +88,14 @@ const WorkflowCanvasComponent: React.FC = () => {
   const startExecution = useFlowStore((s) => s.startExecution);
   const stopExecution = useFlowStore((s) => s.stopExecution);
   const metadata = useFlowStore((s) => s.metadata);
+  const workflowVersion = useFlowStore((s) => s.workflowVersion);
   const updateMetadata = useFlowStore((s) => s.updateMetadata);
   const autoLayoutNodes = useFlowStore((s) => s.autoLayoutNodes);
   const setViewport = useFlowStore((s) => s.setViewport);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { fitView, setViewport: setReactFlowViewport } = useReactFlow();
+  const savedWorkflowsPanelRef = useRef<SavedWorkflowsPanelHandle>(null!);
+  const { fitView, setViewport: setReactFlowViewport, setNodes: setReactFlowNodes, setEdges: setReactFlowEdges } = useReactFlow();
   const notifications = useNotifications();
 
   const handleExecute = useCallback(async () => {
@@ -147,9 +150,43 @@ const WorkflowCanvasComponent: React.FC = () => {
       reader.onload = async (e) => {
         try {
           const json = e.target?.result as string;
+          const parsedWorkflow = JSON.parse(json);
           importWorkflow(json);
           setTimeout(() => fitView({ duration: 300 }), 100);
           notifications.showToast('Workflow loaded successfully!', 'success');
+
+          const shouldSave = await notifications.showConfirm(
+            'Save this imported workflow to your library to enable autosave?',
+            'Save Imported Workflow'
+          );
+
+          if (shouldSave) {
+            const suggestedName =
+              parsedWorkflow?.metadata?.name?.trim() || `Imported Workflow ${new Date().toLocaleString()}`;
+            const name = await notifications.showPrompt(
+              'Enter a name for this workflow:',
+              suggestedName
+            );
+
+            if (name) {
+              const trimmedName = name.trim();
+              if (!trimmedName) {
+                notifications.showToast('Workflow name cannot be empty.', 'destructive');
+                return;
+              }
+              if (!savedWorkflowsPanelRef.current) {
+                notifications.showToast('Saved workflows panel unavailable. Please save manually from the toolbar.', 'destructive');
+                return;
+              }
+              try {
+                await savedWorkflowsPanelRef.current.saveCurrentWorkflow(trimmedName);
+                notifications.showToast('Imported workflow saved to library.', 'success');
+              } catch (saveError) {
+                console.error('Failed to save imported workflow:', saveError);
+                notifications.showToast('Failed to save imported workflow', 'destructive');
+              }
+            }
+          }
         } catch (error) {
           notifications.showToast('Failed to load workflow. Invalid file format.', 'destructive');
         }
@@ -221,6 +258,7 @@ const WorkflowCanvasComponent: React.FC = () => {
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <ReactFlow
+          key={`${metadata.id}-${workflowVersion}`}
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
@@ -262,17 +300,24 @@ const WorkflowCanvasComponent: React.FC = () => {
             onReset={handleReset}
             onSaveWorkflow={saveWorkflow}
             onLoadWorkflow={(workflow) => {
+              // Load the workflow - this will update the store and increment workflowVersion
+              // The workflowVersion in the key prop will force React Flow to remount
               loadWorkflow(workflow);
-              setTimeout(() => {
-                if (workflow.flow.viewport) {
-                  setReactFlowViewport(workflow.flow.viewport, { duration: 300 });
-                } else {
-                  fitView({ duration: 300 });
-                }
-              }, 100);
+              
+              // Update viewport after React has processed the state update
+              requestAnimationFrame(() => {
+                setTimeout(() => {
+                  if (workflow.flow.viewport) {
+                    setReactFlowViewport(workflow.flow.viewport, { duration: 300 });
+                  } else {
+                    fitView({ duration: 300 });
+                  }
+                }, 100);
+              });
             }}
             nodes={nodes}
             edges={edges}
+            savedWorkflowsRef={savedWorkflowsPanelRef}
           />
 
           <BottomInstructionsPanel />

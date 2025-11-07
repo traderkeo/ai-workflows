@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Save, FolderOpen, Trash2, Download, Plus, X, Clock, FileCode, Search, Tag as TagIcon, Filter } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useImperativeHandle } from 'react';
+import { Save, FolderOpen, Trash2, Download, Plus, X, Clock, FileCode, Search, Tag as TagIcon, Filter, CheckCircle2, Circle } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
 import type { SavedWorkflow } from '../types';
 import { Button } from './ui/Button';
@@ -15,13 +15,18 @@ import {
   DialogTitle,
 } from './ui/Dialog';
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { useFlowStore } from '../hooks/useFlowStore';
 
 interface SavedWorkflowsPanelProps {
   onLoad: (workflow: SavedWorkflow) => void;
   onSave: () => SavedWorkflow;
-  currentWorkflowId: string;
+  currentWorkflowId?: string;
   nodes?: any[]; // For tracking state changes to trigger autosave
   edges?: any[]; // For tracking state changes to trigger autosave
+}
+
+export interface SavedWorkflowsPanelHandle {
+  saveCurrentWorkflow: (name: string) => Promise<void>;
 }
 
 interface SavedWorkflowItem {
@@ -62,24 +67,35 @@ const getDB = (): Promise<IDBPDatabase<WorkflowLibraryDB>> => {
   return dbPromise;
 };
 
-export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
+// Autosave is always enabled - no preference key needed
+
+export const SavedWorkflowsPanel = React.forwardRef<SavedWorkflowsPanelHandle, SavedWorkflowsPanelProps>(({
   onLoad,
   onSave,
-  currentWorkflowId,
+  currentWorkflowId: propWorkflowId,
   nodes = [],
   edges = [],
-}) => {
+}, ref) => {
   const notifications = useNotifications();
+  const storeWorkflowId = useFlowStore((state) => state.metadata.id);
+  const currentWorkflowId = storeWorkflowId || propWorkflowId;
   const [isOpen, setIsOpen] = useState(false);
   const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflowItem[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [autosaveEnabled, setAutosaveEnabled] = useState(false);
+  // Autosave is always enabled - no preference needed
+  const [workflowExistsInLibrary, setWorkflowExistsInLibrary] = useState(false);
+  const autosaveEnabled = workflowExistsInLibrary; // Always enabled when workflow exists in library
   const autosaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedStateRef = React.useRef<string>('');
 
+  // Removed autosave preference - autosave is always enabled
+
+  useEffect(() => {
+    console.log('SavedWorkflowsPanel active workflow ID:', currentWorkflowId);
+  }, [currentWorkflowId]);
   // Load saved workflows from localStorage
   useEffect(() => {
     loadSavedWorkflows();
@@ -91,6 +107,35 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
       loadSavedWorkflows();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkWorkflowExists = async () => {
+      if (!currentWorkflowId) {
+        if (isMounted) {
+          setWorkflowExistsInLibrary(false);
+        }
+        return;
+      }
+      try {
+        const db = await getDB();
+        const existingItem = await db.get(STORE_NAME, currentWorkflowId);
+        if (isMounted) {
+          setWorkflowExistsInLibrary(!!existingItem);
+        }
+      } catch (error) {
+        console.error('Failed to check workflow existence:', error);
+        if (isMounted) {
+          setWorkflowExistsInLibrary(false);
+        }
+      }
+    };
+
+    checkWorkflowExists();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentWorkflowId, savedWorkflows.length]);
 
   // Autosave effect - triggers on workflow changes (debounced)
   useEffect(() => {
@@ -142,15 +187,35 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
       const db = await getDB();
       const allWorkflows = await db.getAll(STORE_NAME);
       console.log('Loaded workflows from IndexedDB:', allWorkflows.length);
-      setSavedWorkflows(allWorkflows.sort((a, b) => b.updatedAt - a.updatedAt));
+      const sorted = allWorkflows.sort((a, b) => b.updatedAt - a.updatedAt);
+      setSavedWorkflows(sorted);
+      if (currentWorkflowId) {
+        const exists = sorted.some((item) => item.id === currentWorkflowId);
+        setWorkflowExistsInLibrary(exists);
+      } else {
+        setWorkflowExistsInLibrary(false);
+      }
     } catch (error) {
       console.error('Failed to load saved workflows:', error);
       setSavedWorkflows([]);
+      setWorkflowExistsInLibrary(false);
     }
   };
 
-  const saveWorkflowToLibrary = async () => {
-    if (!saveName.trim()) {
+  useImperativeHandle(ref, () => ({
+    saveCurrentWorkflow: async (name: string) => {
+      const trimmed = name?.trim();
+      if (!trimmed) {
+        await notifications.showAlert('Please enter a workflow name', 'Save Workflow');
+        return;
+      }
+      await saveWorkflowToLibrary(trimmed);
+    },
+  }));
+
+  const saveWorkflowToLibrary = async (overrideName?: string) => {
+    const targetName = (overrideName ?? saveName).trim();
+    if (!targetName) {
       await notifications.showAlert('Please enter a workflow name', 'Save Workflow');
       return;
     }
@@ -161,19 +226,19 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
       // Generate a new unique ID for each save to allow multiple versions
       const savedWorkflowId = crypto.randomUUID();
       
-      console.log('Saving workflow:', { id: savedWorkflowId, name: saveName, nodes: workflow.flow.nodes.length, edges: workflow.flow.edges.length });
+      console.log('Saving workflow:', { id: savedWorkflowId, name: targetName, nodes: workflow.flow.nodes.length, edges: workflow.flow.edges.length });
       
       const now = Date.now();
       const item: SavedWorkflowItem = {
         id: savedWorkflowId,
-        name: saveName.trim(),
+        name: targetName,
         updatedAt: now,
         workflow: {
           ...workflow,
           metadata: {
             ...workflow.metadata,
             id: savedWorkflowId, // ensure store id matches library id
-            name: saveName.trim(),
+            name: targetName,
             updatedAt: now,
           },
         },
@@ -186,14 +251,16 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
       // Reload workflows from DB to keep state in sync
       await loadSavedWorkflows();
       
-      setSaveDialogOpen(false);
+      if (!overrideName) {
+        setSaveDialogOpen(false);
+      }
       setSaveName('');
 
       // Immediately load the saved workflow so the current workflowId matches the library item id
       onLoad(item.workflow);
 
-      // Enable autosave for newly saved workflows
-      setAutosaveEnabled(true);
+      // Workflow is now in library, autosave is enabled
+      setWorkflowExistsInLibrary(true);
 
       // Initialize the saved state reference
       lastSavedStateRef.current = JSON.stringify({
@@ -222,7 +289,7 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
       const existingItem = await db.get(STORE_NAME, workflowId);
       if (!existingItem) {
         console.warn('Autosave: workflow not found', workflowId);
-        setAutosaveEnabled(false);
+        setWorkflowExistsInLibrary(false);
         return;
       }
       
@@ -243,6 +310,7 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
       
       await db.put(STORE_NAME, updatedItem, updatedItem.id);
       console.log('Autosaved workflow:', workflowId);
+      setWorkflowExistsInLibrary(true);
       
       // Silently reload to sync state
       await loadSavedWorkflows();
@@ -253,56 +321,33 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
 
   const loadWorkflowFromLibrary = async (item: SavedWorkflowItem) => {
     try {
-      // Close the main dialog first to prevent UI conflicts with confirmation dialog
+      console.log('Loading workflow:', item.name, item.id);
+      
+      const workflowToLoad: SavedWorkflow = {
+        ...item.workflow,
+        metadata: {
+          ...item.workflow.metadata,
+          id: item.id,
+        },
+      };
+      
+      onLoad(workflowToLoad);
+      // Workflow is loaded from library, so it exists - autosave is enabled
+      setWorkflowExistsInLibrary(true);
       setIsOpen(false);
+      await loadSavedWorkflows();
       
-      // Wait for dialog close animation to finish (overlay uses 200ms)
-      // Ensure underlying confirm dialog isn't obscured by the prior overlay
-      await new Promise(resolve => setTimeout(resolve, 250));
+      lastSavedStateRef.current = JSON.stringify({
+        nodeCount: item.workflow.flow.nodes.length,
+        edgeCount: item.workflow.flow.edges.length,
+        nodes: item.workflow.flow.nodes.map(n => ({ id: n.id, x: n.position?.x, y: n.position?.y, type: n.type })),
+        edges: item.workflow.flow.edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
+      });
       
-      const confirmed = await notifications.showConfirm(
-        `Load workflow "${item.name}"? Current workflow will be replaced.`,
-        'Load Workflow'
-      );
-      
-      if (confirmed) {
-        console.log('Loading workflow:', item.name, item.id);
-        
-        // Update the workflow metadata to match the saved workflow item ID
-        // This ensures the "CURRENT" badge displays correctly
-        const workflowToLoad: SavedWorkflow = {
-          ...item.workflow,
-          metadata: {
-            ...item.workflow.metadata,
-            id: item.id, // Use the saved workflow's ID
-          },
-        };
-        
-        // Load the workflow
-        onLoad(workflowToLoad);
-        
-        // Enable autosave for loaded workflows
-        setAutosaveEnabled(true);
-        
-        // Initialize the saved state reference
-        lastSavedStateRef.current = JSON.stringify({
-          nodeCount: item.workflow.flow.nodes.length,
-          edgeCount: item.workflow.flow.edges.length,
-          nodes: item.workflow.flow.nodes.map(n => ({ id: n.id, x: n.position?.x, y: n.position?.y, type: n.type })),
-          edges: item.workflow.flow.edges.map(e => ({ id: e.id, source: e.source, target: e.target })),
-        });
-        
-        // Show success notification
-        notifications.showToast(`Loaded workflow "${item.name}" - Autosave enabled`, 'success');
-      } else {
-        // If cancelled, reopen the dialog
-        setIsOpen(true);
-      }
+      notifications.showToast(`Loaded workflow "${item.name}" - Autosave enabled`, 'success');
     } catch (error) {
       console.error('Failed to load workflow:', error);
       notifications.showToast('Failed to load workflow', 'destructive');
-      // Reopen dialog on error
-      setIsOpen(true);
     }
   };
 
@@ -319,6 +364,9 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
         
         // Reload workflows from DB
         await loadSavedWorkflows();
+        if (id === currentWorkflowId) {
+          setWorkflowExistsInLibrary(false);
+        }
         
         notifications.showToast(`Deleted "${name}"`, 'success');
       } catch (error) {
@@ -468,7 +516,7 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
               Cancel
             </Button>
             <Button
-              onClick={saveWorkflowToLibrary}
+              onClick={() => saveWorkflowToLibrary()}
               variant="default"
               size="sm"
               className="h-9 px-4 font-medium"
@@ -526,6 +574,27 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
                 </DialogDescription>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Button
+                  variant={autosaveEnabled ? 'default' : 'outline'}
+                  size="sm"
+                  disabled={!workflowExistsInLibrary}
+                  className="h-9 px-4 font-medium"
+                  style={{
+                    fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+                    letterSpacing: '-0.01em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                  title={
+                    workflowExistsInLibrary
+                      ? 'Autosave is enabled for this workflow'
+                      : 'Save this workflow to enable autosave'
+                  }
+                >
+                  {autosaveEnabled ? <CheckCircle2 size={16} strokeWidth={2} /> : <Circle size={16} strokeWidth={2} />}
+                  {workflowExistsInLibrary ? 'Autosave On' : 'Autosave Unavailable'}
+                </Button>
                 <Button
                   onClick={() => {
                     setIsOpen(false);
@@ -790,7 +859,10 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
                   {filteredWorkflows.map((item) => (
                     <div
                       key={item.id}
-                      onClick={() => loadWorkflowFromLibrary(item)}
+                      onClick={(e) => {
+                        console.log('Workflow card clicked:', item.name, item.id);
+                        loadWorkflowFromLibrary(item);
+                      }}
                       style={{
                         position: 'relative',
                         padding: '18px',
@@ -1003,4 +1075,6 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
 
     </>
   );
-};
+});
+
+SavedWorkflowsPanel.displayName = 'SavedWorkflowsPanel';
