@@ -20,7 +20,8 @@
       "Bash(npx tsx:*)",
       "Bash(npx tsc:*)",
       "Bash(npx rimraf .next)",
-      "WebFetch(domain:ui.shadcn.com)"
+      "WebFetch(domain:ui.shadcn.com)",
+      "Bash(cat:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
