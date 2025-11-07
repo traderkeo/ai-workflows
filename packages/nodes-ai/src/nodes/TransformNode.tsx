@@ -5,7 +5,7 @@ import { BaseAINode } from '../components/BaseAINode';
 import { useFlowStore } from '../hooks/useFlowStore';
 import type { TransformNodeData } from '../types';
 
-export const TransformNode: React.FC<NodeProps> = (props) => {
+const TransformNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as TransformNodeData;
   const updateNode = useFlowStore((state) => state.updateNode);
 
@@ -66,3 +66,6 @@ export const TransformNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const TransformNode = React.memo(TransformNodeComponent);
+TransformNode.displayName = 'TransformNode';

@@ -9,7 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { CollapsibleSection } from '../components/ui/CollapsibleSection';
 
-export const HttpRequestNode: React.FC<NodeProps> = (props) => {
+const HttpRequestNodeComponent: React.FC<NodeProps> = (props) => {
   const { data } = props;
   const nodeData = data as HttpRequestNodeData;
   const updateNode = useFlowStore((state) => state.updateNode);
@@ -130,3 +130,6 @@ export const HttpRequestNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const HttpRequestNode = React.memo(HttpRequestNodeComponent);
+HttpRequestNode.displayName = 'HttpRequestNode';

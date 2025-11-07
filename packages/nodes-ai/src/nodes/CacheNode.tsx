@@ -26,7 +26,7 @@ function saveCache(obj: Record<string, any>) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(obj)); } catch {}
 }
 
-export const CacheNode: React.FC<NodeProps> = (props) => {
+const CacheNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as CacheNodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const nodes = useFlowStore((s) => s.nodes);
@@ -156,3 +156,5 @@ export const CacheNode: React.FC<NodeProps> = (props) => {
   );
 };
 
+export const CacheNode = React.memo(CacheNodeComponent);
+CacheNode.displayName = 'CacheNode';

@@ -39,7 +39,7 @@ function cosine(a: number[], b: number[]): number {
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
 
-export const RetrievalQANode: React.FC<NodeProps> = (props) => {
+const RetrievalQANodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as RetrievalQANodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const nodes = useFlowStore((s) => s.nodes);
@@ -193,3 +193,6 @@ export const RetrievalQANode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const RetrievalQANode = React.memo(RetrievalQANodeComponent);
+RetrievalQANode.displayName = 'RetrievalQANode';

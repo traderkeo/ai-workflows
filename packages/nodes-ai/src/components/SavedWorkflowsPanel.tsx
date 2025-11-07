@@ -256,8 +256,9 @@ export const SavedWorkflowsPanel: React.FC<SavedWorkflowsPanelProps> = ({
       // Close the main dialog first to prevent UI conflicts with confirmation dialog
       setIsOpen(false);
       
-      // Small delay to ensure dialog closes
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for dialog close animation to finish (overlay uses 200ms)
+      // Ensure underlying confirm dialog isn't obscured by the prior overlay
+      await new Promise(resolve => setTimeout(resolve, 250));
       
       const confirmed = await notifications.showConfirm(
         `Load workflow "${item.name}"? Current workflow will be replaced.`,

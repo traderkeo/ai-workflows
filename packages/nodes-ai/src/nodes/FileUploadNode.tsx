@@ -14,7 +14,7 @@ export interface FileUploadNodeData {
   }>;
 }
 
-export const FileUploadNode: React.FC<NodeProps> = (props) => {
+const FileUploadNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as unknown as FileUploadNodeData;
   const updateNode = useFlowStore((state) => state.updateNode);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -150,3 +150,6 @@ export const FileUploadNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const FileUploadNode = React.memo(FileUploadNodeComponent);
+FileUploadNode.displayName = 'FileUploadNode';

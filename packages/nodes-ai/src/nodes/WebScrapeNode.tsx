@@ -23,7 +23,7 @@ function extractTextFromHTML(html: string): { title?: string; text: string } {
   }
 }
 
-export const WebScrapeNode: React.FC<NodeProps> = (props) => {
+const WebScrapeNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as WebScrapeNodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const nodes = useFlowStore((s) => s.nodes);
@@ -104,3 +104,5 @@ export const WebScrapeNode: React.FC<NodeProps> = (props) => {
   );
 };
 
+export const WebScrapeNode = React.memo(WebScrapeNodeComponent);
+WebScrapeNode.displayName = 'WebScrapeNode';

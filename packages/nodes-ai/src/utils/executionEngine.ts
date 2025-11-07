@@ -9,6 +9,15 @@ import type { TemplateNodeData } from '../nodes/TemplateNode';
 import type { HttpRequestNodeData, LoopNodeData, SplitterNodeData, AggregatorNodeData, CacheNodeData, GuardrailNodeData, WebScrapeNodeData, DocumentIngestNodeData, RetrievalQANodeData } from '../types';
 import { resolveVariables } from './variableResolver';
 
+type NodeDataUpdate = Partial<AINode['data']>;
+type BatchNodeUpdate = { nodeId: string; data: NodeDataUpdate };
+type ExecutionCallbacks =
+  | ((nodeId: string, updates: NodeDataUpdate) => void)
+  | {
+      onNodeUpdate: (nodeId: string, updates: NodeDataUpdate) => void;
+      batchUpdateNodes?: (updates: BatchNodeUpdate[]) => void;
+    };
+
 /**
  * Build a dependency graph from nodes and edges
  */
@@ -62,7 +71,7 @@ async function executeNode(
   workflowContext: WorkflowContext,
   nodes: AINode[],
   edges: AIEdge[],
-  onNodeUpdate: (nodeId: string, updates: any) => void
+  onNodeUpdate: (nodeId: string, updates: NodeDataUpdate) => void
 ): Promise<any> {
   const startTime = Date.now();
 
@@ -1141,9 +1150,24 @@ async function executeNode(
 export async function executeWorkflow(
   nodes: AINode[],
   edges: AIEdge[],
-  onNodeUpdate: (nodeId: string, updates: any) => void,
+  callbacks: ExecutionCallbacks,
   abortSignal?: AbortSignal
 ): Promise<ExecutionContext> {
+  const normalizedCallbacks =
+    typeof callbacks === 'function'
+      ? { onNodeUpdate: callbacks, batchUpdateNodes: undefined }
+      : callbacks;
+  const { onNodeUpdate, batchUpdateNodes } = normalizedCallbacks;
+
+  const applyUpdates = (updates: BatchNodeUpdate[]) => {
+    if (!updates.length) return;
+    if (batchUpdateNodes) {
+      batchUpdateNodes(updates);
+      return;
+    }
+    updates.forEach(({ nodeId, data }) => onNodeUpdate(nodeId, data));
+  };
+
   const context: ExecutionContext = {
     nodeResults: new Map(),
     errors: new Map(),
@@ -1157,13 +1181,16 @@ export async function executeWorkflow(
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
 
   // Reset all nodes to idle
-  nodes.forEach((node) => {
-    onNodeUpdate(node.id, {
-      status: 'idle',
-      error: undefined,
-      executionTime: undefined,
-    });
-  });
+  applyUpdates(
+    nodes.map((node) => ({
+      nodeId: node.id,
+      data: {
+        status: 'idle',
+        error: undefined,
+        executionTime: undefined,
+      },
+    }))
+  );
 
   try {
     // Execute nodes in topological order

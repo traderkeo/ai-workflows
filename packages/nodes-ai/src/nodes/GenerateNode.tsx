@@ -12,7 +12,7 @@ import type { GenerationMode } from '../config/modelCapabilities';
 import type { GenerateNodeData } from '../types';
 import { CollapsibleSection } from '../components/ui/CollapsibleSection';
 
-export const GenerateNode: React.FC<NodeProps> = (props) => {
+const GenerateNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as GenerateNodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const deleteNode = useFlowStore((s) => s.deleteNode);
@@ -302,3 +302,6 @@ export const GenerateNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const GenerateNode = React.memo(GenerateNodeComponent);
+GenerateNode.displayName = 'GenerateNode';

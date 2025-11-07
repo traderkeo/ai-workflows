@@ -40,7 +40,7 @@ export interface ConditionNodeData {
   error?: string;
 }
 
-export const ConditionNode: React.FC<NodeProps> = (props) => {
+const ConditionNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as unknown as ConditionNodeData;
   const updateNode = useFlowStore((state) => state.updateNode);
   const nodes = useFlowStore((state) => state.nodes);
@@ -408,3 +408,6 @@ export const ConditionNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const ConditionNode = React.memo(ConditionNodeComponent);
+ConditionNode.displayName = 'ConditionNode';

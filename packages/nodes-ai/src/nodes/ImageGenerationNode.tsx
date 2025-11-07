@@ -16,7 +16,7 @@ import { Switch } from '../components/ui/Switch';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { CollapsibleSection } from '../components/ui/CollapsibleSection';
 
-export const ImageGenerationNode: React.FC<NodeProps> = (props) => {
+const ImageGenerationNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as ImageGenerationNodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const deleteNode = useFlowStore((s) => s.deleteNode);
@@ -295,3 +295,6 @@ export const ImageGenerationNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const ImageGenerationNode = React.memo(ImageGenerationNodeComponent);
+ImageGenerationNode.displayName = 'ImageGenerationNode';

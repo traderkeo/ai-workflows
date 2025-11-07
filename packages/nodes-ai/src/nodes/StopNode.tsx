@@ -10,7 +10,7 @@ export interface StopNodeData {
   value?: any;
 }
 
-export const StopNode: React.FC<NodeProps> = (props) => {
+const StopNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as unknown as StopNodeData;
   const nodes = useFlowStore((state) => state.nodes);
   const edges = useFlowStore((state) => state.edges);
@@ -160,3 +160,6 @@ export const StopNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const StopNode = React.memo(StopNodeComponent);
+StopNode.displayName = 'StopNode';

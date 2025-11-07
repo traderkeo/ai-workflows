@@ -11,7 +11,7 @@ import { ModelSelector } from '../components/ModelSelector';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectGroup, SelectLabel, SelectItem } from '../components/ui/Select';
 import type { GenerationMode } from '../config/modelCapabilities';
 
-export const AudioTTSNode: React.FC<NodeProps> = (props) => {
+const AudioTTSNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as AudioTTSNodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const deleteNode = useFlowStore((s) => s.deleteNode);
@@ -146,3 +146,6 @@ export const AudioTTSNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const AudioTTSNode = React.memo(AudioTTSNodeComponent);
+AudioTTSNode.displayName = 'AudioTTSNode';

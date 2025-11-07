@@ -4,7 +4,7 @@ import { CheckCircle } from 'lucide-react';
 import { BaseAINode } from '../components/BaseAINode';
 import type { StopNodeData } from '../types';
 
-export const OutputNode: React.FC<NodeProps> = (props) => {
+const OutputNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as StopNodeData;
 
   const displayValue = () => {
@@ -50,3 +50,6 @@ export const OutputNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const OutputNode = React.memo(OutputNodeComponent);
+OutputNode.displayName = 'OutputNode';

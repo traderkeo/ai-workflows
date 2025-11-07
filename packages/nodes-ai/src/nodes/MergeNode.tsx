@@ -13,7 +13,7 @@ export interface MergeNodeData {
   executionTime?: number;
 }
 
-export const MergeNode: React.FC<NodeProps> = (props) => {
+const MergeNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as unknown as MergeNodeData;
   const updateNode = useFlowStore((state) => state.updateNode);
 
@@ -75,3 +75,6 @@ export const MergeNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const MergeNode = React.memo(MergeNodeComponent);
+MergeNode.displayName = 'MergeNode';

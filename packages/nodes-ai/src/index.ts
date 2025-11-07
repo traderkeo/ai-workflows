@@ -5,7 +5,6 @@ export { ContextMenu, nodeTemplates } from './components/ContextMenu';
 export type { NodeTemplate } from './components/ContextMenu';
 export { BaseAINode } from './components/BaseAINode';
 export { SavedWorkflowsPanel } from './components/SavedWorkflowsPanel';
-export { VariablesPanel } from './components/VariablesPanel';
 export { ThemeSettings } from './components/ThemeSettings';
 export { CommandPalette } from './components/CommandPalette';
 export { ExecutionHistoryPanel } from './components/ExecutionHistoryPanel';
