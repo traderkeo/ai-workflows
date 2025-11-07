@@ -11,7 +11,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Switch } from '../components/ui/Switch';
 import { StatusBadge } from '../components/ui/StatusBadge';
 
-export const DocumentIngestNode: React.FC<NodeProps> = (props) => {
+const DocumentIngestNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as DocumentIngestNodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const nodes = useFlowStore((s) => s.nodes);
@@ -226,3 +226,6 @@ export const DocumentIngestNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const DocumentIngestNode = React.memo(DocumentIngestNodeComponent);
+DocumentIngestNode.displayName = 'DocumentIngestNode';

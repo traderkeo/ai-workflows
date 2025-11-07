@@ -6,7 +6,7 @@ import { useFlowStore } from '../hooks/useFlowStore';
 import type { StartNodeData } from '../types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectLabel } from '../components/ui/Select';
 
-export const InputNode: React.FC<NodeProps> = (props) => {
+const InputNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as StartNodeData;
   const updateNode = useFlowStore((state) => state.updateNode);
 
@@ -79,3 +79,6 @@ export const InputNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const InputNode = React.memo(InputNodeComponent);
+InputNode.displayName = 'InputNode';

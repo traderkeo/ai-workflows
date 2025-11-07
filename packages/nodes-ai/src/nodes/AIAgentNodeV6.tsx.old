@@ -15,7 +15,7 @@ import { useDebouncedNodeUpdate } from '../hooks/useDebouncedNodeUpdate';
 
 type BuiltInToolKey = 'calculator' | 'search' | 'dateTime';
 
-const AIAgentNodeV6Component: React.FC<NodeProps> = (props) => {
+export const AIAgentNodeV6: React.FC<NodeProps> = (props) => {
   const data = props.data as AIAgentNodeData;
   const debouncedUpdate = useDebouncedNodeUpdate(props.id, 300);
   const updateNode = useFlowStore((state) => state.updateNode);
@@ -331,6 +331,3 @@ const AIAgentNodeV6Component: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
-
-export const AIAgentNodeV6 = React.memo(AIAgentNodeV6Component);
-AIAgentNodeV6.displayName = 'AIAgentNodeV6';

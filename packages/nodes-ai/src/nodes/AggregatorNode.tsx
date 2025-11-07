@@ -11,7 +11,7 @@ function tryParseJSON(input: string): any {
   try { return JSON.parse(input); } catch { return undefined; }
 }
 
-export const AggregatorNode: React.FC<NodeProps> = (props) => {
+const AggregatorNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as AggregatorNodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const nodes = useFlowStore((s) => s.nodes);
@@ -111,3 +111,5 @@ export const AggregatorNode: React.FC<NodeProps> = (props) => {
   );
 };
 
+export const AggregatorNode = React.memo(AggregatorNodeComponent);
+AggregatorNode.displayName = 'AggregatorNode';

@@ -13,7 +13,7 @@ export interface TemplateNodeData {
   executionTime?: number;
 }
 
-export const TemplateNode: React.FC<NodeProps> = (props) => {
+const TemplateNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as unknown as TemplateNodeData;
   const updateNode = useFlowStore((state) => state.updateNode);
   const debouncedUpdate = useDebouncedNodeUpdate(props.id, 300);
@@ -75,3 +75,6 @@ export const TemplateNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const TemplateNode = React.memo(TemplateNodeComponent);
+TemplateNode.displayName = 'TemplateNode';

@@ -29,7 +29,7 @@ interface WebSearchNodeData {
   error?: string;
 }
 
-export const WebSearchNode: React.FC<NodeProps> = (props) => {
+const WebSearchNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as unknown as WebSearchNodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const nodes = useFlowStore((s) => s.nodes);
@@ -240,3 +240,6 @@ export const WebSearchNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const WebSearchNode = React.memo(WebSearchNodeComponent);
+WebSearchNode.displayName = 'WebSearchNode';

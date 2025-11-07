@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import type { StateStorage } from 'zustand/middleware';
 import {
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
 } from '@xyflow/react';
+import { produce } from 'immer';
 import type {
   Node,
   Edge,
@@ -26,6 +28,7 @@ interface FlowStore {
   // Flow state
   nodes: AINode[];
   edges: AIEdge[];
+  selectedNodeIds: string[];
 
   // History
   history: HistoryState[];
@@ -44,6 +47,7 @@ interface FlowStore {
   // Actions
   setNodes: (nodes: AINode[]) => void;
   setEdges: (edges: AIEdge[]) => void;
+  setSelectedNodeIds: (ids: string[]) => void;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
@@ -51,6 +55,7 @@ interface FlowStore {
   // Node operations
   addNode: (node: AINode) => void;
   updateNode: (nodeId: string, data: Partial<AINode['data']>) => void;
+  batchUpdateNodes: (updates: Array<{ nodeId: string; data: Partial<AINode['data']> }>) => void;
   deleteNode: (nodeId: string) => void;
   deleteSelectedNodes: () => void;
   duplicateSelectedNodes: () => void;
@@ -92,6 +97,70 @@ interface FlowStore {
 const initialNodes: AINode[] = [];
 const initialEdges: AIEdge[] = [];
 const initialViewport = { x: 0, y: 0, zoom: 1 };
+const getSelectedNodeIds = (nodes: AINode[]) =>
+  nodes.filter((node) => node.selected).map((node) => node.id);
+
+const deepClone = <T>(value: T): T => {
+  if (typeof globalThis.structuredClone === 'function') {
+    return globalThis.structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value));
+};
+
+const createDebouncedStorage = (storage: StateStorage, delay = 250): StateStorage => {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  let pendingPromise: Promise<void> | null = null;
+  let resolvePending: (() => void) | null = null;
+  let rejectPending: ((error: unknown) => void) | null = null;
+  let lastArgs: [string, string] | null = null;
+
+  const flush = async () => {
+    if (!lastArgs) {
+      resolvePending?.();
+      pendingPromise = null;
+      resolvePending = null;
+      rejectPending = null;
+      return;
+    }
+
+    try {
+      await storage.setItem(lastArgs[0], lastArgs[1]);
+      resolvePending?.();
+    } catch (error) {
+      rejectPending?.(error);
+    } finally {
+      lastArgs = null;
+      pendingPromise = null;
+      resolvePending = null;
+      rejectPending = null;
+    }
+  };
+
+  return {
+    ...storage,
+    setItem: (name, value) => {
+      lastArgs = [name, value];
+      if (!pendingPromise) {
+        pendingPromise = new Promise<void>((resolve, reject) => {
+          resolvePending = resolve;
+          rejectPending = reject;
+        });
+      }
+
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      timeout = setTimeout(() => {
+        timeout = null;
+        flush();
+      }, delay);
+
+      return pendingPromise;
+    },
+  };
+};
+
+const debouncedStorage = createDebouncedStorage(indexedDBStorage);
 
 const initialMetadata: WorkflowMetadata = {
   id: crypto.randomUUID(),
@@ -111,6 +180,7 @@ export const useFlowStore = create<FlowStore>()(
       // Initial state
       nodes: initialNodes,
       edges: initialEdges,
+      selectedNodeIds: [],
       history: [],
       historyIndex: -1,
       viewport: initialViewport,
@@ -119,12 +189,19 @@ export const useFlowStore = create<FlowStore>()(
       isExecuting: false,
 
       // Node/Edge changes
-      setNodes: (nodes) => set({ nodes }),
+      setNodes: (nodes) =>
+        set({
+          nodes,
+          selectedNodeIds: getSelectedNodeIds(nodes),
+        }),
       setEdges: (edges) => set({ edges }),
+      setSelectedNodeIds: (ids) => set({ selectedNodeIds: ids }),
 
       onNodesChange: (changes) => {
+        const updatedNodes = applyNodeChanges(changes, get().nodes as any[]) as AINode[];
         set({
-          nodes: applyNodeChanges(changes, get().nodes as any[]) as any,
+          nodes: updatedNodes,
+          selectedNodeIds: getSelectedNodeIds(updatedNodes),
         });
         // Save to history for certain change types
         const shouldSaveHistory = changes.some(
@@ -150,26 +227,74 @@ export const useFlowStore = create<FlowStore>()(
       // Node operations
       addNode: (node) => {
         get().saveToHistory();
-        set({ nodes: [...get().nodes, node] });
-        get().updateMetadata({ updatedAt: Date.now() });
-      },
-
-      updateNode: (nodeId, data) => {
+        const nodes = [...get().nodes, node];
         set({
-          nodes: get().nodes.map((node) =>
-            node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
-          ),
+          nodes,
+          selectedNodeIds: getSelectedNodeIds(nodes),
         });
         get().updateMetadata({ updatedAt: Date.now() });
       },
 
+      updateNode: (nodeId, data) => {
+        set((state) => {
+          const nodes = produce(state.nodes, (draft) => {
+            const node = draft.find((n) => n.id === nodeId);
+            if (node) {
+              node.data = { ...node.data, ...data };
+            }
+          });
+
+          return {
+            nodes,
+            selectedNodeIds: getSelectedNodeIds(nodes),
+            metadata: {
+              ...state.metadata,
+              updatedAt: Date.now(),
+            },
+          };
+        });
+      },
+
+      batchUpdateNodes: (updates) => {
+        if (!updates.length) {
+          return;
+        }
+        set((state) => {
+          const updateMap = new Map<string, Partial<AINode['data']>>();
+          updates.forEach(({ nodeId, data }) => {
+            const existing = updateMap.get(nodeId);
+            updateMap.set(nodeId, { ...(existing || {}), ...data });
+          });
+
+          const nodes = produce(state.nodes, (draft) => {
+            draft.forEach((node) => {
+              const data = updateMap.get(node.id);
+              if (data) {
+                node.data = { ...node.data, ...data };
+              }
+            });
+          });
+
+          return {
+            nodes,
+            selectedNodeIds: getSelectedNodeIds(nodes),
+            metadata: {
+              ...state.metadata,
+              updatedAt: Date.now(),
+            },
+          };
+        });
+      },
+
       deleteNode: (nodeId) => {
         get().saveToHistory();
+        const nodes = get().nodes.filter((node) => node.id !== nodeId);
         set({
-          nodes: get().nodes.filter((node) => node.id !== nodeId),
+          nodes,
           edges: get().edges.filter(
             (edge) => edge.source !== nodeId && edge.target !== nodeId
           ),
+          selectedNodeIds: getSelectedNodeIds(nodes),
         });
         get().updateMetadata({ updatedAt: Date.now() });
       },
@@ -180,11 +305,13 @@ export const useFlowStore = create<FlowStore>()(
 
         get().saveToHistory();
         const selectedIds = new Set(selectedNodes.map((n) => n.id));
+        const nodes = get().nodes.filter((node) => !selectedIds.has(node.id));
         set({
-          nodes: get().nodes.filter((node) => !selectedIds.has(node.id)),
+          nodes,
           edges: get().edges.filter(
             (edge) => !selectedIds.has(edge.source) && !selectedIds.has(edge.target)
           ),
+          selectedNodeIds: getSelectedNodeIds(nodes),
         });
         get().updateMetadata({ updatedAt: Date.now() });
       },
@@ -208,13 +335,19 @@ export const useFlowStore = create<FlowStore>()(
           },
         }));
 
-        set({ nodes: [...get().nodes, ...duplicates] });
+        const nodes = [...get().nodes, ...duplicates];
+        set({
+          nodes,
+          selectedNodeIds: getSelectedNodeIds(nodes),
+        });
         get().updateMetadata({ updatedAt: Date.now() });
       },
 
       selectAllNodes: () => {
+        const nodes = get().nodes.map((node) => ({ ...node, selected: true }));
         set({
-          nodes: get().nodes.map((node) => ({ ...node, selected: true })),
+          nodes,
+          selectedNodeIds: getSelectedNodeIds(nodes),
         });
       },
 
@@ -237,7 +370,7 @@ export const useFlowStore = create<FlowStore>()(
         const newHistory = history.slice(0, historyIndex + 1);
 
         // Add current state
-        newHistory.push({ nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) });
+        newHistory.push({ nodes: deepClone(nodes), edges: deepClone(edges) });
 
         // Keep only last MAX_HISTORY items
         if (newHistory.length > MAX_HISTORY) {
@@ -254,10 +387,13 @@ export const useFlowStore = create<FlowStore>()(
         const { history, historyIndex } = get();
         if (historyIndex > 0) {
           const prevState = history[historyIndex - 1];
+          const nodes = deepClone(prevState.nodes);
+          const edges = deepClone(prevState.edges);
           set({
-            nodes: JSON.parse(JSON.stringify(prevState.nodes)),
-            edges: JSON.parse(JSON.stringify(prevState.edges)),
+            nodes,
+            edges,
             historyIndex: historyIndex - 1,
+            selectedNodeIds: getSelectedNodeIds(nodes),
           });
         }
       },
@@ -266,10 +402,13 @@ export const useFlowStore = create<FlowStore>()(
         const { history, historyIndex } = get();
         if (historyIndex < history.length - 1) {
           const nextState = history[historyIndex + 1];
+          const nodes = deepClone(nextState.nodes);
+          const edges = deepClone(nextState.edges);
           set({
-            nodes: JSON.parse(JSON.stringify(nextState.nodes)),
-            edges: JSON.parse(JSON.stringify(nextState.edges)),
+            nodes,
+            edges,
             historyIndex: historyIndex + 1,
+            selectedNodeIds: getSelectedNodeIds(nodes),
           });
         }
       },
@@ -289,7 +428,10 @@ export const useFlowStore = create<FlowStore>()(
         const { nodes, edges } = get();
         get().saveToHistory();
         const layoutedNodes = autoLayout(nodes, edges);
-        set({ nodes: layoutedNodes });
+        set({
+          nodes: layoutedNodes,
+          selectedNodeIds: getSelectedNodeIds(layoutedNodes),
+        });
       },
 
       // Workflow operations
@@ -318,6 +460,7 @@ export const useFlowStore = create<FlowStore>()(
           metadata: workflow.metadata,
           history: [],
           historyIndex: -1,
+          selectedNodeIds: getSelectedNodeIds(workflow.flow.nodes),
         });
       },
 
@@ -351,6 +494,7 @@ export const useFlowStore = create<FlowStore>()(
           },
           executionContext: null,
           isExecuting: false,
+          selectedNodeIds: [],
         });
       },
 
@@ -389,7 +533,7 @@ export const useFlowStore = create<FlowStore>()(
     }),
     {
       name: 'ai-workflow-storage',
-      storage: createJSONStorage(() => indexedDBStorage),
+      storage: createJSONStorage(() => debouncedStorage),
       partialize: (state) => ({
         nodes: state.nodes,
         edges: state.edges,

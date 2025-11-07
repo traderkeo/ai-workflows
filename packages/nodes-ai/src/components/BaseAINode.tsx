@@ -32,7 +32,7 @@ const statusLabels: Record<NodeStatus, string> = {
   warning: 'Warning',
 };
 
-export const BaseAINode: React.FC<BaseAINodeProps> = ({
+const BaseAINodeComponent: React.FC<BaseAINodeProps> = ({
   data,
   icon,
   children,
@@ -290,3 +290,6 @@ export const BaseAINode: React.FC<BaseAINodeProps> = ({
     </div>
   );
 };
+
+export const BaseAINode = React.memo(BaseAINodeComponent);
+BaseAINode.displayName = 'BaseAINode';

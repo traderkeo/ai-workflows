@@ -9,7 +9,7 @@ import { Button } from '../components/ui/Button';
 
 const TOXIC_WORDS = ['hate', 'kill', 'violence'];
 
-export const GuardrailNode: React.FC<NodeProps> = (props) => {
+const GuardrailNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as GuardrailNodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const nodes = useFlowStore((s) => s.nodes);
@@ -164,3 +164,5 @@ export const GuardrailNode: React.FC<NodeProps> = (props) => {
   );
 };
 
+export const GuardrailNode = React.memo(GuardrailNodeComponent);
+GuardrailNode.displayName = 'GuardrailNode';

@@ -22,7 +22,7 @@ interface SchemaField {
   description?: string;
 }
 
-export const AIAgentNode: React.FC<NodeProps> = (props) => {
+const AIAgentNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as AIAgentNodeData;
   const updateNode = useFlowStore((state) => state.updateNode);
   const deleteNode = useFlowStore((state) => state.deleteNode);
@@ -641,3 +641,6 @@ export const AIAgentNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const AIAgentNode = React.memo(AIAgentNodeComponent);
+AIAgentNode.displayName = 'AIAgentNode';

@@ -13,7 +13,7 @@ export interface StartNodeData {
   executionTime?: number;
 }
 
-export const StartNode: React.FC<NodeProps> = (props) => {
+const StartNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as unknown as StartNodeData;
   const updateNode = useFlowStore((state) => state.updateNode);
   const [isTesting, setIsTesting] = useState(false);
@@ -281,3 +281,6 @@ export const StartNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const StartNode = React.memo(StartNodeComponent);
+StartNode.displayName = 'StartNode';

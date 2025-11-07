@@ -7,7 +7,7 @@ import { useFlowStore } from '../hooks/useFlowStore';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectLabel } from '../components/ui/Select';
 import { Input } from '../components/ui/Input';
 
-export const LoopNode: React.FC<NodeProps> = (props) => {
+const LoopNodeComponent: React.FC<NodeProps> = (props) => {
   const { data } = props;
   const nodeData = data as LoopNodeData;
   const updateNode = useFlowStore((state) => state.updateNode);
@@ -119,3 +119,6 @@ export const LoopNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const LoopNode = React.memo(LoopNodeComponent);
+LoopNode.displayName = 'LoopNode';

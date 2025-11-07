@@ -6,7 +6,7 @@ import { useFlowStore } from '../hooks/useFlowStore';
 import type { VideoGenerationNodeData } from '../types';
 import { Button } from '../components/ui/Button';
 
-export const VideoGenerationNode: React.FC<NodeProps> = (props) => {
+const VideoGenerationNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as VideoGenerationNodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const deleteNode = useFlowStore((s) => s.deleteNode);
@@ -41,3 +41,6 @@ export const VideoGenerationNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const VideoGenerationNode = React.memo(VideoGenerationNodeComponent);
+VideoGenerationNode.displayName = 'VideoGenerationNode';

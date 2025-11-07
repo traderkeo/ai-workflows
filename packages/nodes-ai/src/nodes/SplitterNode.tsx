@@ -7,7 +7,7 @@ import { resolveVariables } from '../utils/variableResolver';
 import type { SplitterNodeData } from '../types';
 import { Button } from '../components/ui/Button';
 
-export const SplitterNode: React.FC<NodeProps> = (props) => {
+const SplitterNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as SplitterNodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const nodes = useFlowStore((s) => s.nodes);
@@ -155,3 +155,5 @@ export const SplitterNode: React.FC<NodeProps> = (props) => {
   );
 };
 
+export const SplitterNode = React.memo(SplitterNodeComponent);
+SplitterNode.displayName = 'SplitterNode';

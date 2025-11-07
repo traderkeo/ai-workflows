@@ -7,7 +7,7 @@ import { resolveVariables, getAvailableVariables } from '../utils/variableResolv
 import type { RerankNodeData } from '../types';
 import { Button } from '../components/ui/Button';
 
-export const RerankNode: React.FC<NodeProps> = (props) => {
+const RerankNodeComponent: React.FC<NodeProps> = (props) => {
   const data = props.data as RerankNodeData;
   const updateNode = useFlowStore((s) => s.updateNode);
   const deleteNode = useFlowStore((s) => s.deleteNode);
@@ -66,3 +66,6 @@ export const RerankNode: React.FC<NodeProps> = (props) => {
     </BaseAINode>
   );
 };
+
+export const RerankNode = React.memo(RerankNodeComponent);
+RerankNode.displayName = 'RerankNode';
