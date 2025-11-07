@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { NodeProps } from '@xyflow/react';
 import { Bot, Play, Trash2, Loader2, Wrench, MessageSquare, Settings, Sliders, History, Code } from 'lucide-react';
 import { BaseAINode } from '../components/BaseAINode';
@@ -11,13 +11,11 @@ import { StatusBadge } from '../components/ui/StatusBadge';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { CollapsibleSection } from '../components/ui/CollapsibleSection';
-import { useDebouncedNodeUpdate } from '../hooks/useDebouncedNodeUpdate';
 
 type BuiltInToolKey = 'calculator' | 'search' | 'dateTime';
 
 export const AIAgentNodeV6: React.FC<NodeProps> = (props) => {
   const data = props.data as AIAgentNodeData;
-  const debouncedUpdate = useDebouncedNodeUpdate(props.id, 300);
   const updateNode = useFlowStore((state) => state.updateNode);
   const deleteNode = useFlowStore((state) => state.deleteNode);
   const nodes = useFlowStore((state) => state.nodes);
@@ -30,13 +28,6 @@ export const AIAgentNodeV6: React.FC<NodeProps> = (props) => {
   const [newUserMessage, setNewUserMessage] = useState<string>('');
   const [useReasoning, setUseReasoning] = useState<boolean>(false);
   const [reasoningText, setReasoningText] = useState<string>('');
-  
-  // Local state for debounced inputs
-  const [localPrompt, setLocalPrompt] = useState(data.prompt || '');
-  const [localInstructions, setLocalInstructions] = useState(data.instructions || '');
-
-  useEffect(() => setLocalPrompt(data.prompt || ''), [data.prompt]);
-  useEffect(() => setLocalInstructions(data.instructions || ''), [data.instructions]);
 
   const handleChange = (field: keyof AIAgentNodeData, value: any) => {
     updateNode(props.id, { [field]: value });
@@ -162,29 +153,11 @@ export const AIAgentNodeV6: React.FC<NodeProps> = (props) => {
       <CollapsibleSection title="Prompt & Instructions" icon={<MessageSquare size={14} />} defaultOpen={true}>
         <div className="ai-node-field">
           <label className="ai-node-field-label">System Instructions</label>
-          <textarea 
-            className="ai-node-input ai-node-textarea nodrag" 
-            rows={2} 
-            value={localInstructions} 
-            onChange={(e) => {
-              setLocalInstructions(e.target.value);
-              debouncedUpdate({ instructions: e.target.value });
-            }} 
-            placeholder="You are a helpful agent..." 
-          />
+          <textarea className="ai-node-input ai-node-textarea nodrag" rows={2} value={data.instructions || ''} onChange={(e) => handleChange('instructions', e.target.value)} placeholder="You are a helpful agent..." />
         </div>
         <div className="ai-node-field">
           <label className="ai-node-field-label">Prompt</label>
-          <textarea 
-            className="ai-node-input ai-node-textarea nodrag" 
-            rows={3} 
-            value={localPrompt} 
-            onChange={(e) => {
-              setLocalPrompt(e.target.value);
-              debouncedUpdate({ prompt: e.target.value });
-            }} 
-            placeholder="Ask the agent... Use variables like {{input}}" 
-          />
+          <textarea className="ai-node-input ai-node-textarea nodrag" rows={3} value={data.prompt || ''} onChange={(e) => handleChange('prompt', e.target.value)} placeholder="Ask the agent... Use variables like {{input}}" />
           {availableVariables.length > 0 && (
             <div style={{ marginTop: 4, color: '#888', fontSize: 10 }}>Available variables: {availableVariables.join(', ')}</div>
           )}

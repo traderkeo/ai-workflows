@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NodeProps } from '@xyflow/react';
 import { FileText } from 'lucide-react';
 import { BaseAINode } from '../components/BaseAINode';
 import { useFlowStore } from '../hooks/useFlowStore';
+import { useDebouncedNodeUpdate } from '../hooks/useDebouncedNodeUpdate';
 
 export interface TemplateNodeData {
   label: string;
@@ -15,6 +16,10 @@ export interface TemplateNodeData {
 export const TemplateNode: React.FC<NodeProps> = (props) => {
   const data = props.data as unknown as TemplateNodeData;
   const updateNode = useFlowStore((state) => state.updateNode);
+  const debouncedUpdate = useDebouncedNodeUpdate(props.id, 300);
+
+  const [localTemplate, setLocalTemplate] = useState(data.template || '');
+  useEffect(() => setLocalTemplate(data.template || ''), [data.template]);
 
   const handleChange = (field: keyof TemplateNodeData, value: any) => {
     updateNode(props.id, { [field]: value });
@@ -26,8 +31,11 @@ export const TemplateNode: React.FC<NodeProps> = (props) => {
         <label className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Template</label>
         <textarea
           className="ai-node-input ai-node-textarea nodrag"
-          value={data.template || ''}
-          onChange={(e) => handleChange('template', e.target.value)}
+          value={localTemplate}
+          onChange={(e) => {
+            setLocalTemplate(e.target.value);
+            debouncedUpdate({ template: e.target.value });
+          }}
           placeholder="Use {{input}} or {{variable}} for placeholders..."
           rows={6}
           style={{
