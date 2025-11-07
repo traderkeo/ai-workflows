@@ -3,6 +3,7 @@ import { Panel } from '@xyflow/react';
 import { Play } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { SavedWorkflowsPanel } from '../SavedWorkflowsPanel';
+import type { SavedWorkflowsPanelHandle } from '../SavedWorkflowsPanel';
 import { ThemeSettings } from '../ThemeSettings';
 import { WorkflowNameEditor } from './WorkflowNameEditor';
 import { TagsManager } from './TagsManager';
@@ -38,6 +39,7 @@ interface WorkflowToolbarProps {
   // For autosave tracking
   nodes?: any[];
   edges?: any[];
+  savedWorkflowsRef?: React.RefObject<SavedWorkflowsPanelHandle>;
 }
 
 export const WorkflowToolbar: React.FC<WorkflowToolbarProps> = ({
@@ -59,6 +61,7 @@ export const WorkflowToolbar: React.FC<WorkflowToolbarProps> = ({
   onLoadWorkflow,
   nodes,
   edges,
+  savedWorkflowsRef,
 }) => {
   return (
     <Panel position="top-center" className="w-full">
@@ -129,6 +132,7 @@ export const WorkflowToolbar: React.FC<WorkflowToolbarProps> = ({
 
             {/* Saved Workflows */}
             <SavedWorkflowsPanel
+              ref={savedWorkflowsRef}
               onSave={onSaveWorkflow}
               onLoad={onLoadWorkflow}
               currentWorkflowId={workflowId}

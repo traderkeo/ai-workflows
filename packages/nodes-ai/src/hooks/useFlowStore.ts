@@ -40,6 +40,10 @@ interface FlowStore {
   // Metadata
   metadata: WorkflowMetadata;
 
+  // Workflow version (increments on load to force React Flow remount)
+  workflowVersion: number;
+
+
   // Execution state
   executionContext: ExecutionContext | null;
   isExecuting: boolean;
@@ -185,6 +189,7 @@ export const useFlowStore = create<FlowStore>()(
       historyIndex: -1,
       viewport: initialViewport,
       metadata: initialMetadata,
+      workflowVersion: 0,
       executionContext: null,
       isExecuting: false,
 
@@ -198,7 +203,10 @@ export const useFlowStore = create<FlowStore>()(
       setSelectedNodeIds: (ids) => set({ selectedNodeIds: ids }),
 
       onNodesChange: (changes) => {
-        const updatedNodes = applyNodeChanges(changes, get().nodes as any[]) as AINode[];
+        const updatedNodes = applyNodeChanges(
+          changes,
+          deepClone(get().nodes) as any[]
+        ) as AINode[];
         set({
           nodes: updatedNodes,
           selectedNodeIds: getSelectedNodeIds(updatedNodes),
@@ -452,16 +460,55 @@ export const useFlowStore = create<FlowStore>()(
       },
 
       loadWorkflow: (workflow) => {
-        // Batch state updates to prevent multiple re-renders
-        set({
-          nodes: workflow.flow.nodes,
-          edges: workflow.flow.edges,
-          viewport: workflow.flow.viewport,
-          metadata: workflow.metadata,
+        console.log('Store loading workflow:', {
+          id: workflow.metadata.id,
+          name: workflow.metadata.name,
+          nodes: workflow.flow.nodes.length,
+          edges: workflow.flow.edges.length,
+        });
+
+        // Deep clone nodes and edges to ensure React Flow detects the change
+        const clonedNodes = deepClone(workflow.flow.nodes);
+        const clonedEdges = deepClone(workflow.flow.edges);
+
+        // Get current version before setting to ensure we increment properly
+        const currentVersion = get().workflowVersion;
+
+        // Set the new workflow state - this will trigger persist middleware
+        // We use a callback to ensure state is set atomically
+        // Set flag to prevent persist middleware from restoring old state
+        set((state) => ({
+          ...state,
+          nodes: clonedNodes,
+          edges: clonedEdges,
+          viewport: workflow.flow.viewport || initialViewport,
+          metadata: {
+            ...workflow.metadata,
+            id: workflow.metadata.id,
+            updatedAt: Date.now(),
+          },
+          workflowVersion: currentVersion + 1,
           history: [],
           historyIndex: -1,
-          selectedNodeIds: getSelectedNodeIds(workflow.flow.nodes),
+          selectedNodeIds: getSelectedNodeIds(clonedNodes),
+        }));
+
+        // Verify the state was set correctly
+        const afterState = get();
+        console.log('Store after load:', {
+          metadataId: afterState.metadata.id,
+          nodeCount: afterState.nodes.length,
+          edgeCount: afterState.edges.length,
+          workflowVersion: afterState.workflowVersion,
         });
+
+        // Double-check that nodes match what we expect
+        if (afterState.nodes.length !== clonedNodes.length) {
+          console.error('Node count mismatch after load!', {
+            expected: clonedNodes.length,
+            actual: afterState.nodes.length,
+          });
+        }
       },
 
       exportWorkflow: () => {
@@ -539,6 +586,7 @@ export const useFlowStore = create<FlowStore>()(
         edges: state.edges,
         viewport: state.viewport,
         metadata: state.metadata,
+        // Don't persist internal flags
       }),
       // Skip hydration during SSR
       skipHydration: typeof window === 'undefined',
