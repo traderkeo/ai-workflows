@@ -3,10 +3,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@config "../../tailwind.config.ts";
-@import '@repo/nodes-ai/styles';
-
-
 @layer base {
   :root {
     --background: 0 0% 100%;

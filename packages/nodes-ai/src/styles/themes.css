@@ -2,13 +2,12 @@
    Theme System for AI Workflow Builder
    ============================================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
 
 /* ============================================================================
    CYBER-PUNK THEME (Neon Cyberpunk Gothic)
    ============================================================================ */
 
-   :root {
+:root {
       --background: oklch(1 0 0);
       --foreground: oklch(0.145 0 0);
       --card: oklch(1 0 0);
@@ -121,9 +120,9 @@
 
 [data-theme="cyber-punk"] {
   /* Cyberpunk Color Palette */
-  --cyber-neon-purple: #b026ff;
+  --cyber-neon-purple: #a1ff26;
   --cyber-neon-cyan: #00f0ff;
-  --cyber-neon-magenta: #ff00ff;
+  --cyber-neon-magenta: #233c17;
   --cyber-neon-pink: #ff1493;
   --cyber-neon-green: #39ff14;
   --cyber-neon-yellow: #ffff00;
@@ -144,7 +143,7 @@
 
   /* UI Elements */
   --border-glow: 2px;
-  --node-shadow: 0 0 20px rgba(176, 38, 255, 0.3);
+  --node-shadow: 0 0 0px rgb(120, 221, 32);
   --edge-glow: 0 0 10px currentColor;
 
   /* Fonts */
@@ -217,6 +216,75 @@
   --border-secondary: var(--stone-light);
   --accent-primary: var(--castle-gold);
   --accent-secondary: var(--royal-purple);
+}
+
+/* ============================================================================
+   MONOCHROME THEME (Black and White)
+   ============================================================================ */
+
+[data-theme="monochrome"] {
+  /* Monochrome Palette - Pure Black, White, and Grays */
+  --mono-black: #000000;
+  --mono-charcoal: #1a1a1a;
+  --mono-dark-gray: #2d2d2d;
+  --mono-mid-gray: #4a4a4a;
+  --mono-light-gray: #6b6b6b;
+  --mono-lighter-gray: #8a8a8a;
+  --mono-lightest-gray: #b0b0b0;
+  --mono-off-white: #e5e5e5;
+  --mono-white: #ffffff;
+
+  /* Status Colors (using grayscale) */
+  --status-idle: var(--mono-mid-gray);
+  --status-running: var(--mono-light-gray);
+  --status-success: var(--mono-white);
+  --status-error: var(--mono-black);
+  --status-warning: var(--mono-lighter-gray);
+
+  /* UI Elements */
+  --border-glow: 0px;
+  --node-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --edge-glow: 0 0 0 currentColor;
+
+  /* Fonts */
+  --font-primary: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Theme-specific variables */
+  --background-primary: var(--mono-black);
+  --background-secondary: var(--mono-charcoal);
+  --background-tertiary: var(--mono-dark-gray);
+  --text-primary: var(--mono-white);
+  --text-secondary: var(--mono-lightest-gray);
+  --text-muted: var(--mono-lighter-gray);
+  --border-primary: var(--mono-mid-gray);
+  --border-secondary: var(--mono-light-gray);
+  --accent-primary: var(--mono-white);
+  --accent-secondary: var(--mono-lightest-gray);
+  
+  /* Component-specific overrides for monochrome */
+  --context-menu-border: var(--mono-mid-gray);
+  --context-menu-glow: rgba(255, 255, 255, 0.2);
+  --context-menu-text: var(--mono-white);
+  --toolbar-border: var(--mono-mid-gray);
+  --tag-bg: rgba(255, 255, 255, 0.1);
+  --tag-border: var(--mono-mid-gray);
+  --tag-text: var(--mono-white);
+  --button-success-bg: var(--mono-mid-gray);
+  --button-success-hover: var(--mono-light-gray);
+  
+  /* Map cyber-punk variables to monochrome for component compatibility */
+  --cyber-neon-purple: var(--mono-mid-gray);
+  --cyber-neon-cyan: var(--mono-white);
+  --cyber-neon-magenta: var(--mono-light-gray);
+  --cyber-neon-pink: var(--mono-lighter-gray);
+  --cyber-neon-green: var(--mono-white);
+  --cyber-neon-yellow: var(--mono-lightest-gray);
+  --gothic-black: var(--mono-black);
+  --gothic-charcoal: var(--mono-charcoal);
+  --gothic-slate: var(--mono-dark-gray);
+  --gothic-gray: var(--mono-mid-gray);
+  --gothic-mist: var(--mono-light-gray);
 }
 
 /* ============================================================================

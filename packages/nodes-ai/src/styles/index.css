@@ -2,7 +2,14 @@
    AI Workflow Nodes - Theme System
    ============================================================================ */
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@config "../../tailwind.config.ts";
 @import './themes.css';
+
+
+
 
 /* ============================================================================
    React Flow Base Overrides
@@ -29,21 +36,32 @@
   background-size: 20px 20px;
 }
 
+/* Monochrome theme subtle grid */
+[data-theme="monochrome"] .react-flow {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
 .react-flow__viewport {
   filter: drop-shadow(0 0 20px rgba(176, 38, 255, 0.2));
 }
 
-/* ============================================================================
+[data-theme="monochrome"] .react-flow__viewport {
+  filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.3));
+}
+
+/* ====================================Z========================================
    Node Base Styling
    ============================================================================ */
 
 .react-flow__node {
   font-family: var(--font-primary);
-  border: var(--border-glow) solid var(--cyber-neon-purple);
-  border-radius: 8px;
+  border-radius: 0; 
   background: linear-gradient(135deg, var(--gothic-charcoal) 0%, var(--gothic-slate) 100%);
-  box-shadow: var(--node-shadow);
-  padding: 0;
+
+  padding: var(--p-2);
   /* Transition only for visual effects, not position */
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
   min-width: 370px;
@@ -56,42 +74,6 @@
   transition: none !important;
 }
 
-.react-flow__node:hover {
-  box-shadow: 0 0 30px rgba(176, 38, 255, 0.5);
-}
-
-.react-flow__node.selected {
-  border-color: var(--cyber-neon-cyan);
-  box-shadow: 0 0 40px rgba(0, 240, 255, 0.6);
-}
-
-/* Node Status Variants */
-.react-flow__node[data-status="idle"] {
-  border-color: var(--status-idle);
-  box-shadow: 0 0 15px rgba(74, 74, 90, 0.3);
-}
-
-.react-flow__node[data-status="running"] {
-  border-color: var(--status-running);
-  box-shadow: 0 0 25px rgba(0, 240, 255, 0.5);
-  animation: pulse-running 2s ease-in-out infinite;
-}
-
-.react-flow__node[data-status="success"] {
-  border-color: var(--status-success);
-  box-shadow: 0 0 25px rgba(57, 255, 20, 0.4);
-}
-
-.react-flow__node[data-status="error"] {
-  border-color: var(--status-error);
-  box-shadow: 0 0 25px rgba(255, 0, 64, 0.5);
-  animation: pulse-error 1s ease-in-out infinite;
-}
-
-.react-flow__node[data-status="warning"] {
-  border-color: var(--status-warning);
-  box-shadow: 0 0 20px rgba(255, 255, 0, 0.4);
-}
 
 /* ============================================================================
    Node Handles (Connection Points)
@@ -204,7 +186,7 @@
   --font-primary: var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif);
   --font-mono: var(--font-geist-mono, "Geist Mono", "JetBrains Mono", ui-monospace, monospace);
 }
-.ai-node { font-family: var(--font-primary); }
+.ai-node { font-family: var(--font-primary);overflow: hidden;}
 .ai-node h1, .ai-node h2, .ai-node h3, .ai-node h4 { font-weight: 700; letter-spacing: 0.01em; }
 .ai-node p, .ai-node label, .ai-node .ai-node-field-label { letter-spacing: 0.01em; }
 .ai-node code, .ai-node pre { font-family: var(--font-mono); }
@@ -571,9 +553,10 @@
    ============================================================================ */
 
 .react-flow__node-toolbar {
-  background: var(--gothic-slate);
+  background: #fff!important;
   border: 1px solid var(--cyber-neon-purple);
-  border-radius: 6px;
+  border-radius: 2rem;
+  overflow: hidden;
   padding: 4px;
   box-shadow: 0 0 20px rgba(176, 38, 255, 0.3);
 }
@@ -945,6 +928,267 @@
   color: var(--status-warning);
   border-color: rgba(255, 255, 0, 0.4);
 }
+
+/* ============================================================================
+   Monochrome Theme Overrides
+   ============================================================================ */
+
+[data-theme="monochrome"] .react-flow__node {
+  border: var(--border-glow) solid var(--mono-mid-gray);
+  background: linear-gradient(135deg, var(--mono-charcoal) 0%, var(--mono-dark-gray) 100%);
+}
+
+[data-theme="monochrome"] .react-flow__node:hover {
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="monochrome"] .react-flow__node.selected {
+  border-color: var(--mono-white);
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="monochrome"] .react-flow__node[data-status="idle"] {
+  box-shadow: 0 0 10px rgba(74, 74, 74, 0.3);
+}
+
+[data-theme="monochrome"] .react-flow__node[data-status="running"] {
+  box-shadow: 0 0 15px rgba(107, 107, 107, 0.4);
+}
+
+[data-theme="monochrome"] .react-flow__node[data-status="success"] {
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="monochrome"] .react-flow__node[data-status="error"] {
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="monochrome"] .react-flow__node[data-status="warning"] {
+  box-shadow: 0 0 15px rgba(138, 138, 138, 0.4);
+}
+
+[data-theme="monochrome"] .react-flow__handle {
+  border: 2px solid var(--mono-mid-gray);
+  background: var(--mono-black);
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="monochrome"] .react-flow__handle:hover {
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  border-color: var(--mono-white);
+}
+
+[data-theme="monochrome"] .react-flow__handle.connected {
+  background: var(--mono-white);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="monochrome"] .react-flow__edge {
+  stroke: var(--mono-mid-gray);
+}
+
+[data-theme="monochrome"] .react-flow__edge.selected {
+  stroke: var(--mono-white);
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+}
+
+[data-theme="monochrome"] .react-flow__edge-path {
+  stroke: var(--mono-mid-gray);
+}
+
+[data-theme="monochrome"] .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--mono-white);
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+}
+
+[data-theme="monochrome"] .cyber-border {
+  border: var(--border-glow) solid var(--mono-mid-gray);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="monochrome"] .gothic-panel {
+  background: var(--mono-dark-gray);
+  border: 1px solid var(--mono-mid-gray);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+}
+
+/* MiniMap Monochrome Overrides */
+[data-theme="monochrome"] .react-flow__minimap {
+  background: var(--mono-charcoal);
+  border: 1px solid var(--mono-mid-gray);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="monochrome"] .react-flow__minimap-mask {
+  fill: rgba(255, 255, 255, 0.1);
+  stroke: var(--mono-white);
+  stroke-width: 2;
+}
+
+[data-theme="monochrome"] .react-flow__minimap-node {
+  fill: var(--mono-dark-gray);
+  stroke: var(--mono-mid-gray);
+}
+
+/* Background Pattern Monochrome */
+[data-theme="monochrome"] .react-flow__background-pattern {
+  fill: var(--mono-mid-gray);
+  opacity: 0.1;
+}
+
+/* Selection Box Monochrome */
+[data-theme="monochrome"] .react-flow__selection {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--mono-white);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+/* Node Header and Content Monochrome */
+[data-theme="monochrome"] .ai-node-header {
+  background: linear-gradient(90deg, var(--mono-dark-gray) 0%, var(--mono-mid-gray) 100%);
+  border-bottom: 1px solid var(--mono-mid-gray);
+}
+
+[data-theme="monochrome"] .ai-node-icon {
+  color: var(--mono-white);
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
+}
+
+[data-theme="monochrome"] .ai-node-footer {
+  border-top: 1px solid var(--mono-mid-gray);
+  background: var(--mono-charcoal);
+  color: var(--mono-lightest-gray);
+}
+
+/* Node Buttons and Inputs Monochrome */
+[data-theme="monochrome"] .ai-node-button {
+  background: linear-gradient(135deg, var(--mono-mid-gray) 0%, var(--mono-light-gray) 100%);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+  color: var(--mono-white);
+}
+
+[data-theme="monochrome"] .ai-node-button:hover {
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="monochrome"] .ai-node input[type="text"],
+[data-theme="monochrome"] .ai-node input[type="number"],
+[data-theme="monochrome"] .ai-node textarea,
+[data-theme="monochrome"] .ai-node select {
+  border-color: var(--mono-mid-gray);
+  background: var(--mono-charcoal);
+  color: var(--mono-white);
+}
+
+[data-theme="monochrome"] .ai-node input[type="text"]:focus,
+[data-theme="monochrome"] .ai-node input[type="number"]:focus,
+[data-theme="monochrome"] .ai-node textarea:focus,
+[data-theme="monochrome"] .ai-node select:focus {
+  border-color: var(--mono-white);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="monochrome"] .ai-node input[type="checkbox"] {
+  border-color: var(--mono-mid-gray);
+}
+
+[data-theme="monochrome"] .ai-node input[type="checkbox"]:checked {
+  background: var(--mono-white);
+  border-color: var(--mono-white);
+}
+
+[data-theme="monochrome"] .ai-node-section-trigger {
+  border: 1px solid var(--mono-mid-gray);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="monochrome"] .ai-node-section-trigger:hover {
+  border-color: var(--mono-light-gray);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Success Button (Green) Monochrome Override */
+[data-theme="monochrome"] button.bg-green-600,
+[data-theme="monochrome"] .bg-green-600,
+[data-theme="monochrome"] button[class*="bg-green"],
+[data-theme="monochrome"] [class*="bg-green-600"] {
+  background: var(--mono-mid-gray) !important;
+  background-color: var(--mono-mid-gray) !important;
+  color: var(--mono-white) !important;
+}
+
+[data-theme="monochrome"] button.bg-green-600:hover,
+[data-theme="monochrome"] .bg-green-600:hover,
+[data-theme="monochrome"] button[class*="bg-green"]:hover,
+[data-theme="monochrome"] [class*="bg-green-600"]:hover,
+[data-theme="monochrome"] button.bg-green-700,
+[data-theme="monochrome"] .bg-green-700 {
+  background: var(--mono-light-gray) !important;
+  background-color: var(--mono-light-gray) !important;
+}
+
+[data-theme="monochrome"] button[class*="success"],
+[data-theme="monochrome"] .variant-success {
+  background: var(--mono-mid-gray) !important;
+  background-color: var(--mono-mid-gray) !important;
+  color: var(--mono-white) !important;
+  border-color: var(--mono-mid-gray) !important;
+}
+
+[data-theme="monochrome"] button[class*="success"]:hover,
+[data-theme="monochrome"] .variant-success:hover {
+  background: var(--mono-light-gray) !important;
+  background-color: var(--mono-light-gray) !important;
+  border-color: var(--mono-light-gray) !important;
+}
+
+/* Context Menu and Add Node Panel - Target via structure */
+[data-theme="monochrome"] div[style*="cyber-neon-purple"],
+[data-theme="monochrome"] div[style*="176, 38, 255"] {
+  border-color: var(--mono-mid-gray) !important;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="monochrome"] div[style*="cyber-neon-cyan"],
+[data-theme="monochrome"] div[style*="0, 240, 255"] {
+  color: var(--mono-white) !important;
+}
+
+/* Toolbar Monochrome */
+[data-theme="monochrome"] div[style*="gothic-charcoal"][style*="gothic-slate"] {
+  border-color: var(--mono-mid-gray) !important;
+}
+
+/* Tags and Badges Monochrome */
+[data-theme="monochrome"] [style*="176, 38, 255"],
+[data-theme="monochrome"] [style*="cyber-neon-purple"] {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: var(--mono-mid-gray) !important;
+  color: var(--mono-white) !important;
+}
+
+[data-theme="monochrome"] [style*="176, 38, 255"]:hover,
+[data-theme="monochrome"] [style*="cyber-neon-purple"]:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: var(--mono-light-gray) !important;
+}
+
+/* Status Colors in Nodes Monochrome */
+[data-theme="monochrome"] [style*="57, 255, 20"],
+[data-theme="monochrome"] [style*="39ff14"] {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: var(--mono-white) !important;
+  color: var(--mono-white) !important;
+}
+
+[data-theme="monochrome"] [style*="255, 0, 64"],
+[data-theme="monochrome"] [style*="ff0040"] {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-color: var(--mono-black) !important;
+  color: var(--mono-white) !important;
+}
+
+/* Pulse Animations - Monochrome overrides handled via box-shadow in status variants above */
 
 /* ============================================================================
    Utility Classes

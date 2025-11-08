@@ -266,7 +266,7 @@ export const AIAgentNodeV6: React.FC<NodeProps> = (props) => {
 
       {/* Actions */}
       <div className="ai-node-field" style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        <Button onClick={handleRun} disabled={isRunning} variant="success" className="flex-1">
+        <Button onClick={handleRun} disabled={isRunning} variant="default" className="flex-1">
           <Play size={14} /> {isRunning ? 'Running…' : 'Run'}
         </Button>
         <SettingsDialog

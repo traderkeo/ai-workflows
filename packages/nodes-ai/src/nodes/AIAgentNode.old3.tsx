@@ -661,7 +661,7 @@ const AIAgentNodeComponent: React.FC<NodeProps> = (props) => {
         <Button
           onClick={handleTest}
           disabled={isTesting}
-          variant="success"
+          variant="default"
           size="sm"
           className="flex-1 rounded-full"
         >

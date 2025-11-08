@@ -37,9 +37,9 @@ export const TagsManager: React.FC<TagsManagerProps> = ({ tags, onAddTag, onRemo
             fontSize: '12px',
             fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
             fontWeight: 500,
-            background: 'rgba(176, 38, 255, 0.15)',
-            color: 'var(--cyber-neon-purple)',
-            border: '1px solid rgba(176, 38, 255, 0.3)',
+            background: 'var(--tag-bg, rgba(176, 38, 255, 0.15))',
+            color: 'var(--tag-text, var(--cyber-neon-purple))',
+            border: '1px solid var(--tag-border, rgba(176, 38, 255, 0.3))',
             borderRadius: '6px',
             height: '28px',
             letterSpacing: '-0.01em',
@@ -96,9 +96,9 @@ export const TagsManager: React.FC<TagsManagerProps> = ({ tags, onAddTag, onRemo
               fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
               fontWeight: 500,
               background: 'rgba(0, 0, 0, 0.5)',
-              border: '1px solid var(--cyber-neon-purple)',
+              border: '1px solid var(--tag-border, var(--cyber-neon-purple))',
               borderRadius: '6px',
-              color: 'var(--cyber-neon-cyan)',
+              color: 'var(--context-menu-text, var(--cyber-neon-cyan))',
               outline: 'none',
               height: '28px',
               letterSpacing: '-0.01em',
@@ -128,22 +128,34 @@ export const TagsManager: React.FC<TagsManagerProps> = ({ tags, onAddTag, onRemo
             fontSize: '12px',
             fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
             fontWeight: 500,
-            background: 'rgba(176, 38, 255, 0.08)',
-            border: '1px dashed rgba(176, 38, 255, 0.3)',
+            background: 'var(--tag-bg, rgba(176, 38, 255, 0.08))',
+            border: '1px dashed var(--tag-border, rgba(176, 38, 255, 0.3))',
             borderRadius: '6px',
-            color: 'var(--cyber-neon-purple)',
+            color: 'var(--tag-text, var(--cyber-neon-purple))',
             cursor: 'pointer',
             transition: 'all 0.15s ease',
             height: '28px',
             letterSpacing: '-0.01em',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(176, 38, 255, 0.15)';
-            e.currentTarget.style.borderColor = 'rgba(176, 38, 255, 0.5)';
+            const theme = document.documentElement.getAttribute('data-theme');
+            if (theme === 'monochrome') {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.borderColor = 'var(--mono-light-gray)';
+            } else {
+              e.currentTarget.style.background = 'rgba(176, 38, 255, 0.15)';
+              e.currentTarget.style.borderColor = 'rgba(176, 38, 255, 0.5)';
+            }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(176, 38, 255, 0.08)';
-            e.currentTarget.style.borderColor = 'rgba(176, 38, 255, 0.3)';
+            const theme = document.documentElement.getAttribute('data-theme');
+            if (theme === 'monochrome') {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              e.currentTarget.style.borderColor = 'var(--mono-mid-gray)';
+            } else {
+              e.currentTarget.style.background = 'rgba(176, 38, 255, 0.08)';
+              e.currentTarget.style.borderColor = 'rgba(176, 38, 255, 0.3)';
+            }
           }}
         >
           <Plus size={12} strokeWidth={2.5} />

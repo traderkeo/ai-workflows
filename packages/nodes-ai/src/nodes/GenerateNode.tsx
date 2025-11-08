@@ -292,7 +292,7 @@ const GenerateNodeComponent: React.FC<NodeProps> = (props) => {
       )}
 
       <div className="ai-node-field" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-        <Button onClick={handleTest} disabled={isTesting} variant="success" className="flex-1">
+        <Button onClick={handleTest} disabled={isTesting} variant="default" className="flex-1">
           <Play size={14} /> {isTesting ? 'Testing...' : 'Test'}
         </Button>
         <Button onClick={handleDelete} variant="outline">
