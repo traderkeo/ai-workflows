@@ -14,7 +14,7 @@ import { useFlowStore } from '../hooks/useFlowStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { StartNode } from '../nodes/StartNode';
 import { StopNode } from '../nodes/StopNode';
-import { AIAgentNodeV6 as AIAgentNode } from '../nodes/AIAgentNodeV6';
+import { AIAgentNodeV6 as AIAgentNode } from '../nodes/AIAgentNodeV6/index';
 import { GenerateNode } from '../nodes/GenerateNode';
 import { ImageGenerationNode } from '../nodes/ImageGenerationNode';
 import { AudioTTSNode } from '../nodes/AudioTTSNode';
@@ -273,6 +273,7 @@ const WorkflowCanvasComponent: React.FC = () => {
           nodesDraggable
           selectNodesOnDrag={false}
           snapToGrid={false}
+          
         >
           <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
           <Controls />

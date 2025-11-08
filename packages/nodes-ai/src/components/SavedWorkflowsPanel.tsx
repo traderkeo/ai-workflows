@@ -433,7 +433,7 @@ export const SavedWorkflowsPanel = React.forwardRef<SavedWorkflowsPanelHandle, S
           }
           setIsOpen(!isOpen);
         }}
-        variant="outline"
+        variant="secondary"
         size="sm"
         className="h-9 px-4 font-medium"
         title="Saved workflows"

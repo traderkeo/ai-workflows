@@ -31,6 +31,7 @@
     "@repo/ai-workers": "workspace:*",
     "@repo/nodes-ai": "workspace:*",
     "@repo/workflows-ai": "workspace:*",
+    "@tailwindcss/postcss": "^4.1.17",
     "@xyflow/react": "^12.9.1",
     "ai": "beta",
     "class-variance-authority": "^0.7.1",
@@ -55,7 +56,6 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "vitest": "^2.1.4",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.6",
@@ -63,9 +63,10 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.1.4",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.6",
     "shadcn": "^3.5.0",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.4"
   }
 }

@@ -156,7 +156,7 @@ const GuardrailNodeComponent: React.FC<NodeProps> = (props) => {
       )}
 
       <div className="ai-node-field">
-        <Button onClick={run} disabled={isRunning} variant="success" size="sm" className="w-full rounded-full">
+        <Button onClick={run} disabled={isRunning} variant="default" size="sm" className="w-full rounded-full">
           <Play size={14} /> {isRunning ? 'Running…' : 'Run'}
         </Button>
       </div>

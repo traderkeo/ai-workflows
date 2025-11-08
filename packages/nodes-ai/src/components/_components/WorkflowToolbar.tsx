@@ -68,7 +68,7 @@ export const WorkflowToolbar: React.FC<WorkflowToolbarProps> = ({
       <div
         style={{
           background: 'linear-gradient(135deg, var(--gothic-charcoal) 0%, var(--gothic-slate) 100%)',
-          border: 'var(--border-glow) solid var(--cyber-neon-purple)',
+          border: 'var(--border-glow) solid var(--toolbar-border, var(--cyber-neon-purple))',
           borderTop: 'none',
           borderLeft: 'none',
           borderRight: 'none',
@@ -121,9 +121,9 @@ export const WorkflowToolbar: React.FC<WorkflowToolbarProps> = ({
             <Button
               onClick={onExecute}
               disabled={isExecuting}
-              variant="success"
+              variant="default"
               size="sm"
-              className="h-9 px-4 font-medium"
+              className="h-9 px-4 font-medium primary"
               title="Execute workflow (Ctrl/Cmd + Enter)"
             >
               <Play size={16} strokeWidth={2} />

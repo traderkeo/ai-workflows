@@ -351,6 +351,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     <div
       style={{
         position: 'fixed',
+        display: 'block',
         top: position.y,
         left: position.x,
         zIndex: 1000,
@@ -365,7 +366,12 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       }}
       onClick={(e) => e.stopPropagation()}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = '0 0 30px rgba(176, 38, 255, 0.5)';
+        const theme = document.documentElement.getAttribute('data-theme');
+        if (theme === 'monochrome') {
+          e.currentTarget.style.boxShadow = '0 0 20px rgba(255, 255, 255, 0.3)';
+        } else {
+          e.currentTarget.style.boxShadow = '0 0 30px rgba(176, 38, 255, 0.5)';
+        }
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.boxShadow = 'var(--node-shadow)';
@@ -429,8 +435,14 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
               letterSpacing: '0.01em',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(176, 38, 255, 0.15)';
-              e.currentTarget.style.boxShadow = '0 0 10px rgba(176, 38, 255, 0.2)';
+              const theme = document.documentElement.getAttribute('data-theme');
+              if (theme === 'monochrome') {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.boxShadow = '0 0 8px rgba(255, 255, 255, 0.15)';
+              } else {
+                e.currentTarget.style.background = 'rgba(176, 38, 255, 0.15)';
+                e.currentTarget.style.boxShadow = '0 0 10px rgba(176, 38, 255, 0.2)';
+              }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent';

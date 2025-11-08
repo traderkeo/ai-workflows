@@ -4,7 +4,16 @@ import { Loader2, Edit2, Check, X } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/Collapsible';
 import type { AINodeData, NodeStatus } from '../types';
 import { useFlowStore } from '../hooks/useFlowStore';
-
+import {
+  Pill,
+  PillAvatar,
+  PillAvatarGroup,
+  PillButton,
+  PillDelta,
+  PillIcon,
+  PillIndicator,
+  PillStatus,
+} from '../components/ui/pill';
 interface BaseAINodeProps extends NodeProps {
   data: AINodeData;
   icon?: React.ReactNode;
@@ -70,7 +79,7 @@ const BaseAINodeComponent: React.FC<BaseAINodeProps> = ({
   };
 
   return (
-    <div className={`ai-node ${className}`} data-status={status}>
+    <div className={`ai-node ${className} bg-zinc-900 p-1 rounded-lg shadow-md overflow-hidden`} data-status={status}>
       {/* Input Handle */}
       {hasInput && (
         <Handle
@@ -82,11 +91,11 @@ const BaseAINodeComponent: React.FC<BaseAINodeProps> = ({
       )}
 
       {/* Header */}
-      <div className="ai-node-header">
-        {icon && <div className="ai-node-icon">{icon}</div>}
+      <div className="flex items-center gap-2 bg-zinc-700 p-2 rounded-md">
+        {icon && <div className="size-[60px] bg-zinc-900  text-white text-black border border-zinc-500  rounded-md shadow-md items-center justify-center flex">{icon}</div>}
         <div style={{ flex: 1 }}>
           {/* Custom Name (Now on top) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div className="" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             {isEditingName ? (
               <>
                 <input
@@ -144,50 +153,27 @@ const BaseAINodeComponent: React.FC<BaseAINodeProps> = ({
             ) : (
               <>
                 <div
-                  style={{
-                    fontSize: '13px',
-                    fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
-                    color: data.name ? 'var(--cyber-neon-cyan)' : '#888',
-                    fontStyle: data.name ? 'normal' : 'italic',
-                    fontWeight: 600,
-                    letterSpacing: '0.01em',
-                  }}
+                  className="text-sm font-medium text-gray-900 uppercase"
                 >
                   {data.name || 'Unnamed'}
                 </div>
                 <button
                   onClick={() => setIsEditingName(true)}
-                  style={{
-                    padding: '2px',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--cyber-neon-cyan)',
-                    display: 'flex',
-                    opacity: 0.6,
-                  }}
+                  className="text-zinc-800 hover:text-gray-700  p-1 rounded-full size-6"
+          
                   onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
                   onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
                 >
-                  <Edit2 size={10} />
+                  <Edit2 className='size-4'  />
                 </button>
               </>
             )}
           </div>
           {/* Node Type (Now below name) */}
-          <div
-            className="ai-node-title"
-            style={{
-              fontSize: '11px',
-              color: '#888',
-              marginTop: '2px',
-              fontWeight: 400,
-              fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
-              letterSpacing: '0.01em',
-            }}
-          >
-            {data.label}
-          </div>
+          <Pill className='bg-zinc-900 w-fit py-1 px-2 rounded-md text-xs text-gray-500 uppercase'>
+          {data.label}
+          </Pill>
+      
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
