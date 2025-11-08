@@ -21,7 +21,7 @@ export { NotificationProvider, useNotifications } from './context/NotificationCo
 // Node components
 export { StartNode } from './nodes/StartNode';
 export { StopNode } from './nodes/StopNode';
-export { AIAgentNodeV6 as AIAgentNode } from './nodes/AIAgentNodeV6';
+export { AIAgentNodeV6 as AIAgentNode } from './nodes/AIAgentNodeV6/index';
 export { GenerateNode } from './nodes/GenerateNode';
 export { ImageGenerationNode } from './nodes/ImageGenerationNode';
 export { AudioTTSNode } from './nodes/AudioTTSNode';
@@ -84,4 +84,4 @@ export type {
 } from './types';
 
 // Import styles - users should import this in their app
-import './styles/index.css';
+import './styles/output.css';

@@ -397,7 +397,7 @@ const ConditionNodeComponent: React.FC<NodeProps> = (props) => {
         <Button
           onClick={handleEvaluate}
           disabled={isEvaluating}
-          variant="success"
+          variant="default"
           size="sm"
           className="flex-1 rounded-full"
         >

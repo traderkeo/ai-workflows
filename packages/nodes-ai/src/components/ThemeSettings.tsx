@@ -23,6 +23,11 @@ export const ThemeSettings: React.FC = () => {
       label: 'Dark Home',
       description: 'Vercel dark mixed with castle aesthetics',
     },
+    {
+      value: 'monochrome',
+      label: 'Monochrome',
+      description: 'Classic black and white theme',
+    },
   ];
 
   return (
