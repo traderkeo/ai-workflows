@@ -170,8 +170,8 @@ const GenerateNodeComponent: React.FC<NodeProps> = (props) => {
       icon={mode === 'text' ? <MessageSquare size={20} /> : <Database size={20} />}
     >
       <div className="ai-node-field" style={{ display: 'flex', gap: 8 }}>
-        <Button variant={mode==='text' ? 'secondary' : 'outline'} size="sm" onClick={() => handleChange('mode','text')} className="flex-1">Text</Button>
-        <Button variant={mode==='structured' ? 'secondary' : 'outline'} size="sm" onClick={() => handleChange('mode','structured')} className="flex-1">Structured</Button>
+        <Button variant={mode==='text' ? 'secondary' : 'outline-solid'} size="sm" onClick={() => handleChange('mode','text')} className="flex-1">Text</Button>
+        <Button variant={mode==='structured' ? 'secondary' : 'outline-solid'} size="sm" onClick={() => handleChange('mode','structured')} className="flex-1">Structured</Button>
       </div>
 
       {/* Prompt Section */}

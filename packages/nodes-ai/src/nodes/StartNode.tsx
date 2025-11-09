@@ -270,7 +270,7 @@ const StartNodeComponent: React.FC<NodeProps> = (props) => {
             fontWeight: 400,
             letterSpacing: '0.01em',
           }}>
-            <pre className="whitespace-pre-wrap break-words m-0" style={{ fontFamily: 'inherit', fontWeight: 'inherit' }}>
+            <pre className="whitespace-pre-wrap wrap-break-word m-0" style={{ fontFamily: 'inherit', fontWeight: 'inherit' }}>
               {typeof data.value === 'object'
                 ? JSON.stringify(data.value, null, 2)
                 : String(data.value)}

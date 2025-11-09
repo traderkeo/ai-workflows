@@ -31,7 +31,7 @@ export function NodeConfigPanel({ node, onUpdate, onDelete, onClose }: NodeConfi
 
   if (!node) {
     return (
-      <div className="w-96 bg-zinc-900/95 border-l border-zinc-800 backdrop-blur-sm flex items-center justify-center">
+      <div className="w-96 bg-zinc-900/95 border-l border-zinc-800 backdrop-blur-xs flex items-center justify-center">
         <div className="text-center p-8">
           <Settings className="h-12 w-12 text-zinc-700 mx-auto mb-3" />
           <p className="text-sm text-zinc-500">Select a node to configure</p>
@@ -153,7 +153,7 @@ export function NodeConfigPanel({ node, onUpdate, onDelete, onClose }: NodeConfi
   };
 
   return (
-    <div className="w-96 bg-zinc-900/95 border-l border-zinc-800 backdrop-blur-sm flex flex-col">
+    <div className="w-96 bg-zinc-900/95 border-l border-zinc-800 backdrop-blur-xs flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-zinc-800 flex items-start justify-between">
         <div className="flex items-start gap-3">

@@ -22,7 +22,7 @@ export const ExecutionHistoryPanel: React.FC<ExecutionHistoryPanelProps> = ({ hi
   const latestExecution = history[0];
 
   return (
-    <div className="bg-card border border-border rounded-md shadow-sm overflow-hidden">
+    <div className="bg-card border border-border rounded-md shadow-xs overflow-hidden">
       {/* Summary Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
@@ -55,9 +55,9 @@ export const ExecutionHistoryPanel: React.FC<ExecutionHistoryPanelProps> = ({ hi
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
                   {record.success ? (
-                    <CheckCircle size={12} className="text-green-500 flex-shrink-0" />
+                    <CheckCircle size={12} className="text-green-500 shrink-0" />
                   ) : (
-                    <XCircle size={12} className="text-red-500 flex-shrink-0" />
+                    <XCircle size={12} className="text-red-500 shrink-0" />
                   )}
                   <span className="text-xs font-mono text-foreground">
                     {new Date(record.timestamp).toLocaleTimeString()}

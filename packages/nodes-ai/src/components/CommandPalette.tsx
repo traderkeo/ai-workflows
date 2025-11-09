@@ -92,7 +92,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+        className="fixed inset-0 bg-black/50 backdrop-blur-xs z-40"
         onClick={onClose}
       />
 
@@ -101,14 +101,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
         <div className="bg-card border border-border rounded-lg shadow-2xl overflow-hidden">
           {/* Search Input */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-            <Search size={18} className="text-muted-foreground flex-shrink-0" />
+            <Search size={18} className="text-muted-foreground shrink-0" />
             <input
               ref={inputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search nodes... (type to filter)"
-              className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent border-none outline-hidden text-sm text-foreground placeholder:text-muted-foreground"
               autoComplete="off"
             />
             <button
@@ -138,7 +138,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                     }`}
                     onMouseEnter={() => setSelectedIndex(index)}
                   >
-                    <div className="flex-shrink-0 text-primary">{template.icon}</div>
+                    <div className="shrink-0 text-primary">{template.icon}</div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-foreground">
                         {template.label}

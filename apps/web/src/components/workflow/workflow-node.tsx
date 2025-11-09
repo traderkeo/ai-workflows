@@ -59,7 +59,7 @@ export const WorkflowNode = memo(({ data, selected }: WorkflowNodeProps) => {
         min-w-[280px] max-w-[320px]
         border-2 ${colors.border}
         ${colors.bg}
-        backdrop-blur-sm
+        backdrop-blur-xs
         transition-all duration-200
         ${selected ? 'ring-2 ring-white/50 shadow-lg shadow-white/20' : 'shadow-md'}
         hover:shadow-lg hover:shadow-white/10

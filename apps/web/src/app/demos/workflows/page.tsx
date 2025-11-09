@@ -554,7 +554,7 @@ export default function WorkflowsDemo() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-linear-to-br from-pink-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -591,7 +591,7 @@ export default function WorkflowsDemo() {
                   return (
                     <Button
                       key={key}
-                      variant={isActive ? 'default' : 'outline'}
+                      variant={isActive ? 'default' : 'outline-solid'}
                       className="w-full justify-start"
                       onClick={() => {
                         // Switch workflow type - results are now tied to each type
@@ -624,7 +624,7 @@ export default function WorkflowsDemo() {
                   <div className="space-y-1">
                     {currentWorkflow.steps.map((step, i) => (
                       <div key={i} className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-2">
-                        <div className="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs flex-shrink-0">
+                        <div className="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs shrink-0">
                           {i + 1}
                         </div>
                         {step}
@@ -740,7 +740,7 @@ export default function WorkflowsDemo() {
                         key={index}
                         className={`flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg animate-in fade-in slide-in-from-left ${shouldHideProgress ? 'hidden' : ''}`}
                       >
-                        <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                        <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-500 shrink-0" />
                         <div className="flex-1 min-w-0">
                           {item.type === 'start' && (
                             <p className="text-sm font-medium">{item.message}</p>
@@ -967,7 +967,7 @@ export default function WorkflowsDemo() {
                             </div>
                           )}
                         </div>
-                        <span className="text-xs text-gray-400 flex-shrink-0">
+                        <span className="text-xs text-gray-400 shrink-0">
                           {new Date(item.timestamp).toLocaleTimeString()}
                         </span>
                       </div>

@@ -52,7 +52,7 @@ export function NodePalette({ onAddNode }: NodePaletteProps) {
   };
 
   return (
-    <div className="w-80 bg-zinc-900/95 border-r border-zinc-800 flex flex-col backdrop-blur-sm">
+    <div className="w-80 bg-zinc-900/95 border-r border-zinc-800 flex flex-col backdrop-blur-xs">
       {/* Header */}
       <div className="p-4 border-b border-zinc-800">
         <h2 className="text-lg font-semibold text-white mb-3">Nodes</h2>

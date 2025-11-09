@@ -15,7 +15,7 @@ export default function HomePage() {
       <div className="flex flex-wrap items-center justify-center gap-4">
         <Link
           href="/workflow"
-          className="rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow transition hover:bg-primary/90"
+          className="rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90"
         >
           View Workflow Example
         </Link>

@@ -575,7 +575,7 @@ export const SavedWorkflowsPanel = React.forwardRef<SavedWorkflowsPanelHandle, S
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Button
-                  variant={autosaveEnabled ? 'default' : 'outline'}
+                  variant={autosaveEnabled ? 'default' : 'outline-solid'}
                   size="sm"
                   disabled={!workflowExistsInLibrary}
                   className="h-9 px-4 font-medium"
@@ -696,7 +696,7 @@ export const SavedWorkflowsPanel = React.forwardRef<SavedWorkflowsPanelHandle, S
                       <Button
                         key={tag}
                         onClick={() => toggleTag(tag)}
-                        variant={selectedTags.includes(tag) ? "default" : "outline"}
+                        variant={selectedTags.includes(tag) ? "default" : "outline-solid"}
                         size="sm"
                         className="h-8"
                         style={{
