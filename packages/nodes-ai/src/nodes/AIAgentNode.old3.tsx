@@ -553,7 +553,7 @@ const AIAgentNodeComponent: React.FC<NodeProps> = (props) => {
           letterSpacing: '0.01em',
         }}>
           {data.prompt ? (
-            <span className="whitespace-pre-wrap break-words">{promptPreview}</span>
+            <span className="whitespace-pre-wrap wrap-break-word">{promptPreview}</span>
           ) : (
             <span className="italic text-zinc-500" style={{ fontWeight: 400 }}>No prompt configured</span>
           )}
@@ -577,7 +577,7 @@ const AIAgentNodeComponent: React.FC<NodeProps> = (props) => {
                 {displayResult.loading ? (
                   // Shimmer loading placeholder
                   <div
-                    className="w-full rounded-md bg-gradient-to-r from-zinc-800 via-zinc-700 to-zinc-800 animate-pulse"
+                    className="w-full rounded-md bg-linear-to-r from-zinc-800 via-zinc-700 to-zinc-800 animate-pulse"
                     style={{
                       height: '200px',
                       backgroundSize: '200% 100%',
@@ -620,7 +620,7 @@ const AIAgentNodeComponent: React.FC<NodeProps> = (props) => {
                 {displayResult.loading ? (
                   // Shimmer loading placeholder for audio
                   <div
-                    className="w-full rounded-md bg-gradient-to-r from-zinc-800 via-zinc-700 to-zinc-800"
+                    className="w-full rounded-md bg-linear-to-r from-zinc-800 via-zinc-700 to-zinc-800"
                     style={{
                       height: '54px',
                       backgroundSize: '200% 100%',
@@ -645,7 +645,7 @@ const AIAgentNodeComponent: React.FC<NodeProps> = (props) => {
 
             {/* Text/JSON Result */}
             {!displayResult.type && (
-              <pre className="whitespace-pre-wrap break-words m-0" style={{ fontFamily: 'inherit', fontWeight: 'inherit' }}>
+              <pre className="whitespace-pre-wrap wrap-break-word m-0" style={{ fontFamily: 'inherit', fontWeight: 'inherit' }}>
                 {typeof displayResult === 'object'
                   ? JSON.stringify(displayResult, null, 2)
                   : displayResult}

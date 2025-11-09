@@ -359,7 +359,7 @@ export default function WorkflowExamplePage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-6 text-center h-[100vh] w-[100vw]">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-6 text-center h-screen w-screen">
       <div className="space-y-4" style={{ height: '100%', width: '100%' }}>
         <WorkflowCanvas
           edges={edges}

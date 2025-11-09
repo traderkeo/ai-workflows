@@ -81,7 +81,7 @@ export default function WebSearchDemo() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-linear-to-br from-green-50 to-emerald-50 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -263,7 +263,7 @@ export default function WebSearchDemo() {
                           {result.citations.map((citation: any, i: number) => (
                             <Card key={i} className="p-3">
                               <div className="flex items-start gap-3">
-                                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-semibold text-blue-600 dark:text-blue-400 flex-shrink-0">
+                                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-xs font-semibold text-blue-600 dark:text-blue-400 shrink-0">
                                   {i + 1}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -277,7 +277,7 @@ export default function WebSearchDemo() {
                                     className="text-xs text-blue-600 hover:underline flex items-center gap-1 truncate"
                                   >
                                     {citation.url}
-                                    <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                    <ExternalLink className="w-3 h-3 shrink-0" />
                                   </a>
                                 </div>
                               </div>

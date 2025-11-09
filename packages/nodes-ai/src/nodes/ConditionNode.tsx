@@ -217,7 +217,7 @@ const ConditionNodeComponent: React.FC<NodeProps> = (props) => {
           />
           {data.lastResolvedInput !== undefined && (
             <div style={{ fontSize: '10px', color: 'var(--text-muted, #888)', marginTop: '4px' }}>
-              Resolved: <span className="whitespace-pre-wrap break-words">{data.lastResolvedInput}</span>
+              Resolved: <span className="whitespace-pre-wrap wrap-break-word">{data.lastResolvedInput}</span>
             </div>
           )}
           {availableVariables.length > 0 && (

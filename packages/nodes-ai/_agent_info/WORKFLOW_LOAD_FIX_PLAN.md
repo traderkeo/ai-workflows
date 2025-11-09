@@ -402,7 +402,7 @@ Add a toggle button so users can control autosave:
 // In SavedWorkflowsPanel, add toggle button
 <Button
   onClick={() => setAutosaveEnabled(!autosaveEnabled)}
-  variant={autosaveEnabled ? "default" : "outline"}
+  variant={autosaveEnabled ? "default" : "outline-solid"}
   size="sm"
   title={autosaveEnabled ? "Autosave enabled" : "Autosave disabled"}
 >

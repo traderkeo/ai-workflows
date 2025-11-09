@@ -33,7 +33,7 @@ export const ThemeSettings: React.FC = () => {
   return (
     <Select value={theme} onValueChange={(value) => setTheme(value as Theme)}>
       <SelectTrigger
-        className="h-9 px-4 gap-2 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
+        className="h-9 px-4 gap-2 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground"
         style={{
           fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
           fontSize: '14px',

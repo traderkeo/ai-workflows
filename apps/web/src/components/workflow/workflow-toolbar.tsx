@@ -17,7 +17,7 @@ interface WorkflowToolbarProps {
 
 export function WorkflowToolbar({ onSave, onLoad, onClear, onExecute }: WorkflowToolbarProps) {
   return (
-    <div className="flex items-center gap-2 bg-zinc-900/95 border border-zinc-800 rounded-lg px-3 py-2 shadow-lg backdrop-blur-sm">
+    <div className="flex items-center gap-2 bg-zinc-900/95 border border-zinc-800 rounded-lg px-3 py-2 shadow-lg backdrop-blur-xs">
       {/* Execute Button - Primary Action */}
       <Button
         onClick={onExecute}
