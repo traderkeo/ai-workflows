@@ -1,121 +1,87 @@
-import React, { useState } from 'react';
-import { NodeProps } from '@xyflow/react';
+import React from 'react';
+import { NodeProps, Handle, Position } from '@xyflow/react';
 import { RotateCw } from 'lucide-react';
 import { BaseAINode } from '../components/BaseAINode';
 import type { LoopNodeData } from '../types';
-import { useFlowStore } from '../hooks/useFlowStore';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectLabel } from '../components/ui/Select';
-import { Input } from '../components/ui/Input';
 
 const LoopNodeComponent: React.FC<NodeProps> = (props) => {
   const { data } = props;
   const nodeData = data as LoopNodeData;
-  const updateNode = useFlowStore((state) => state.updateNode);
-
-  const [loopType, setLoopType] = useState<LoopNodeData['loopType']>(nodeData.loopType || 'count');
-  const [count, setCount] = useState(String(nodeData.count ?? 5));
-  const [conditionCode, setConditionCode] = useState(nodeData.conditionCode || 'return iteration < 10;');
-
-  const handleLoopTypeChange = (newType: LoopNodeData['loopType']) => {
-    setLoopType(newType);
-    updateNode(props.id, { loopType: newType });
-  };
-
-  const handleCountChange = () => {
-    const numCount = parseInt(count, 10);
-    if (!isNaN(numCount) && numCount > 0) {
-      updateNode(props.id, { count: numCount });
-    }
-  };
-
-  const handleConditionChange = () => {
-    updateNode(props.id, { conditionCode });
-  };
 
   return (
     <BaseAINode {...props} data={nodeData} icon={<RotateCw size={16} />}>
-      <div className="ai-node-field">
-        <span className="ai-node-field-label">Loop Type</span>
-        <Select value={loopType} onValueChange={(v) => handleLoopTypeChange(v as LoopNodeData['loopType'])}>
-          <SelectTrigger className="w-full"><SelectValue placeholder="Select type" /></SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Types</SelectLabel>
-              <SelectItem value="count">Fixed Count</SelectItem>
-              <SelectItem value="array">Iterate Array</SelectItem>
-              <SelectItem value="condition">Conditional</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+      {/* Settings Info - White Text */}
+      <div style={{ marginBottom: 8, fontSize: '11px', fontFamily: 'monospace', color: '#e4e4e7' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ color: '#71717a' }}>loopType:</span>
+            <span style={{ color: '#e4e4e7' }}>{nodeData.loopType || 'count'}</span>
+          </div>
+          {nodeData.loopType === 'count' && nodeData.count !== undefined && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ color: '#71717a' }}>count:</span>
+              <span style={{ color: '#e4e4e7' }}>{nodeData.count}</span>
+            </div>
+          )}
+          {nodeData.loopType === 'condition' && nodeData.conditionCode && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
+              <span style={{ color: '#71717a', flexShrink: 0 }}>conditionCode:</span>
+              <span style={{ color: '#e4e4e7', wordBreak: 'break-word', maxWidth: '100%' }}>
+                {nodeData.conditionCode.length > 40 ? `${nodeData.conditionCode.substring(0, 40)}...` : nodeData.conditionCode}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {loopType === 'count' && (
-        <div className="ai-node-field">
-          <span className="ai-node-field-label">Iterations</span>
-          <Input
-            type="number"
-            placeholder="5"
-            value={count}
-            min={1}
-            onChange={(e) => setCount((e.target as HTMLInputElement).value)}
-            onBlur={handleCountChange}
-          />
-        </div>
-      )}
-
-      {loopType === 'array' && (
-        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
-          <span className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Array Source</span>
-          <div className="ai-node-field-value" style={{ fontSize: '11px', fontWeight: 400, letterSpacing: '0.01em', color: 'var(--cyber-neon-purple)' }}>
-            {'Use {{input}} or {{nodeId}} to pass an array'}
-          </div>
-        </div>
-      )}
-
-      {loopType === 'condition' && (
-        <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
-          <span className="ai-node-field-label" style={{ fontSize: '12px', fontWeight: 500, letterSpacing: '0.01em' }}>Condition (JavaScript)</span>
-          <textarea
-            className="ai-node-input nodrag"
-            placeholder="return iteration < 10;"
-            value={conditionCode}
-            onChange={(e) => setConditionCode(e.target.value)}
-            onBlur={handleConditionChange}
-            rows={3}
-            style={{ fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)', fontSize: '13px', fontWeight: 400, letterSpacing: '0.01em' }}
-          />
-          <div style={{ fontSize: '10px', fontWeight: 400, letterSpacing: '0.01em', color: 'var(--cyber-neon-purple)', marginTop: '4px' }}>
-            Available: iteration, input
-          </div>
-        </div>
-      )}
-
-      {nodeData.currentIteration !== undefined && (
-        <div className="ai-node-field">
-          <span className="ai-node-field-label">Current Iteration</span>
-          <div className="ai-node-field-value">{nodeData.currentIteration}</div>
-        </div>
-      )}
-
+      {/* Results - Dark Block */}
       {nodeData.results && nodeData.results.length > 0 && (
-        <div className="ai-node-field">
-          <span className="ai-node-field-label">Results</span>
-          <div className="ai-node-field-value">
-            <pre
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '10px',
-                maxHeight: '150px',
-                overflow: 'auto',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-              }}
-            >
+        <div style={{ marginTop: 8 }}>
+          <div style={{
+            padding: '8px',
+            background: 'rgba(24, 24, 27, 0.9)',
+            borderRadius: '4px',
+            border: '1px solid rgba(63, 63, 70, 0.5)',
+            fontSize: '11px',
+            fontFamily: 'monospace',
+            color: '#e4e4e7',
+            maxHeight: '200px',
+            overflowY: 'auto',
+          }}>
+            <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
               {JSON.stringify(nodeData.results, null, 2)}
             </pre>
           </div>
         </div>
       )}
+
+      {/* Input Handles - Both sides for logic nodes */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{ background: '#4a4a5a' }}
+        isConnectable={true}
+      />
+      <Handle
+        type="target"
+        position={Position.Right}
+        style={{ background: '#4a4a5a' }}
+        isConnectable={true}
+      />
+
+      {/* Output Handle - Pass (green, bottom-right) */}
+      <Handle
+        type="source"
+        id="pass"
+        position={Position.Bottom}
+        style={{
+          background: 'rgba(29, 255, 150, 0.82)',
+          border: '2px solid #7dffc2',
+          left: '66.66%',
+          transform: 'translateX(-50%)',
+        }}
+        isConnectable={true}
+      />
     </BaseAINode>
   );
 };

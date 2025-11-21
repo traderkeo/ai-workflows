@@ -1306,3 +1306,43 @@
     font-size: 11px;
   }
 }
+
+.react-flow__edge.selected, .react-flow__edge:focus {
+  stroke: rgb(125, 255, 194);
+  transition: all 0.2s ease ;
+  animation-delay: 0s ;
+  animation-direction: alternate ;
+  animation-timing-function: ease-in-out ;
+  animation-fill-mode: forwards ;
+  opacity:1 ;
+}
+.react-flow__edge.selected, .react-flow__edge {
+
+  stroke: rgb(125, 255, 194) ;
+  transition: all 0.2s ease ;
+  animation-delay: 0s ;
+  animation-direction: alternate ;
+  animation-timing-function: ease-in-out ;
+  animation-fill-mode: forwards ;
+  opacity: 0.5 ;
+}
+
+
+
+
+.react-flow__handle.connectionindicator {
+  background: rgba(125, 255, 194, 0.521);
+  width: 15px ;
+  height: 15px ;
+  border-radius: 50% ;
+  box-shadow: 0 0 10px rgb(125, 255, 194) ;
+  border: 2px solid rgb(125, 255, 194) ;
+  transition: all 0.2s ease ;
+  animation: pulse 2s infinite ;
+  animation-delay: 0s ;
+  animation-direction: alternate ;
+  animation-timing-function: ease-in-out ;
+  animation-fill-mode: forwards ;
+  opacity: 1 ;
+}
+ 

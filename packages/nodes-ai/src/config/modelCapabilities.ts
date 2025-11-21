@@ -172,50 +172,61 @@ export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   },
 
   // Anthropic Models
-  'claude-3-5-sonnet-20241022': {
-    id: 'claude-3-5-sonnet-20241022',
-    name: 'Claude 3.5 Sonnet',
+  // Claude 4 Series (with date suffixes - actual API model IDs)
+  'claude-sonnet-4-5-20250929': {
+    id: 'claude-sonnet-4-5-20250929',
+    name: 'Claude Sonnet 4.5',
     provider: 'anthropic',
     capabilities: ['text-generation', 'structured-output', 'vision', 'tool-calling', 'json-mode'],
     supportedModes: ['text', 'structured'],
-    maxTokens: 8192,
-    description: 'Latest Claude model'
+    maxTokens: 65536, // 64K tokens max output
+    description: 'Our smartest model for complex agents and coding'
   },
-  'claude-3-5-haiku-20241022': {
-    id: 'claude-3-5-haiku-20241022',
-    name: 'Claude 3.5 Haiku',
+  'claude-haiku-4-5-20251001': {
+    id: 'claude-haiku-4-5-20251001',
+    name: 'Claude Haiku 4.5',
     provider: 'anthropic',
     capabilities: ['text-generation', 'structured-output', 'vision', 'tool-calling', 'json-mode'],
     supportedModes: ['text', 'structured'],
-    maxTokens: 8192,
-    description: 'Fast Claude model'
+    maxTokens: 65536, // 64K tokens max output
+    description: 'Our fastest model with near-frontier intelligence'
   },
-  'claude-3-opus-20240229': {
-    id: 'claude-3-opus-20240229',
-    name: 'Claude 3 Opus',
+  'claude-opus-4-1-20250805': {
+    id: 'claude-opus-4-1-20250805',
+    name: 'Claude Opus 4.1',
     provider: 'anthropic',
     capabilities: ['text-generation', 'structured-output', 'vision', 'tool-calling', 'json-mode'],
     supportedModes: ['text', 'structured'],
-    maxTokens: 4096,
-    description: 'Most capable Claude 3'
+    maxTokens: 32768, // 32K tokens max output
+    description: 'Exceptional model for specialized reasoning tasks'
   },
-  'claude-3-sonnet-20240229': {
-    id: 'claude-3-sonnet-20240229',
-    name: 'Claude 3 Sonnet',
+  // Claude 4 Series (aliases)
+  'claude-sonnet-4-5': {
+    id: 'claude-sonnet-4-5-20250929',
+    name: 'Claude Sonnet 4.5',
     provider: 'anthropic',
     capabilities: ['text-generation', 'structured-output', 'vision', 'tool-calling', 'json-mode'],
     supportedModes: ['text', 'structured'],
-    maxTokens: 4096,
-    description: 'Balanced Claude 3'
+    maxTokens: 65536,
+    description: 'Our smartest model for complex agents and coding'
   },
-  'claude-3-haiku-20240307': {
-    id: 'claude-3-haiku-20240307',
-    name: 'Claude 3 Haiku',
+  'claude-haiku-4-5': {
+    id: 'claude-haiku-4-5-20251001',
+    name: 'Claude Haiku 4.5',
     provider: 'anthropic',
     capabilities: ['text-generation', 'structured-output', 'vision', 'tool-calling', 'json-mode'],
     supportedModes: ['text', 'structured'],
-    maxTokens: 4096,
-    description: 'Fast Claude 3'
+    maxTokens: 65536,
+    description: 'Our fastest model with near-frontier intelligence'
+  },
+  'claude-opus-4-1': {
+    id: 'claude-opus-4-1-20250805',
+    name: 'Claude Opus 4.1',
+    provider: 'anthropic',
+    capabilities: ['text-generation', 'structured-output', 'vision', 'tool-calling', 'json-mode'],
+    supportedModes: ['text', 'structured'],
+    maxTokens: 32768,
+    description: 'Exceptional model for specialized reasoning tasks'
   },
 
   // Google Models

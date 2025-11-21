@@ -92,6 +92,7 @@ const WorkflowCanvasComponent: React.FC = () => {
   const updateMetadata = useFlowStore((s) => s.updateMetadata);
   const autoLayoutNodes = useFlowStore((s) => s.autoLayoutNodes);
   const setViewport = useFlowStore((s) => s.setViewport);
+  const setSelectedNodeIds = useFlowStore((s) => s.setSelectedNodeIds);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const savedWorkflowsPanelRef = useRef<SavedWorkflowsPanelHandle>(null!);
@@ -265,6 +266,13 @@ const WorkflowCanvasComponent: React.FC = () => {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onMove={handleViewportMove}
+          onNodeClick={(_, node) => {
+            const selectedIds = node.selected ? [] : [node.id];
+            setSelectedNodeIds(selectedIds);
+          }}
+          onPaneClick={() => {
+            setSelectedNodeIds([]);
+          }}
           nodeTypes={NODE_TYPES}
           defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
           fitView

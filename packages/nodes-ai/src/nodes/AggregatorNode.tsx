@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NodeProps } from '@xyflow/react';
+import { NodeProps, Handle, Position } from '@xyflow/react';
 import { Layers, Play } from 'lucide-react';
 import { BaseAINode } from '../components/BaseAINode';
 import { useFlowStore } from '../hooks/useFlowStore';
@@ -56,11 +56,11 @@ const AggregatorNodeComponent: React.FC<NodeProps> = (props) => {
   };
 
   return (
-    <BaseAINode {...props} data={data} icon={<Layers size={18} />}> 
+    <BaseAINode {...props} data={data} icon={<Layers size={18} />}>
       <div className="ai-node-field">
         <label className="ai-node-field-label">Items (JSON array or text)</label>
         <textarea
-          className="ai-node-input ai-node-textarea"
+          className="ai-node-input ai-node-textarea nodrag"
           rows={3}
           value={data.items ?? '{{input}}'}
           onChange={(e) => handleChange('items', e.target.value)}
@@ -107,6 +107,20 @@ const AggregatorNodeComponent: React.FC<NodeProps> = (props) => {
           <Play size={14} /> {isRunning ? 'Running…' : 'Run'}
         </Button>
       </div>
+
+      {/* Input Handles - Both sides for logic nodes */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{ background: '#4a4a5a' }}
+        isConnectable={true}
+      />
+      <Handle
+        type="target"
+        position={Position.Right}
+        style={{ background: '#4a4a5a' }}
+        isConnectable={true}
+      />
     </BaseAINode>
   );
 };

@@ -20,8 +20,9 @@ type ExecutionCallbacks =
 
 /**
  * Build a dependency graph from nodes and edges
+ * For condition nodes, only include edges from the correct handle (pass/fail) based on condition result
  */
-function buildDependencyGraph(nodes: AINode[], edges: AIEdge[]): Map<string, Set<string>> {
+function buildDependencyGraph(nodes: AINode[], edges: AIEdge[], conditionResults?: Map<string, boolean>): Map<string, Set<string>> {
   const graph = new Map<string, Set<string>>();
 
   // Initialize all nodes
@@ -31,9 +32,33 @@ function buildDependencyGraph(nodes: AINode[], edges: AIEdge[]): Map<string, Set
 
   // Add dependencies (edges point from source to target, so target depends on source)
   edges.forEach((edge) => {
-    const dependencies = graph.get(edge.target);
-    if (dependencies) {
-      dependencies.add(edge.source);
+    // For condition nodes, filter edges based on condition result
+    const sourceNode = nodes.find(n => n.id === edge.source);
+    if (sourceNode?.type === 'condition' && conditionResults) {
+      const conditionMet = conditionResults.get(edge.source);
+      if (conditionMet === undefined) {
+        // Condition not evaluated yet, include all edges
+        const dependencies = graph.get(edge.target);
+        if (dependencies) {
+          dependencies.add(edge.source);
+        }
+      } else {
+        // Condition evaluated - only include edges from the correct handle
+        const expectedHandle = conditionMet ? 'pass' : 'fail';
+        if (edge.sourceHandle === expectedHandle || !edge.sourceHandle) {
+          // Include edge if it's from the correct handle, or if no handle specified (backward compatibility)
+          const dependencies = graph.get(edge.target);
+          if (dependencies) {
+            dependencies.add(edge.source);
+          }
+        }
+      }
+    } else {
+      // For non-condition nodes, include all edges
+      const dependencies = graph.get(edge.target);
+      if (dependencies) {
+        dependencies.add(edge.source);
+      }
     }
   });
 
@@ -71,7 +96,8 @@ async function executeNode(
   workflowContext: WorkflowContext,
   nodes: AINode[],
   edges: AIEdge[],
-  onNodeUpdate: (nodeId: string, updates: NodeDataUpdate) => void
+  onNodeUpdate: (nodeId: string, updates: NodeDataUpdate) => void,
+  conditionResults?: Map<string, boolean>
 ): Promise<any> {
   const startTime = Date.now();
 
@@ -428,6 +454,7 @@ async function executeNode(
         break;
       }
 
+      case 'generate':
       case 'text-generation': {
         const data = node.data as any;
 
@@ -694,6 +721,11 @@ async function executeNode(
 
         onNodeUpdate(node.id, { conditionMet: ok, result: ok });
         result = ok;
+        
+        // Store condition result for dependency graph updates
+        if (conditionResults) {
+          conditionResults.set(node.id, ok);
+        }
         break;
       }
 
@@ -1176,7 +1208,8 @@ export async function executeWorkflow(
   };
 
   const workflowContext = new WorkflowContext();
-  const dependencyGraph = buildDependencyGraph(nodes, edges);
+  const conditionResults = new Map<string, boolean>(); // Track condition node results
+  let dependencyGraph = buildDependencyGraph(nodes, edges, conditionResults);
   const executed = new Set<string>();
   const nodeMap = new Map(nodes.map((node) => [node.id, node]));
 
@@ -1199,6 +1232,8 @@ export async function executeWorkflow(
         throw new Error('Workflow execution aborted');
       }
 
+      // Rebuild dependency graph in case condition results changed
+      dependencyGraph = buildDependencyGraph(nodes, edges, conditionResults);
       const readyNodes = getReadyNodes(dependencyGraph, executed);
 
       if (readyNodes.length === 0) {
@@ -1222,7 +1257,8 @@ export async function executeWorkflow(
               workflowContext,
               nodes,
               edges,
-              onNodeUpdate
+              onNodeUpdate,
+              conditionResults
             );
             context.nodeResults.set(nodeId, result);
             executed.add(nodeId);
