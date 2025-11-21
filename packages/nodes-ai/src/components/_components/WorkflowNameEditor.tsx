@@ -1,7 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import { Edit2, Check, X } from 'lucide-react';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
 
 interface WorkflowNameEditorProps {
   name: string;
@@ -33,8 +31,9 @@ export const WorkflowNameEditor: React.FC<WorkflowNameEditorProps> = ({ name, on
 
   if (isEditing) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <Input
+      <div style={{ display: 'flex', alignItems: 'center', height: '32px' }}>
+        {/* Input Field */}
+        <input
           value={editingName}
           onChange={(e) => setEditingName(e.target.value)}
           onKeyDown={(e) => {
@@ -42,51 +41,87 @@ export const WorkflowNameEditor: React.FC<WorkflowNameEditorProps> = ({ name, on
             if (e.key === 'Escape') handleCancel();
           }}
           style={{
-            width: '240px',
-            padding: '8px 12px',
+            padding: '6px 12px',
             fontSize: '14px',
             fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
-            background: 'rgba(0, 0, 0, 0.5)',
-            border: '1px solid var(--cyber-neon-cyan)',
-            borderRadius: '6px',
-            color: 'var(--cyber-neon-cyan)',
+            background: 'rgba(24, 24, 27, 0.8)',
+            border: 'none',
+            borderBottom: '1px solid rgba(0, 240, 255, 0.5)',
+            borderLeft: '1px solid rgba(0, 240, 255, 0.5)',
+            borderRadius: '6px 0 0 6px',
+            color: 'rgb(228, 228, 231)',
             outline: 'none',
             fontWeight: 500,
             letterSpacing: '-0.01em',
-            height: '36px',
+            height: '100%',
+            minWidth: '120px',
+            boxShadow: '0 0 4px rgba(0, 240, 255, 0.2)',
           }}
           autoFocus
         />
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={handleSave}
-          style={{ 
-            padding: '6px', 
-            minWidth: 'auto', 
-            color: 'var(--status-success)',
-            height: '36px',
-            width: '36px',
-          }}
-          title="Save"
-        >
-          <Check size={16} strokeWidth={2.5} />
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={handleCancel}
-          style={{ 
-            padding: '6px', 
-            minWidth: 'auto', 
-            color: '#ff0040',
-            height: '36px',
-            width: '36px',
-          }}
-          title="Cancel"
-        >
-          <X size={16} strokeWidth={2.5} />
-        </Button>
+        {/* Action Buttons Container - Dark Purple Background */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: 'rgba(88, 28, 135, 0.6)',
+          borderRadius: '0 6px 6px 0',
+          height: '100%',
+          padding: '0 4px',
+          gap: '2px',
+        }}>
+          <button
+            onClick={handleSave}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: '4px',
+              color: 'white',
+              cursor: 'pointer',
+              height: '24px',
+              width: '24px',
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+            title="Save"
+          >
+            <Check size={14} strokeWidth={2.5} />
+          </button>
+          <button
+            onClick={handleCancel}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: '4px',
+              color: '#ef4444',
+              cursor: 'pointer',
+              height: '24px',
+              width: '24px',
+              transition: 'background 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+            title="Cancel"
+          >
+            <X size={14} strokeWidth={2.5} />
+          </button>
+        </div>
       </div>
     );
   }
@@ -97,15 +132,15 @@ export const WorkflowNameEditor: React.FC<WorkflowNameEditorProps> = ({ name, on
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
+        gap: '6px',
         cursor: 'pointer',
         padding: '6px 12px',
         borderRadius: '6px',
         transition: 'all 0.15s ease',
-        height: '36px',
+        height: '32px',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'rgba(176, 38, 255, 0.12)';
+        e.currentTarget.style.background = 'rgba(161, 161, 170, 0.1)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = 'transparent';
@@ -113,16 +148,15 @@ export const WorkflowNameEditor: React.FC<WorkflowNameEditorProps> = ({ name, on
       title="Click to edit name"
     >
       <span style={{
-        fontSize: '15px',
-        fontWeight: 600,
-        color: 'var(--cyber-neon-cyan)',
+        fontSize: '14px',
+        fontWeight: 500,
+        color: 'rgb(228, 228, 231)',
         fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
-        letterSpacing: '-0.02em',
-        textShadow: '0 0 8px rgba(0, 240, 255, 0.3)',
+        letterSpacing: '-0.01em',
       }}>
         {name}
       </span>
-      <Edit2 size={14} strokeWidth={2} style={{ color: 'var(--cyber-neon-cyan)', opacity: 0.5 }} />
+      <Edit2 size={12} strokeWidth={2} style={{ color: 'rgb(161, 161, 170)', opacity: 0.6 }} />
     </div>
   );
 };

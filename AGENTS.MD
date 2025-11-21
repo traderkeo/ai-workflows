@@ -25,12 +25,6 @@ To contribute safely and consistently, follow this checklist **in order** whenev
 5. **Execute the plan**
 - Apply the necessary code changes, keeping diffs focused and well-explained with minimal but helpful comments when needed.
 
-6. **Run the full verification suite**
-- Execute `bun run verify`. Address any failures before proceeding.
-
-7. **Add or update tests**
-- Before committing any long-term or automated tests, run an ad-hoc Playwright pass against your existing dev server: `PLAYWRIGHT_SKIP_WEB_SERVER=1 bunx playwright test` (use `--headed` if you want to watch the run). This smoke check should catch console errors or obvious regressions while you iterate.
-**This project uses PNPM
 
 8. **Review documentation**
 - Re-read `README.md`. If the change affects setup, usage, or workflows, update the documentation accordingly.

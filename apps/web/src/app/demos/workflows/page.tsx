@@ -591,7 +591,7 @@ export default function WorkflowsDemo() {
                   return (
                     <Button
                       key={key}
-                      variant={isActive ? 'default' : 'outline-solid'}
+                      variant={ 'default'}
                       className="w-full justify-start"
                       onClick={() => {
                         // Switch workflow type - results are now tied to each type

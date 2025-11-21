@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { NodeProps } from '@xyflow/react';
+import { NodeProps, Handle, Position } from '@xyflow/react';
 import { GitBranch, Loader2, Play, Code, Settings, FileText } from 'lucide-react';
 import { BaseAINode } from '../components/BaseAINode';
 import { useFlowStore } from '../hooks/useFlowStore';
@@ -198,8 +198,15 @@ const ConditionNodeComponent: React.FC<NodeProps> = (props) => {
     </div>
   );
 
+
   return (
-    <BaseAINode {...props} data={data} icon={<GitBranch size={20} />} footerContent={customFooter}>
+    <BaseAINode
+      {...props}
+      data={data}
+      icon={<GitBranch size={20} />}
+      footerContent={customFooter}
+      hasOutput={false}
+    >
       {/* Input Section */}
       <CollapsibleSection title="Input" icon={<Code size={14} />} defaultOpen={true}>
         <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
@@ -399,12 +406,53 @@ const ConditionNodeComponent: React.FC<NodeProps> = (props) => {
           disabled={isEvaluating}
           variant="default"
           size="sm"
-          className="flex-1 rounded-full"
+          className="flex-1"
         >
-          <Play size={14} />
+          {isEvaluating && <Loader2 size={14} className="animate-spin" />}
+          <Play size={14} strokeWidth={2} />
           {isEvaluating ? 'Evaluating...' : 'Evaluate'}
         </Button>
       </div>
+
+      {/* Input Handles - Both sides for logic nodes */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{ background: '#4a4a5a' }}
+        isConnectable={true}
+      />
+      <Handle
+        type="target"
+        position={Position.Right}
+        style={{ background: '#4a4a5a' }}
+        isConnectable={true}
+      />
+
+      {/* Custom Output Handles: Pass (green, bottom-right) and Fail (red, bottom-left) */}
+      <Handle
+        type="source"
+        id="pass"
+        position={Position.Bottom}
+        style={{
+          background: 'rgba(29, 255, 150, 0.82)',
+          border: '2px solid #7dffc2',
+          left: '66.66%',
+          transform: 'translateX(-50%)',
+        }}
+        isConnectable={true}
+      />
+      <Handle
+        type="source"
+        id="fail"
+        position={Position.Bottom}
+        style={{
+          background: 'rgba(255, 64, 64, 0.77)',
+          border: '2px solid #ff4040',
+          left: '33.33%',
+          transform: 'translateX(-50%)',
+        }}
+        isConnectable={true}
+      />
     </BaseAINode>
   );
 };

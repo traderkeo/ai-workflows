@@ -23,6 +23,9 @@ interface SavedWorkflowsPanelProps {
   currentWorkflowId?: string;
   nodes?: any[]; // For tracking state changes to trigger autosave
   edges?: any[]; // For tracking state changes to trigger autosave
+  hideToggleButton?: boolean; // Hide the built-in toggle button when used in toolbar
+  isOpen?: boolean; // Control open state externally
+  onOpenChange?: (open: boolean) => void; // Callback when open state changes
 }
 
 export interface SavedWorkflowsPanelHandle {
@@ -75,14 +78,25 @@ export const SavedWorkflowsPanel = React.forwardRef<SavedWorkflowsPanelHandle, S
   currentWorkflowId: propWorkflowId,
   nodes = [],
   edges = [],
+  hideToggleButton = false,
+  isOpen: externalIsOpen,
+  onOpenChange,
 }, ref) => {
   const notifications = useNotifications();
   const storeWorkflowId = useFlowStore((state) => state.metadata.id);
   const currentWorkflowId = storeWorkflowId || propWorkflowId;
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
+  const setIsOpen = (open: boolean) => {
+    if (externalIsOpen === undefined) {
+      setInternalIsOpen(open);
+    }
+    onOpenChange?.(open);
+  };
   const [savedWorkflows, setSavedWorkflows] = useState<SavedWorkflowItem[]>([]);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
+  const [showInlineSave, setShowInlineSave] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   // Autosave is always enabled - no preference needed
@@ -253,6 +267,11 @@ export const SavedWorkflowsPanel = React.forwardRef<SavedWorkflowsPanelHandle, S
       
       if (!overrideName) {
         setSaveDialogOpen(false);
+        setShowInlineSave(false);
+        // Close the panel after saving (if in toolbar mode)
+        if (hideToggleButton) {
+          setIsOpen(false);
+        }
       }
       setSaveName('');
 
@@ -423,25 +442,27 @@ export const SavedWorkflowsPanel = React.forwardRef<SavedWorkflowsPanelHandle, S
 
   return (
     <>
-      {/* Toggle Button */}
-      <Button
-        onClick={() => {
-          if (!isOpen) {
-            // Reset filters when opening
-            setSearchQuery('');
-            setSelectedTags([]);
-          }
-          setIsOpen(!isOpen);
-        }}
-        variant="secondary"
-        size="sm"
-        className="h-9 px-4 font-medium"
-        title="Saved workflows"
-      >
-        <FolderOpen size={16} strokeWidth={2} />
-        <span>Saved</span>
-        {savedWorkflows.length > 0 && <span>({savedWorkflows.length})</span>}
-      </Button>
+      {/* Toggle Button - Only show if not hidden */}
+      {!hideToggleButton && (
+        <Button
+          onClick={() => {
+            if (!isOpen) {
+              // Reset filters when opening
+              setSearchQuery('');
+              setSelectedTags([]);
+            }
+            setIsOpen(!isOpen);
+          }}
+          variant="secondary"
+          size="sm"
+          className="h-9 px-4 font-medium"
+          title="Saved workflows"
+        >
+          <FolderOpen size={16} strokeWidth={2} />
+          <span>Saved</span>
+          {savedWorkflows.length > 0 && <span>({savedWorkflows.length})</span>}
+        </Button>
+      )}
 
       {/* Save Dialog */}
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
@@ -528,8 +549,9 @@ export const SavedWorkflowsPanel = React.forwardRef<SavedWorkflowsPanelHandle, S
         </DialogContent>
       </Dialog>
 
-      {/* Main Panel */}
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      {/* Main Panel - Only render as Dialog when not in toolbar mode */}
+      {!hideToggleButton ? (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent
           style={{
             maxWidth: '900px',
@@ -575,7 +597,7 @@ export const SavedWorkflowsPanel = React.forwardRef<SavedWorkflowsPanelHandle, S
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Button
-                  variant={autosaveEnabled ? 'default' : 'outline-solid'}
+                  variant={autosaveEnabled ? 'default' : 'outline'}
                   size="sm"
                   disabled={!workflowExistsInLibrary}
                   className="h-9 px-4 font-medium"
@@ -696,7 +718,7 @@ export const SavedWorkflowsPanel = React.forwardRef<SavedWorkflowsPanelHandle, S
                       <Button
                         key={tag}
                         onClick={() => toggleTag(tag)}
-                        variant={selectedTags.includes(tag) ? "default" : "outline-solid"}
+                        variant={selectedTags.includes(tag) ? "default" : "outline"}
                         size="sm"
                         className="h-8"
                         style={{
@@ -1072,6 +1094,244 @@ export const SavedWorkflowsPanel = React.forwardRef<SavedWorkflowsPanelHandle, S
             </div>
         </DialogContent>
       </Dialog>
+      ) : isOpen ? (
+        // Render as dropdown panel when used in toolbar
+        <div
+          style={{
+            background: 'rgba(39, 39, 42, 0.98)',
+            border: '1px solid rgba(161, 161, 170, 0.3)',
+            borderRadius: '8px',
+            minWidth: '300px',
+            maxWidth: '600px',
+            maxHeight: '70vh',
+            display: 'flex',
+            flexDirection: 'column',
+            fontFamily: 'var(--font-primary)',
+            padding: 0,
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid rgba(161, 161, 170, 0.2)',
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: 'rgb(228, 228, 231)',
+                  fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+                  letterSpacing: '-0.01em',
+                  marginBottom: '4px',
+                }}
+              >
+                Saved Workflows
+              </div>
+              <div
+                style={{
+                  fontSize: '12px',
+                  color: 'rgb(161, 161, 170)',
+                  fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+                  fontWeight: 400,
+                  letterSpacing: '0',
+                  marginBottom: '12px',
+                }}
+              >
+                {filteredWorkflows.length} of {savedWorkflows.length} workflow{savedWorkflows.length !== 1 ? 's' : ''}
+              </div>
+              {showInlineSave ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                  <input
+                    type="text"
+                    value={saveName}
+                    onChange={(e) => setSaveName(e.target.value)}
+                    placeholder="Enter workflow name..."
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        saveWorkflowToLibrary();
+                      } else if (e.key === 'Escape') {
+                        setShowInlineSave(false);
+                        setSaveName('');
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '6px 12px',
+                      background: 'rgba(24, 24, 27, 0.8)',
+                      border: '1px solid rgba(161, 161, 170, 0.3)',
+                      borderRadius: '6px',
+                      color: 'rgb(228, 228, 231)',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      setShowInlineSave(false);
+                      setSaveName('');
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'rgba(39, 39, 42, 0.8)',
+                      border: '1px solid rgba(161, 161, 170, 0.3)',
+                      borderRadius: '6px',
+                      color: 'rgb(228, 228, 231)',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(161, 161, 170, 0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(39, 39, 42, 0.8)';
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => saveWorkflowToLibrary()}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 12px',
+                      background: '#22c55e',
+                      border: 'none',
+                      borderRadius: '6px',
+                      color: 'white',
+                      fontSize: '13px',
+                      fontWeight: 500,
+                      fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#16a34a';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#22c55e';
+                    }}
+                  >
+                    <Save size={14} strokeWidth={2} />
+                    Save
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setShowInlineSave(true);
+                    setSaveName('');
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    background: 'rgba(39, 39, 42, 0.8)',
+                    border: '1px solid rgba(161, 161, 170, 0.3)',
+                    borderRadius: '6px',
+                    color: 'rgb(228, 228, 231)',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(161, 161, 170, 0.2)';
+                    e.currentTarget.style.borderColor = 'rgba(161, 161, 170, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(39, 39, 42, 0.8)';
+                    e.currentTarget.style.borderColor = 'rgba(161, 161, 170, 0.3)';
+                  }}
+                >
+                  <Plus size={14} strokeWidth={2} />
+                  Save Current
+                </button>
+              )}
+            </div>
+          </div>
+          <div style={{ padding: '12px', maxHeight: '400px', overflowY: 'auto' }}>
+            {savedWorkflows.length === 0 ? (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '32px 20px', 
+                color: 'rgb(161, 161, 170)',
+                fontSize: '14px',
+                fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+              }}>
+                No saved workflows
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {filteredWorkflows.map((item) => (
+                  <div
+                    key={item.id}
+                    onClick={() => {
+                      loadWorkflowFromLibrary(item);
+                      setIsOpen(false);
+                    }}
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: '6px',
+                      border: item.id === currentWorkflowId 
+                        ? '1px solid rgba(34, 197, 94, 0.4)' 
+                        : '1px solid rgba(161, 161, 170, 0.2)',
+                      background: item.id === currentWorkflowId 
+                        ? 'rgba(34, 197, 94, 0.1)' 
+                        : 'rgba(39, 39, 42, 0.5)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (item.id !== currentWorkflowId) {
+                        e.currentTarget.style.borderColor = 'rgba(161, 161, 170, 0.4)';
+                        e.currentTarget.style.background = 'rgba(39, 39, 42, 0.7)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (item.id !== currentWorkflowId) {
+                        e.currentTarget.style.borderColor = 'rgba(161, 161, 170, 0.2)';
+                        e.currentTarget.style.background = 'rgba(39, 39, 42, 0.5)';
+                      }
+                    }}
+                  >
+                    <div style={{ 
+                      fontSize: '14px', 
+                      fontWeight: 500, 
+                      color: item.id === currentWorkflowId ? 'rgb(228, 228, 231)' : 'rgb(228, 228, 231)', 
+                      marginBottom: '6px',
+                      fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+                      letterSpacing: '-0.01em',
+                    }}>
+                      {item.name}
+                    </div>
+                    <div style={{ 
+                      fontSize: '12px', 
+                      color: 'rgb(161, 161, 170)',
+                      fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+                      fontWeight: 400,
+                    }}>
+                      {item.workflow.flow.nodes.length} nodes • {item.workflow.flow.edges.length} edges
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
 
     </>
   );

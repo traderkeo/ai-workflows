@@ -3,7 +3,8 @@ import { ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import { WorkflowCanvas } from './WorkflowCanvas';
 import { ContextMenu } from './ContextMenu';
 import { CommandPalette } from './CommandPalette';
-import { ThemeProvider } from '../context/ThemeContext';
+import { NodePalette } from './NodePalette';
+import { NodeConfigPanel } from './NodeConfigPanel';
 
 const WorkflowBuilderInner: React.FC = () => {
   const [contextMenu, setContextMenu] = useState<{
@@ -65,36 +66,43 @@ const WorkflowBuilderInner: React.FC = () => {
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      style={{ width: '100%', height: '100%' }}
-      onContextMenu={handleContextMenu}
-    >
-      <WorkflowCanvas />
+    <div className="flex h-screen w-screen bg-zinc-950">
+      {/* Node Palette - Left Sidebar */}
+      <NodePalette />
 
-      {contextMenu && (
-        <ContextMenu
-          position={contextMenu}
-          onClose={handleCloseContextMenu}
-          canvasPosition={getViewport()}
-          zoom={getViewport().zoom}
+      {/* Main Canvas */}
+      <div
+        ref={containerRef}
+        className="flex-1 relative"
+        onContextMenu={handleContextMenu}
+      >
+        <WorkflowCanvas />
+
+        {contextMenu && (
+          <ContextMenu
+            position={contextMenu}
+            onClose={handleCloseContextMenu}
+            canvasPosition={getViewport()}
+            zoom={getViewport().zoom}
+          />
+        )}
+
+        <CommandPalette
+          isOpen={commandPaletteOpen}
+          onClose={() => setCommandPaletteOpen(false)}
         />
-      )}
+      </div>
 
-      <CommandPalette
-        isOpen={commandPaletteOpen}
-        onClose={() => setCommandPaletteOpen(false)}
-      />
+      {/* Configuration Panel - Right Sidebar */}
+      <NodeConfigPanel />
     </div>
   );
 };
 
 export const WorkflowBuilder: React.FC = () => {
   return (
-    <ThemeProvider defaultTheme="cyber-punk">
-      <ReactFlowProvider>
-        <WorkflowBuilderInner />
-      </ReactFlowProvider>
-    </ThemeProvider>
+    <ReactFlowProvider>
+      <WorkflowBuilderInner />
+    </ReactFlowProvider>
   );
 };

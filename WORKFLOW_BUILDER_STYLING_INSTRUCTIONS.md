@@ -1,7 +1,7 @@
 # Workflow Builder Styling Instructions
 
 ## Overview
-This document provides token-efficient instructions for updating `/workflow-builder` to match the interface, styling, spacing, and typography principles from `/workflows` (located at `/app/demos/workflows/page.tsx`).
+This document provides token-efficient instructions for updating `packages/nodes-ai` to match the interface, styling, spacing, and typography principles from `apps/web/src/app/demos/workflows` (located at `/app/demos/workflows/page.tsx`).
 
 ---
 

@@ -373,141 +373,74 @@ export const OPENAI_MODELS = {
 // ============================================================================
 
 export const ANTHROPIC_MODELS = {
-  // Claude 3.5 Series
-  'claude-3-5-sonnet-20241022': {
-    id: 'claude-3-5-sonnet-20241022',
-    provider: 'anthropic',
-    name: 'Claude 3.5 Sonnet',
-    description: 'Most intelligent model (Oct 2024)',
-    maxTokens: 8192,
-    capabilities: [
-      ModelCapabilities.TEXT_GENERATION,
-      ModelCapabilities.OBJECT_GENERATION,
-      ModelCapabilities.TOOL_USAGE,
-      ModelCapabilities.IMAGE_INPUT,
-      ModelCapabilities.WEB_SEARCH,
-      ModelCapabilities.STREAMING,
-    ],
-  },
-  'claude-3-5-haiku-20241022': {
-    id: 'claude-3-5-haiku-20241022',
-    provider: 'anthropic',
-    name: 'Claude 3.5 Haiku',
-    description: 'Fastest and most compact model (Oct 2024)',
-    maxTokens: 8192,
-    capabilities: [
-      ModelCapabilities.TEXT_GENERATION,
-      ModelCapabilities.OBJECT_GENERATION,
-      ModelCapabilities.TOOL_USAGE,
-      ModelCapabilities.WEB_SEARCH,
-      ModelCapabilities.STREAMING,
-    ],
-  },
-
-  // Claude 3 Opus Series
-  'claude-3-opus-20240229': {
-    id: 'claude-3-opus-20240229',
-    provider: 'anthropic',
-    name: 'Claude 3 Opus',
-    description: 'Powerful model for highly complex tasks',
-    maxTokens: 4096,
-    capabilities: [
-      ModelCapabilities.TEXT_GENERATION,
-      ModelCapabilities.OBJECT_GENERATION,
-      ModelCapabilities.TOOL_USAGE,
-      ModelCapabilities.IMAGE_INPUT,
-      ModelCapabilities.WEB_SEARCH,
-      ModelCapabilities.STREAMING,
-    ],
-  },
-
-  // Claude 3 Sonnet Series
-  'claude-3-sonnet-20240229': {
-    id: 'claude-3-sonnet-20240229',
-    provider: 'anthropic',
-    name: 'Claude 3 Sonnet',
-    description: 'Balance of intelligence and speed',
-    maxTokens: 4096,
-    capabilities: [
-      ModelCapabilities.TEXT_GENERATION,
-      ModelCapabilities.OBJECT_GENERATION,
-      ModelCapabilities.TOOL_USAGE,
-      ModelCapabilities.IMAGE_INPUT,
-      ModelCapabilities.WEB_SEARCH,
-      ModelCapabilities.STREAMING,
-    ],
-  },
-
-  // Claude 3 Haiku Series
-  'claude-3-haiku-20240307': {
-    id: 'claude-3-haiku-20240307',
-    provider: 'anthropic',
-    name: 'Claude 3 Haiku',
-    description: 'Fastest and most compact Claude 3 model',
-    maxTokens: 4096,
-    capabilities: [
-      ModelCapabilities.TEXT_GENERATION,
-      ModelCapabilities.OBJECT_GENERATION,
-      ModelCapabilities.TOOL_USAGE,
-      ModelCapabilities.IMAGE_INPUT,
-      ModelCapabilities.WEB_SEARCH,
-      ModelCapabilities.STREAMING,
-    ],
-  },
-
-  // Claude 3.7 Series (latest)
-  'claude-3-7-sonnet-latest': {
-    id: 'claude-3-7-sonnet-latest',
-    provider: 'anthropic',
-    name: 'Claude 3.7 Sonnet',
-    description: 'Latest Claude 3.7 generation',
-    maxTokens: 8192,
-    capabilities: [
-      ModelCapabilities.TEXT_GENERATION,
-      ModelCapabilities.OBJECT_GENERATION,
-      ModelCapabilities.TOOL_USAGE,
-      ModelCapabilities.IMAGE_INPUT,
-      ModelCapabilities.WEB_SEARCH,
-      ModelCapabilities.STREAMING,
-    ],
-  },
-  'claude-3-5-haiku-latest': {
-    id: 'claude-3-5-haiku-latest',
-    provider: 'anthropic',
-    name: 'Claude 3.5 Haiku (Latest)',
-    description: 'Latest fast model',
-    maxTokens: 8192,
-    capabilities: [
-      ModelCapabilities.TEXT_GENERATION,
-      ModelCapabilities.OBJECT_GENERATION,
-      ModelCapabilities.TOOL_USAGE,
-      ModelCapabilities.WEB_SEARCH,
-      ModelCapabilities.STREAMING,
-    ],
-  },
-
-  // Claude 4 Series
-  'claude-haiku-4-5': {
-    id: 'claude-haiku-4-5',
-    provider: 'anthropic',
-    name: 'Claude Haiku 4.5',
-    description: 'Next-gen fast model',
-    maxTokens: 8192,
-    capabilities: [
-      ModelCapabilities.TEXT_GENERATION,
-      ModelCapabilities.OBJECT_GENERATION,
-      ModelCapabilities.TOOL_USAGE,
-      ModelCapabilities.IMAGE_INPUT,
-      ModelCapabilities.WEB_SEARCH,
-      ModelCapabilities.STREAMING,
-    ],
-  },
-  'claude-sonnet-4-5': {
-    id: 'claude-sonnet-4-5',
+  // Claude 4 Series (with date suffixes - actual API model IDs)
+  'claude-sonnet-4-5-20250929': {
+    id: 'claude-sonnet-4-5-20250929',
     provider: 'anthropic',
     name: 'Claude Sonnet 4.5',
-    description: 'Next-gen balanced model',
-    maxTokens: 8192,
+    description: 'Our smartest model for complex agents and coding',
+    maxTokens: 65536, // 64K tokens max output
+    capabilities: [
+      ModelCapabilities.TEXT_GENERATION,
+      ModelCapabilities.OBJECT_GENERATION,
+      ModelCapabilities.TOOL_USAGE,
+      ModelCapabilities.IMAGE_INPUT,
+      ModelCapabilities.WEB_SEARCH,
+      ModelCapabilities.STREAMING,
+    ],
+  },
+  'claude-haiku-4-5-20251001': {
+    id: 'claude-haiku-4-5-20251001',
+    provider: 'anthropic',
+    name: 'Claude Haiku 4.5',
+    description: 'Our fastest model with near-frontier intelligence',
+    maxTokens: 65536, // 64K tokens max output
+    capabilities: [
+      ModelCapabilities.TEXT_GENERATION,
+      ModelCapabilities.OBJECT_GENERATION,
+      ModelCapabilities.TOOL_USAGE,
+      ModelCapabilities.IMAGE_INPUT,
+      ModelCapabilities.WEB_SEARCH,
+      ModelCapabilities.STREAMING,
+    ],
+  },
+  'claude-opus-4-1-20250805': {
+    id: 'claude-opus-4-1-20250805',
+    provider: 'anthropic',
+    name: 'Claude Opus 4.1',
+    description: 'Exceptional model for specialized reasoning tasks',
+    maxTokens: 32768, // 32K tokens max output
+    capabilities: [
+      ModelCapabilities.TEXT_GENERATION,
+      ModelCapabilities.OBJECT_GENERATION,
+      ModelCapabilities.TOOL_USAGE,
+      ModelCapabilities.IMAGE_INPUT,
+      ModelCapabilities.WEB_SEARCH,
+      ModelCapabilities.STREAMING,
+    ],
+  },
+  // Claude 4 Series (aliases)
+  'claude-sonnet-4-5': {
+    id: 'claude-sonnet-4-5-20250929',
+    provider: 'anthropic',
+    name: 'Claude Sonnet 4.5',
+    description: 'Our smartest model for complex agents and coding',
+    maxTokens: 65536,
+    capabilities: [
+      ModelCapabilities.TEXT_GENERATION,
+      ModelCapabilities.OBJECT_GENERATION,
+      ModelCapabilities.TOOL_USAGE,
+      ModelCapabilities.IMAGE_INPUT,
+      ModelCapabilities.WEB_SEARCH,
+      ModelCapabilities.STREAMING,
+    ],
+  },
+  'claude-haiku-4-5': {
+    id: 'claude-haiku-4-5-20251001',
+    provider: 'anthropic',
+    name: 'Claude Haiku 4.5',
+    description: 'Our fastest model with near-frontier intelligence',
+    maxTokens: 65536,
     capabilities: [
       ModelCapabilities.TEXT_GENERATION,
       ModelCapabilities.OBJECT_GENERATION,
@@ -518,11 +451,11 @@ export const ANTHROPIC_MODELS = {
     ],
   },
   'claude-opus-4-1': {
-    id: 'claude-opus-4-1',
+    id: 'claude-opus-4-1-20250805',
     provider: 'anthropic',
     name: 'Claude Opus 4.1',
-    description: 'Most powerful Claude 4',
-    maxTokens: 8192,
+    description: 'Exceptional model for specialized reasoning tasks',
+    maxTokens: 32768,
     capabilities: [
       ModelCapabilities.TEXT_GENERATION,
       ModelCapabilities.OBJECT_GENERATION,
@@ -768,16 +701,20 @@ export function getProviderModel(modelId) {
   }
 
   const modelInfo = getModelInfo(modelId);
+  
+  // Use the actual API model ID from the config (handles aliases)
+  // This ensures that aliases like 'claude-3-5-sonnet' map to 'claude-3-5-sonnet-20241022'
+  const actualModelId = modelInfo.id || modelId;
 
   switch (modelInfo.provider) {
     case 'openai':
-      return openai(modelId);
+      return openai(actualModelId);
 
     case 'anthropic':
-      return anthropic(modelId);
+      return anthropic(actualModelId);
 
     case 'google':
-      return google(modelId);
+      return google(actualModelId);
 
     default:
       // Default to OpenAI GPT-4o-mini

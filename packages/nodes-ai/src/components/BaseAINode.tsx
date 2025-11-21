@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { Loader2, Edit2, Check, X } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/Collapsible';
 import type { AINodeData, NodeStatus } from '../types';
 import { useFlowStore } from '../hooks/useFlowStore';
 import {
@@ -41,6 +40,59 @@ const statusLabels: Record<NodeStatus, string> = {
   warning: 'Warning',
 };
 
+// Node category colors based on functional type
+type NodeCategory = 'trigger' | 'action' | 'logic' | 'transform' | 'data' | 'control';
+
+const getNodeCategory = (nodeType: string): NodeCategory => {
+  // Triggers
+  if (['start'].includes(nodeType)) return 'trigger';
+  // Actions
+  if (['generate', 'ai-agent', 'http-request', 'web-scrape', 'web-search', 'image-generation', 'audio-tts', 'video-generation'].includes(nodeType)) return 'action';
+  // Logic
+  if (['condition', 'merge', 'loop', 'splitter', 'aggregator'].includes(nodeType)) return 'logic';
+  // Transform
+  if (['transform', 'template', 'rerank'].includes(nodeType)) return 'transform';
+  // Data
+  if (['file-upload', 'document-ingest', 'retrieval-qa', 'cache', 'guardrail'].includes(nodeType)) return 'data';
+  // Control
+  if (['stop'].includes(nodeType)) return 'control';
+  // Default to action
+  return 'action';
+};
+
+const categoryColors: Record<NodeCategory, { bg: string; border: string; badge: string }> = {
+  trigger: {
+    bg: 'rgb(20 83 45)', // green-900
+    border: 'rgb(34 197 94)', // green-500
+    badge: 'rgb(22 163 74)', // green-700
+  },
+  action: {
+    bg: 'rgb(30 58 138)', // blue-900
+    border: 'rgb(59 130 246)', // blue-500
+    badge: 'rgb(37 99 235)', // blue-700
+  },
+  logic: {
+    bg: 'rgb(88 28 135)', // purple-900
+    border: 'rgb(168 85 247)', // purple-500
+    badge: 'rgb(147 51 234)', // purple-700
+  },
+  transform: {
+    bg: 'rgb(154 52 18)', // orange-900
+    border: 'rgb(249 115 22)', // orange-500
+    badge: 'rgb(234 88 12)', // orange-700
+  },
+  data: {
+    bg: 'rgb(69 26 3)', // amber-900
+    border: 'rgb(245 158 11)', // amber-500
+    badge: 'rgb(217 119 6)', // amber-700
+  },
+  control: {
+    bg: 'rgb(69 10 10)', // red-900
+    border: 'rgb(239 68 68)', // red-500
+    badge: 'rgb(220 38 38)', // red-700
+  },
+};
+
 const BaseAINodeComponent: React.FC<BaseAINodeProps> = ({
   data,
   icon,
@@ -50,16 +102,21 @@ const BaseAINodeComponent: React.FC<BaseAINodeProps> = ({
   className = '',
   selected,
   id,
+  type,
   headerActions,
   footerContent,
 }) => {
   const status = (data.status || 'idle') as NodeStatus;
   const statusColor = statusColors[status];
   const { updateNode } = useFlowStore();
+  
+  // Get node category and colors based on node type
+  const nodeType = type || '';
+  const category = getNodeCategory(nodeType);
+  const categoryColor = categoryColors[category];
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(data.name || '');
-  const [isCollapsed, setIsCollapsed] = useState(data.isCollapsed ?? false);
 
   const handleSaveName = () => {
     if (editedName.trim()) {
@@ -73,13 +130,16 @@ const BaseAINodeComponent: React.FC<BaseAINodeProps> = ({
     setIsEditingName(false);
   };
 
-  const handleCollapseChange = (open: boolean) => {
-    setIsCollapsed(!open);
-    updateNode(id, { isCollapsed: !open });
-  };
 
   return (
-    <div className={`ai-node ${className} bg-zinc-900 p-1 rounded-lg shadow-md overflow-hidden`} data-status={status}>
+    <div 
+      className={`ai-node ${className} p-1 rounded-lg shadow-md overflow-hidden`} 
+      data-status={status}
+      style={{
+        backgroundColor: categoryColor.bg,
+        border: `2px solid ${categoryColor.border}`,
+      }}
+    >
       {/* Input Handle */}
       {hasInput && (
         <Handle
@@ -91,8 +151,23 @@ const BaseAINodeComponent: React.FC<BaseAINodeProps> = ({
       )}
 
       {/* Header */}
-      <div className="flex items-center gap-2 bg-zinc-700 p-2 rounded-md">
-        {icon && <div className="size-[60px] bg-zinc-900  text-white text-black border border-zinc-500  rounded-md shadow-md items-center justify-center flex">{icon}</div>}
+      <div 
+        className="flex items-center gap-2 p-2 rounded-md"
+        style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        }}
+      >
+        {icon && (
+          <div 
+            className="size-[30px] text-white rounded-md shadow-md items-center justify-center flex"
+            style={{
+              backgroundColor: categoryColor.badge,
+              border: `1px solid ${categoryColor.border}`,
+            }}
+          >
+            {icon}
+          </div>
+        )}
         <div style={{ flex: 1 }}>
           {/* Custom Name (Now on top) */}
           <div className="" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -153,9 +228,9 @@ const BaseAINodeComponent: React.FC<BaseAINodeProps> = ({
             ) : (
               <>
                 <div
-                  className="text-sm font-medium text-gray-900 uppercase"
+                  className="text-sm font-medium text-gray-100 uppercase"
                 >
-                  {data.name || 'Unnamed'}
+                  {data.name || 'Unnamed'} {}
                 </div>
                 <button
                   onClick={() => setIsEditingName(true)}
@@ -169,17 +244,9 @@ const BaseAINodeComponent: React.FC<BaseAINodeProps> = ({
               </>
             )}
           </div>
-          {/* Node Type (Now below name) */}
-          <Pill className='bg-zinc-900 w-fit py-1 px-2 rounded-md text-xs text-gray-500 uppercase'>
-          {data.label}
-          </Pill>
-      
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            {headerActions}
-          </div>
-          {!footerContent && (
+          {headerActions ? headerActions : (!footerContent && (
             <div
               className="ai-node-status-badge"
               style={{
@@ -196,62 +263,69 @@ const BaseAINodeComponent: React.FC<BaseAINodeProps> = ({
               {status === 'running' && <Loader2 size={10} className="animate-spin" />}
               {statusLabels[status]}
             </div>
-          )}
+          ))}
         </div>
       </div>
 
-      {/* Body (Collapsible) */}
-      <Collapsible open={!isCollapsed} onOpenChange={handleCollapseChange}>
-        <CollapsibleTrigger asChild>
-          <button
+      {/* Body - Just show play button and results */}
+      <div 
+        className="ai-node-body" 
+        style={{ 
+          padding: '8px',
+          backgroundColor: 'rgba(0, 0, 0, 0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+        }}
+      >
+        {/* Category Badge - Left Aligned with underline */}
+        <div className='gap-3' style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid rgba(161, 161, 170, 0.3)' }}>
+          <div
             style={{
-              width: '100%',
+              backgroundColor: categoryColor.badge,
+              color: 'white',
               padding: '6px 16px',
-              background: 'rgba(176, 38, 255, 0.2)',
-              border: '1px solid rgba(176, 38, 255, 0.5)',
-              borderTop: 'none',
-              borderLeft: 'none',
-              borderRight: 'none',
-              borderRadius: '0',
-              color: 'var(--cyber-neon-purple)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '10px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
               fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
-              fontWeight: 500,
-              letterSpacing: '0.01em',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
             }}
-            title={isCollapsed ? 'Expand' : 'Collapse'}
           >
-            {isCollapsed ? '▼' : '▲'}
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <div className="ai-node-body">
-            {data.description && (
-              <div className="ai-node-field">
-                <span className="ai-node-field-label">Description</span>
-                <div className="ai-node-field-value">{data.description}</div>
-              </div>
-            )}
-
-            {children}
-
-            {data.error && (
-              <div className="ai-node-field">
-                <span className="ai-node-field-label" style={{ color: '#ff0040' }}>
-                  Error
-                </span>
-                <div className="ai-node-field-value" style={{ color: '#ff0040' }}>
-                  {data.error}
-                </div>
-              </div>
-            )}
+            {category.toUpperCase()}
           </div>
-        </CollapsibleContent>
-      </Collapsible>
+          <div
+            style={{
+              backgroundColor: categoryColor.badge,
+              color: 'white',
+              padding: '6px 16px',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+              opacity: 0.5,
+            }}
+          >
+            {data.label?.toUpperCase()}
+          </div>
+        </div>
+        
+        {children}
+        
+        {data.error && (
+          <div className="ai-node-field" style={{ marginTop: 8 }}>
+            <span className="ai-node-field-label" style={{ color: '#ff0040', fontSize: '11px' }}>
+              Error
+            </span>
+            <div className="ai-node-field-value" style={{ color: '#ff0040', fontSize: '11px', marginTop: 4 }}>
+              {data.error}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Footer */}
       {footerContent ? (
@@ -264,7 +338,7 @@ const BaseAINodeComponent: React.FC<BaseAINodeProps> = ({
         )
       )}
 
-      {/* Output Handle */}
+      {/* Output Handle - Default right-side handle */}
       {hasOutput && (
         <Handle
           type="source"

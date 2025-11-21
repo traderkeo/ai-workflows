@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { WorkflowBuilder, NotificationProvider } from '@repo/nodes-ai';
 import '@repo/nodes-ai/styles';
+import './workflow-builder.css';
 import { toast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import {
@@ -132,7 +133,7 @@ export default function WorkflowBuilderPage() {
   return (
     <>
       <NotificationProvider value={notificationValue}>
-        <div className="w-screen h-screen bg-background">
+        <div className="w-screen h-screen bg-zinc-950 overflow-hidden">
           <WorkflowBuilder />
         </div>
       </NotificationProvider>

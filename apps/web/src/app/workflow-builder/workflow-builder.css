@@ -1,0 +1,205 @@
+/* Workflow Builder Dark Theme Overrides - Matching /workflow n8n-style */
+
+/* Override nodes-ai theme to match n8n-style dark theme */
+[data-theme] .react-flow {
+  background-color: rgb(24 24 27) !important; /* zinc-900 */
+  background-image: none !important;
+}
+
+[data-theme] {
+  --gothic-black: rgb(9 9 11); /* zinc-950 */
+  --gothic-charcoal: rgb(24 24 27); /* zinc-900 */
+  --gothic-slate: rgb(39 39 42); /* zinc-800 */
+  --gothic-gray: rgb(63 63 70); /* zinc-700 */
+  --gothic-mist: rgb(82 82 91); /* zinc-600 */
+  --background-primary: rgb(24 24 27) !important; /* zinc-900 */
+  
+  /* Override cyber-punk neon colors to be more subtle */
+  --cyber-neon-purple: rgb(161 161 170); /* zinc-400 */
+  --cyber-neon-cyan: rgb(161 161 170); /* zinc-400 */
+  --cyber-neon-magenta: rgb(161 161 170); /* zinc-400 */
+  --cyber-neon-green: rgb(34 197 94); /* green-500 for execute button */
+  --cyber-neon-yellow: rgb(234 179 8); /* yellow-500 */
+  
+  /* Status colors matching n8n */
+  --status-idle: rgb(161 161 170); /* zinc-400 */
+  --status-running: rgb(59 130 246); /* blue-500 */
+  --status-success: rgb(34 197 94); /* green-500 */
+  --status-error: rgb(239 68 68); /* red-500 */
+  --status-warning: rgb(234 179 8); /* yellow-500 */
+  
+  /* Border and shadow adjustments */
+  --border-glow: 1px;
+  --node-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --edge-glow: none;
+}
+
+/* Override toolbar styling to match /workflow */
+[data-theme] .react-flow__panel {
+  background: transparent !important;
+}
+
+/* Toolbar background matching /workflow */
+[data-theme] .react-flow__panel > div {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 8px 12px !important;
+}
+
+/* Execute button styling to match /workflow */
+[data-theme] .toolbar-actions button.primary,
+[data-theme] .toolbar-actions button[class*="primary"] {
+  background-color: rgb(34 197 94) !important; /* green-600 */
+  color: white !important;
+  border: none !important;
+}
+
+[data-theme] .toolbar-actions button.primary:hover,
+[data-theme] .toolbar-actions button[class*="primary"]:hover {
+  background-color: rgb(22 163 74) !important; /* green-700 */
+}
+
+
+/* Toolbar button styling - match /workflow ghost buttons */
+[data-theme] .toolbar-actions button:not(.primary):not([class*="primary"]) {
+  background: transparent !important;
+  color: rgb(161 161 170) !important; /* zinc-400 */
+  border: none !important;
+}
+
+[data-theme] .toolbar-actions button:not(.primary):not([class*="primary"]):hover {
+  background: rgb(39 39 42) !important; /* zinc-800 */
+  color: white !important;
+}
+
+/* Node styling adjustments */
+[data-theme] .react-flow__node {
+  background: rgb(39 39 42) !important; /* zinc-800 */
+  border: 1px solid rgb(63 63 70) !important; /* zinc-700 */
+  color: rgb(244 244 245) !important; /* zinc-100 */
+}
+
+/* Edge styling */
+[data-theme] .react-flow__edge-path {
+  stroke: rgb(161 161 170) !important; /* zinc-400 */
+  stroke-width: 2px !important;
+}
+
+[data-theme] .react-flow__edge.selected .react-flow__edge-path {
+  stroke: rgb(34 197 94) !important; /* green-500 */
+}
+
+/* Controls styling */
+[data-theme] .react-flow__controls {
+  background: rgb(39 39 42) !important; /* zinc-800 */
+  border: 1px solid rgb(63 63 70) !important; /* zinc-700 */
+}
+
+[data-theme] .react-flow__controls-button {
+  background: rgb(39 39 42) !important; /* zinc-800 */
+  border-bottom: 1px solid rgb(63 63 70) !important; /* zinc-700 */
+  color: rgb(244 244 245) !important; /* zinc-100 */
+}
+
+[data-theme] .react-flow__controls-button:hover {
+  background: rgb(63 63 70) !important; /* zinc-700 */
+}
+
+/* Minimap styling */
+[data-theme] .react-flow__minimap {
+  background: rgb(39 39 42) !important; /* zinc-800 */
+  border: 1px solid rgb(63 63 70) !important; /* zinc-700 */
+}
+
+/* Background dots - make them subtle */
+[data-theme] .react-flow__background {
+  --bg-pattern-color: rgb(63 63 70) !important; /* zinc-700 */
+}
+
+[data-theme] .react-flow__background-pattern {
+  stroke: rgb(63 63 70) !important; /* zinc-700 */
+  opacity: 0.3 !important;
+}
+
+/* Context menu styling */
+[data-theme] div[style*="gothic-charcoal"],
+[data-theme] div[style*="gothic-slate"] {
+  background: rgb(39 39 42) !important; /* zinc-800 */
+  border: 1px solid rgb(63 63 70) !important; /* zinc-700 */
+  color: rgb(244 244 245) !important; /* zinc-100 */
+}
+
+/* Command palette styling */
+[data-theme] [role="dialog"],
+[data-theme] [class*="CommandPalette"] {
+  background: rgb(39 39 42) !important; /* zinc-800 */
+  border: 1px solid rgb(63 63 70) !important; /* zinc-700 */
+  color: rgb(244 244 245) !important; /* zinc-100 */
+}
+
+/* Remove viewport filter/glow effects */
+[data-theme] .react-flow__viewport {
+  filter: none !important;
+}
+
+/* Status indicator styling */
+[data-theme] [class*="status"],
+[data-theme] [class*="Status"] {
+  color: rgb(34 197 94) !important; /* green-500 for ready status */
+}
+
+/* Text colors */
+[data-theme] {
+  --text-primary: rgb(244 244 245) !important; /* zinc-100 */
+  --text-secondary: rgb(161 161 170) !important; /* zinc-400 */
+  --text-muted: rgb(113 113 122) !important; /* zinc-500 */
+}
+
+/* Node styling - n8n style */
+[data-theme] .react-flow__node {
+  background: rgb(39 39 42) !important; /* zinc-800 */
+  border: 1px solid rgb(63 63 70) !important; /* zinc-700 */
+  color: rgb(244 244 245) !important; /* zinc-100 */
+  border-radius: 8px !important;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
+}
+
+[data-theme] .react-flow__node.selected {
+  border-color: rgb(34 197 94) !important; /* green-500 */
+  box-shadow: 0 0 0 2px rgb(34 197 94 / 0.2) !important;
+}
+
+/* Remove all neon/cyber effects */
+[data-theme] * {
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme] .react-flow__node,
+[data-theme] .react-flow__edge-path,
+[data-theme] .react-flow__controls-button {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1) !important;
+}
+
+/* Status colors matching n8n */
+[data-theme] [class*="status"] {
+  color: rgb(161 161 170) !important; /* zinc-400 */
+}
+
+[data-theme] [class*="status"][class*="success"],
+[data-theme] [class*="status-success"] {
+  color: rgb(34 197 94) !important; /* green-500 */
+}
+
+[data-theme] [class*="status"][class*="error"],
+[data-theme] [class*="status-error"] {
+  color: rgb(239 68 68) !important; /* red-500 */
+}
+
+[data-theme] [class*="status"][class*="running"],
+[data-theme] [class*="status-running"] {
+  color: rgb(59 130 246) !important; /* blue-500 */
+}
+

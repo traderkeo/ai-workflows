@@ -110,6 +110,44 @@ const StartNodeComponent: React.FC<NodeProps> = (props) => {
 
   const statusColor = statusColors[status];
 
+  const testButton = (
+    <button
+      onClick={handleTest}
+      disabled={isTesting}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '6px 12px',
+        background: 'rgba(39, 39, 42, 0.8)',
+        border: '1px solid rgba(161, 161, 170, 0.3)',
+        borderRadius: '6px',
+        color: 'rgb(228, 228, 231)',
+        fontSize: '12px',
+        fontWeight: 500,
+        fontFamily: 'var(--font-geist-sans, "Geist", "Inter", sans-serif)',
+        cursor: isTesting ? 'not-allowed' : 'pointer',
+        opacity: isTesting ? 0.6 : 1,
+        transition: 'all 0.2s',
+      }}
+      onMouseEnter={(e) => {
+        if (!isTesting) {
+          e.currentTarget.style.background = 'rgba(161, 161, 170, 0.2)';
+          e.currentTarget.style.borderColor = 'rgba(161, 161, 170, 0.5)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isTesting) {
+          e.currentTarget.style.background = 'rgba(39, 39, 42, 0.8)';
+          e.currentTarget.style.borderColor = 'rgba(161, 161, 170, 0.3)';
+        }
+      }}
+    >
+      <Play size={14} strokeWidth={2} />
+      {isTesting ? 'Testing...' : 'Test'}
+    </button>
+  );
+
   // Custom footer with status badge and execution time
   const customFooter = data.executionTime !== undefined && (
     <div className="ai-node-footer" style={{ 
@@ -163,121 +201,31 @@ const StartNodeComponent: React.FC<NodeProps> = (props) => {
       hasInput={false}
       hasOutput={true}
       footerContent={customFooter}
+      headerActions={testButton}
     >
-      {/* Type Badge Row */}
-      <div className="ai-node-field flex items-center gap-2" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
-        <button
-          disabled
-          className="text-xs px-3 py-1.5 rounded-md transition-colors bg-cyan-600/40 text-cyan-300 border border-cyan-500/50"
-          style={{
-            fontWeight: 600,
-            letterSpacing: '0.05em',
-            fontFamily: 'inherit',
-            textTransform: 'uppercase',
-          }}
-        >
-          {data.valueType === 'string' ? 'TEXT' : data.valueType === 'number' ? 'NUMBER' : data.valueType === 'object' ? 'OBJECT' : 'ARRAY'}
-        </button>
-      </div>
-
-      {/* Initial Data - Styled similar to Prompt field */}
-      <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
-        <div className="text-xs text-zinc-400 mb-1.5" style={{ fontWeight: 500, letterSpacing: '0.01em' }}>Initial Data</div>
-        <textarea
-          className="nodrag"
-          value={displayValue}
-          onChange={(e) => handleValueChange(e.target.value)}
-          placeholder="Enter starting data for workflow..."
-          rows={3}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            background: 'rgba(0, 0, 0, 0.2)',
-            borderRadius: '4px',
-            border: '1px solid rgba(0, 242, 255, 0.2)',
-            color: 'var(--text-primary, #e5e5e5)',
-            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
-            fontSize: '13px',
-            fontWeight: 400,
-            letterSpacing: '0.01em',
-            resize: 'vertical',
-            outline: 'none',
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(0, 242, 255, 0.5)';
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(0, 242, 255, 0.2)';
-          }}
-        />
-      </div>
-
-      {/* Data Type Selector */}
-      <div className="ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
-        <div className="text-xs text-zinc-400 mb-1.5" style={{ fontWeight: 500, letterSpacing: '0.01em' }}>Data Type</div>
-        <select
-          className="nodrag"
-          value={data.valueType}
-          onChange={(e) => handleTypeChange(e.target.value as StartNodeData['valueType'])}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            background: 'rgba(0, 0, 0, 0.2)',
-            borderRadius: '4px',
-            border: '1px solid rgba(176, 38, 255, 0.2)',
-            color: 'var(--text-primary, #e5e5e5)',
-            fontFamily: 'inherit',
-            fontSize: '13px',
-            fontWeight: 400,
-            letterSpacing: '0.01em',
-            outline: 'none',
-            cursor: 'pointer',
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(176, 38, 255, 0.5)';
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(176, 38, 255, 0.2)';
-          }}
-        >
-          <option value="string">Text</option>
-          <option value="number">Number</option>
-          <option value="object">JSON Object</option>
-          <option value="array">Array</option>
-        </select>
-      </div>
-
-      {/* Test Button */}
-      <div className="hidden ai-node-field flex items-center gap-2">
-        <Button
-          onClick={handleTest}
-          disabled={isTesting}
-          variant="default"
-          size="sm"
-          className="flex-1 rounded-full"
-        >
-          <Play size={14} />
-          {isTesting ? 'Testing...' : 'Test'}
-        </Button>
-      </div>
-
-      {/* Output Preview - Show when data exists */}
-      {data.value !== undefined && data.value !== '' && (
-        <div className="hidden ai-node-field" style={{ fontFamily: 'var(--font-geist-sans, "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif)' }}>
-          <div className="text-xs text-zinc-400 mb-1.5" style={{ fontWeight: 500, letterSpacing: '0.01em' }}>Output</div>
-          <div className="max-h-[100px] overflow-y-auto px-3 py-2 bg-black/30 rounded-md border border-green-500/30 text-[13px] text-zinc-200" style={{
-            fontFamily: 'var(--font-geist-mono, "Geist Mono", "JetBrains Mono", monospace)',
-            fontWeight: 400,
-            letterSpacing: '0.01em',
-          }}>
-            <pre className="whitespace-pre-wrap wrap-break-word m-0" style={{ fontFamily: 'inherit', fontWeight: 'inherit' }}>
-              {typeof data.value === 'object'
-                ? JSON.stringify(data.value, null, 2)
-                : String(data.value)}
-            </pre>
+      {/* Settings Info - White Text */}
+      <div style={{ marginBottom: 8, fontSize: '11px', fontFamily: 'monospace', color: '#e4e4e7' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {data.value !== undefined && data.value !== '' && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
+              <span style={{ color: '#71717a', flexShrink: 0 }}>value:</span>
+              <span style={{ color: '#e4e4e7', wordBreak: 'break-word', maxWidth: '100%' }}>
+                {typeof data.value === 'object'
+                  ? JSON.stringify(data.value).length > 30 
+                    ? `${JSON.stringify(data.value).substring(0, 30)}...` 
+                    : JSON.stringify(data.value)
+                  : String(data.value).length > 30 
+                    ? `${String(data.value).substring(0, 30)}...` 
+                    : String(data.value)}
+              </span>
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ color: '#71717a' }}>type:</span>
+            <span style={{ color: '#e4e4e7' }}>{data.valueType}</span>
           </div>
         </div>
-      )}
+      </div>
     </BaseAINode>
   );
 };
